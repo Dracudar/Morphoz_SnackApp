@@ -7,7 +7,8 @@ Code GUI de l'application SnackApp de Morphoz
 import tkinter as tk
 from tkinter import ttk
 # Fonctions back-end
-from Morphoz_SnackApp.Back import menu, stock, decremente_stock
+from Morphoz_SnackApp.back import menu, stock, decremente_stock
+from Morphoz_SnackApp.utils import sauvegarder_stock, enregistrer_commande
 
 ### Variables globales
 
@@ -66,7 +67,7 @@ def afficher_gestion_stock():
 def sauvegarder_stock():
     for ingredient, var in stock_vars.items():
         stock[ingredient] = var.get()
-    print("Stocks mis à jour :", stock)
+    sauvegarder_stock(stock, "stock.json")  # Sauvegarder dans un fichier JSON
     afficher_categories()  # Retour au menu principal après sauvegarde
 
 ### Interface gestion des commandes
@@ -88,6 +89,7 @@ def valider_commande(commande_id):
     commande = next(cmd for cmd in commandes_en_cours if cmd["id"] == commande_id)
     try:
         decremente_stock(commande["details"]["Ingrédients"])
+        enregistrer_commande(commande, "commandes.log")  # Enregistrer la commande dans un fichier log
         commandes_en_cours = [cmd for cmd in commandes_en_cours if cmd["id"] != commande_id]
         afficher_commandes_en_cours()
     except ValueError as e:
@@ -133,7 +135,8 @@ def submit_pizza_order():
     selected_base = base_var.get()
     selected_ingredients = [ingredient for ingredient, var in ingredient_vars.items() if var.get()]
     try:
-        decremente_stock([selected_base] + selected_ingredients)
+        # Décompter uniquement la "Pâte à pizza"
+        decremente_stock(["Pâte à pizza"])
         commandes_en_cours.append({
             "id": len(commandes_en_cours) + 1,
             "type": "Pizza",
