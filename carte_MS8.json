@@ -59,8 +59,18 @@
         "Viande(s)": ["Poitrine", "Chipolatta", "Merguez", "Steak vegé"],
         "Accompagnement": ["Frites", "Légumes"]
     },
-    "Accompagnement seul": {
-        "Frites": {},
-        "Légumes": {}
+    "Barquette de frites": {},
+        "Salade composée": {
+        "Mélange": [
+            "Pâtes Farfalle", 
+            "Poulet", 
+            "Lardons", 
+            "Oignons", 
+            "Poivrons", 
+            "Olives", 
+            "Haricots rouges", 
+            "Maïs", 
+            "Roquette"
+        ]
     }
 }

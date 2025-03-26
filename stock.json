@@ -1,11 +1,11 @@
 {
   "Produits": {
-    "Pâte à pizza": 50,
-    "Poitrine": 50,
-    "Chipolatta": 50,
-    "Merguez": 50,
-    "Steak vegé": 50,
-    "Frites": 50,
-    "Légumes": 50
+    "Pâte à pizza": {"Quantité": 50, "OutOfStock": false},
+    "Poitrine": {"Quantité": 50, "OutOfStock": false},
+    "Chipolatta": {"Quantité": 50, "OutOfStock": false},
+    "Merguez": {"Quantité": 50, "OutOfStock": false},
+    "Steak vegé": {"Quantité": 50, "OutOfStock": false},
+    "Salade composée": {"OutOfStock": false},
+    "Frites": {"OutOfStock": false}
   }
 }
