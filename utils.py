@@ -37,3 +37,7 @@ def enregistrer_commande(commande, fichier="commandes.log"):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         f.write(f"[{timestamp}] {commande}\n")
         print(f"Commande enregistrée : {commande}")
+
+def est_en_stock(stock, produit):
+    '''Vérifie si un produit est en stock.'''
+    return not stock[produit]["OutOfStock"] and stock[produit]["Quantité"] > 0

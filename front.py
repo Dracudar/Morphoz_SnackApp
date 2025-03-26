@@ -53,20 +53,27 @@ def afficher_gestion_stock():
         widget.destroy()
 
     # Afficher les stocks actuels
-    ttk.Label(section_principale, text="Gestion des stocks :").grid(row=0, column=0, columnspan=2, sticky="w")
-    for i, (ingredient, quantite) in enumerate(stock.items()):
+    ttk.Label(section_principale, text="Gestion des stocks :").grid(row=0, column=0, columnspan=3, sticky="w")
+    for i, (ingredient, data) in enumerate(stock.items()):
         ttk.Label(section_principale, text=f"{ingredient} :").grid(row=i+1, column=0, sticky="w")
-        quantite_var = tk.IntVar(value=quantite)
+        quantite_var = tk.IntVar(value=data["Quantité"])
         ttk.Entry(section_principale, textvariable=quantite_var, width=5).grid(row=i+1, column=1, sticky="w")
         stock_vars[ingredient] = quantite_var
 
+        out_of_stock_var = tk.BooleanVar(value=data["OutOfStock"])
+        ttk.Checkbutton(section_principale, text="Out of Stock", variable=out_of_stock_var).grid(row=i+1, column=2, sticky="w")
+        stock_vars[f"{ingredient}_OutOfStock"] = out_of_stock_var
+
     # Boutons pour sauvegarder les stocks et retourner au menu principal
-    ttk.Button(section_principale, text="Sauvegarder", command=sauvegarder_stock).grid(row=len(stock)+1, column=0, columnspan=2)
-    ttk.Button(section_principale, text="Retour", command=afficher_categories).grid(row=len(stock)+2, column=0, columnspan=2)
+    ttk.Button(section_principale, text="Sauvegarder", command=sauvegarder_stock).grid(row=len(stock)+1, column=0, columnspan=3)
+    ttk.Button(section_principale, text="Retour", command=afficher_categories).grid(row=len(stock)+2, column=0, columnspan=3)
 
 def sauvegarder_stock():
     for ingredient, var in stock_vars.items():
-        stock[ingredient] = var.get()
+        if "_OutOfStock" in ingredient:
+            stock[ingredient.replace("_OutOfStock", "")]["OutOfStock"] = var.get()
+        else:
+            stock[ingredient]["Quantité"] = var.get()
     sauvegarder_stock(stock, "stock.json")  # Sauvegarder dans un fichier JSON
     afficher_categories()  # Retour au menu principal après sauvegarde
 

@@ -10,14 +10,10 @@ stock = charger_stock("stock.json")
 
 def decremente_stock(ingredients):
     for ingredient in ingredients:
-        # Ne décompter que la "Pâte à pizza" pour les pizzas
-        if ingredient == "Pâte à pizza" and stock[ingredient] > 0:
-            stock[ingredient] -= 1
-        elif ingredient != "Pâte à pizza" and ingredient in stock and stock[ingredient] > 0:
-            stock[ingredient] -= 1
-        else:
-            raise ValueError(f"Stock insuffisant pour {ingredient}")
-    sauvegarder_stock(stock, "stock.json")  # Sauvegarder après modification
+        if not est_en_stock(stock, ingredient):
+            raise ValueError(f"{ingredient} est en rupture de stock.")
+        stock[ingredient]["Quantité"] -= 1
+    sauvegarder_stock(stock, "stock.json")
 
 def charger_recettes(fichier):
     """Charge les recettes depuis un fichier JSON."""
