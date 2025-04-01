@@ -1,6 +1,6 @@
 {
   "Produits": {
-    "Pâte à pizza": {"Quantité": 50, "OutOfStock": false},
+    "Pizza": {"Quantité": 50, "OutOfStock": false},
     "Poitrine": {"Quantité": 50, "OutOfStock": false},
     "Chipolatta": {"Quantité": 50, "OutOfStock": false},
     "Merguez": {"Quantité": 50, "OutOfStock": false},

@@ -7,7 +7,7 @@ Code GUI de l'application SnackApp de Morphoz
 import tkinter as tk
 from tkinter import ttk
 # Fonctions back-end
-from Morphoz_SnackApp.back import menu, stock, decremente_stock
+from Morphoz_SnackApp.back import stock, decremente_stock
 from Morphoz_SnackApp.utils import sauvegarder_stock, enregistrer_commande
 
 ### Variables globales
@@ -107,6 +107,11 @@ def afficher_recettes_pizza():
     # Effacer la section principale
     for widget in section_principale.winfo_children():
         widget.destroy()
+
+    # Charger le menu si nécessaire
+    from Morphoz_SnackApp.back import menu, charger_menu
+    if menu is None:
+        charger_menu("carte_MS8.json")
 
     # Section pour choisir une recette
     ttk.Label(section_principale, text="Choisissez une recette :").grid(row=0, column=0, sticky="w")
