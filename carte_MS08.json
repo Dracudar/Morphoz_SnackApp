@@ -15,6 +15,7 @@
             "Roquette", 
             "Sauce BBQ"
         ],
+        "Prix": 6,
         "Recettes": {
             "Personnalisable": {"Base": [], "Ingrédients": []},
             "Meat BBQ (crème poulet)": {
