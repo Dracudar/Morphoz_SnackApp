@@ -7,5 +7,6 @@
     "Steak vegé": {"Quantité": 50, "OutOfStock": false},
     "Salade composée": {"OutOfStock": false},
     "Frites": {"OutOfStock": false}
+    "Légumes": {"OutOfStock": false},
   }
 }
