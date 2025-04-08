@@ -1,5 +1,6 @@
 {
     "Pizza": {
+        "Prix": 6,
         "Base": ["Tomate", "Crème"],
         "Ingrédients": [
             "Mozzarella", 
@@ -15,7 +16,6 @@
             "Roquette", 
             "Sauce BBQ"
         ],
-        "Prix": 6,
         "Recettes": {
             "Personnalisable": {"Base": [], "Ingrédients": []},
             "Meat BBQ (crème poulet)": {
@@ -57,12 +57,16 @@
         }
     },
     "Grillade": {
+        "Prix": 5,
         "Viande(s)": ["Poitrine", "Chipolatta", "Merguez", "Steak vegé"],
         "Accompagnement": ["Frites", "Légumes"]
     },
-    "Barquette de frites": {},
+    "Barquette de frites": {
+        "Prix": 2.5
+    },
     "Salade composée": {
-        "Mélange": [
+        "Prix": 4,
+        "Ingrédients": [
             "Pâtes Farfalle", 
             "Poulet", 
             "Lardons", 
