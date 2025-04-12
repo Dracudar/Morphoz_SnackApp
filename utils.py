@@ -1,19 +1,33 @@
 '''
 Sous-fichier comprenant diverses fonctions utilitaires pour le projet SnackApp.
 '''
-### Importer les modules nécessaires
+#! Importer les modules nécessaires
 import json
 import os
 from datetime import datetime
 from tkinter import filedialog
+import tkinter as tk
 
-# Définir le chemin absolu pour config.json
+#! Définir le chemin absolu pour config.json
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Répertoire du fichier utils.py
 CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
 
-#### Fonctions utilitaires
-## Fonction pour charger un fichier JSON
-def chercher_fichier():
+# Variables globales pour les chemins
+stock_file_path = None
+menu_file_path = None
+
+#! Fonctions
+#!! Récupération des valeurs des variables de config.json
+def get_stock_file_path():
+    """Retourne la variable stock_file_path."""
+    return stock_file_path
+
+def get_menu_file_path():
+    """Retourne la variable menu_file_path."""
+    return menu_file_path
+
+#!! Choix et chargement des fichiers JSON
+def chercher_fichier(): # Ouvre un explorateur de fichiers pour sélectionner un fichier JSON
     '''Ouvre un explorateur de fichiers pour sélectionner un fichier JSON.'''
     filepath = filedialog.askopenfilename(
         filetypes=[("Fichiers JSON", "*.json")],
@@ -21,18 +35,36 @@ def chercher_fichier():
     )
     return filepath
 
-def sauvegarder_chemins(stock_path, menu_path):
-    """Sauvegarde les chemins des fichiers JSON dans un fichier de configuration."""
-    data = {
-        "stock_file": stock_path,
-        "menu_file": menu_path
-    }
-    with open(CONFIG_FILE, "w") as f:
-        json.dump(data, f)
-
-def charger_chemins():
+def charger_chemins(): # Charge les chemins des fichiers JSON depuis un fichier de configuration
     """Charge les chemins des fichiers JSON depuis un fichier de configuration."""
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "r") as f:
             return json.load(f)
     return {"stock_file": "", "menu_file": ""}
+
+def initialiser_chemins(): # Initialise les variables globales pour les chemins
+    """Initialise les variables globales pour les chemins."""
+    global stock_file_path, menu_file_path
+    chemins = charger_chemins()
+    stock_file_path = tk.StringVar(value=chemins.get("stock_file", ""))
+    menu_file_path = tk.StringVar(value=chemins.get("menu_file", ""))
+
+#!! Fonctions de sauvegarde des chemins dans config.json
+def sauvegarder_chemin_stock(stock_path):  # Sauvegarde uniquement le chemin du fichier stock
+    """Sauvegarde le chemin du fichier stock dans le fichier de configuration."""
+    data = charger_chemins()
+    data["stock_file"] = stock_path
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(data, f)
+
+def sauvegarder_chemin_menu(menu_path):  # Sauvegarde uniquement le chemin du fichier menu
+    """Sauvegarde le chemin du fichier menu dans le fichier de configuration."""
+    data = charger_chemins()
+    data["menu_file"] = menu_path
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(data, f)
+
+def sauvegarder_chemins(stock_path, menu_path):  # Regroupe les deux sauvegardes
+    """Sauvegarde les chemins des fichiers stock et menu dans le fichier de configuration."""
+    sauvegarder_chemin_stock(stock_path)
+    sauvegarder_chemin_menu(menu_path)
