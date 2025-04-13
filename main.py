@@ -15,4 +15,3 @@ def main():
 # Vérifier si le script est exécuté directement
 if __name__ == "__main__":
     main()
-
