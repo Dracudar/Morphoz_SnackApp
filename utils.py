@@ -4,9 +4,11 @@ Sous-fichier comprenant diverses fonctions utilitaires pour le projet SnackApp.
 #! Importer les modules nécessaires
 import json
 import os
-from datetime import datetime
-from tkinter import filedialog
+#from datetime import datetime
+from PIL import Image, ImageTk
+
 import tkinter as tk
+from tkinter import filedialog
 
 #! Définir le chemin absolu pour config.json
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Répertoire du fichier utils.py
@@ -68,3 +70,16 @@ def sauvegarder_chemins(stock_path, menu_path):  # Regroupe les deux sauvegardes
     """Sauvegarde les chemins des fichiers stock et menu dans le fichier de configuration."""
     sauvegarder_chemin_stock(stock_path)
     sauvegarder_chemin_menu(menu_path)
+
+#!! Chargement et redimensionnement d'images
+def charger_logo(chemin, taille=()):
+    """
+    Charge et redimensionne une image pour tkinter.
+
+    :param chemin: Chemin vers le fichier image.
+    :param taille: Tuple (largeur, hauteur) pour redimensionner l'image.
+    :return: ImageTk.PhotoImage pour utilisation dans tkinter.
+    """
+    img = Image.open(chemin)
+    img = img.resize(taille, Image.Resampling.LANCZOS)
+    return ImageTk.PhotoImage(img)
