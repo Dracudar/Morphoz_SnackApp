@@ -65,8 +65,9 @@ style.configure(
 #! Interfaces d'initialisation de l'app permettant la vérification des fichier JSON et leur chargement
 def menu_initialisation():
     ''' Affichage permettant de choisir les fichiers JSON de stock et de menu à utiliser '''
-    #!! Création de la fenêtre principale
-    root.title("SnackApp - Menu d'initialisation")
+    # === Création de la fenêtre principale ===
+    ''' Cette section crée la fenêtre principale de l'application, configure son apparence et mappe des touches pour la gestion du plein écran. '''
+    root.title("SnackApp Morphoz")
     root.attributes('-fullscreen', True)  # Active le mode plein écran
     root.configure(bg="#2b2b2b")  # Couleur de fond sombre
     root.bind("<Escape>", lambda event: root.attributes('-fullscreen', False))
@@ -145,96 +146,68 @@ Permet :
 '''
 
 def menu_principal():
-    # Réutiliser l'instance existante de root
-    root.title("SnackApp - Menu principal")
-    root.attributes('-fullscreen', True)  # Active le mode plein écran
-    root.configure(bg="#2b2b2b")  # Couleur de fond sombre
-    root.bind("<Escape>", lambda event: root.attributes('-fullscreen', False))
-    root.bind("<F11>", lambda event: root.attributes('-fullscreen', True))
-
-
     # Cadre principal
     frame_principal = ttk.Frame(root, style="TFrame")
     frame_principal.pack(fill="both", expand=True, padx=20, pady=20)
 
-    # Section des catégories (haut gauche)
-    frame_categories = ttk.Frame(frame_principal, style="TFrame")
-    frame_categories.place(relx=0.05, rely=0.05, relwidth=0.6, relheight=0.6)
+    # === Section gauche (2/3) ===
+    frame_gauche = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
+    frame_gauche.place(relx=0, rely=0, relwidth=2/3, relheight=1)
 
-    categories = ["Pizza", "Grillade", "Frite", "Salade composée"]
-    for i, categorie in enumerate(categories):
-        ttk.Button(
-            frame_categories,
-            text=categorie,
-            style="TButton"
-        ).grid(row=0, column=i, padx=10, pady=10)
-
-    # Section des commandes en cours (haut droite)
-    frame_commandes = ttk.Frame(frame_principal, style="TFrame")
-    frame_commandes.place(relx=0.7, rely=0.05, relwidth=0.25, relheight=0.6)
+    # == Sous-section gauche haut (3/4) ==
+    frame_gauche_haut = ttk.Frame(frame_gauche, style="TFrame", borderwidth=2, relief="solid")
+    frame_gauche_haut.place(relx=0, rely=0, relwidth=1, relheight=3/4)
 
     ttk.Label(
-        frame_commandes,
-        text="Commandes en cours :",
-        style="TLabel"
-    ).pack(anchor="nw", padx=10, pady=10)
+        frame_gauche_haut,
+        text="Section gauche haut (3/4)",
+        style="TLabel",
+        background="#2b2b2b",
+        foreground="white"
+    ).pack(padx=10, pady=10)
 
-    # Section récapitulatif (bas gauche)
-    frame_recap = ttk.Frame(frame_principal, style="TFrame")
-    frame_recap.place(relx=0.05, rely=0.7, relwidth=0.6, relheight=0.2)
-
-    ttk.Label(
-        frame_recap,
-        text="Récap de la prise de commande {aaaammjj-000} :",
-        style="TLabel"
-    ).pack(anchor="nw", padx=10, pady=10)
-
-    # Section montant et paiement (bas droite)
-    frame_paiement = ttk.Frame(frame_principal, style="TFrame")
-    frame_paiement.place(relx=0.7, rely=0.7, relwidth=0.25, relheight=0.2)
+    # == Récapitulatif et paiement - Sous-section gauche bas (1/4) ==
+    frame_gauche_bas = ttk.Frame(frame_gauche, style="TFrame", borderwidth=2, relief="solid")
+    frame_gauche_bas.place(relx=0, rely=3/4, relwidth=1, relheight=1/4)
 
     ttk.Label(
-        frame_paiement,
-        text="Montant : 0,00 €",
-        style="TLabel"
-    ).pack(anchor="nw", padx=10, pady=10)
+        frame_gauche_bas,
+        text="Récapitulatif et paiement",
+        style="TLabel",
+        background="#2b2b2b",
+        foreground="white"
+    ).pack(padx=10, pady=10)
 
-    boutons_paiement = ["CB", "Espèce", "Gratuit"]
-    for i, bouton in enumerate(boutons_paiement):
-        ttk.Button(
-            frame_paiement,
-            text=bouton,
-            style="TButton"
-        ).pack(side="top", fill="x", padx=10, pady=5)
+    # === Section droite (1/3) ===
+    frame_droite = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
+    frame_droite.place(relx=2/3, rely=0, relwidth=1/3, relheight=1)
 
-    # Bouton quitter (en bas à droite)
-    ttk.Button(
-        frame_principal,
-        text="Quitter",
+    # == Commandes en cours - Sous-section droite haut (14/15) ==
+    frame_droite_haut = ttk.Frame(frame_droite, style="TFrame", borderwidth=2, relief="solid")
+    frame_droite_haut.place(relx=0, rely=0, relwidth=1, relheight=14/15)
+
+    ttk.Label(
+        frame_droite_haut,
+        text="Commandes en cours :\n",
+        style="TLabel",
+        background="#2b2b2b",
+        foreground="white"
+    ).pack(padx=10, pady=10)
+
+    # == Sous-section droite bas (1/15) ==
+    frame_droite_bas = ttk.Frame(frame_droite, style="TFrame", borderwidth=2, relief="solid")
+    frame_droite_bas.place(relx=0, rely=14/15, relwidth=1, relheight=1/15)
+
+    # = Bouton exit =
+    frame_exit = ttk.Frame(frame_droite_bas, style="TFrame")
+    frame_exit.place(relx=0.845, rely=0.1, relwidth=0.2, relheight=0.8)  # Ajuster la taille et la position de la frame
+
+    logo_exit_tk = charger_logo("Logos/exit.png", taille=(30, 30))  # Charger le logo de sortie
+    bouton_exit = ttk.Button(
+        frame_exit,
+        image=logo_exit_tk,
         command=quitter_application,
         style="TButton"
-    ).place(relx=0.9, rely=0.9, anchor="center")
-
-    # Bouton paramètres (en bas à gauche)
-    logo_parametres_tk = charger_logo("Logos/roue_dentee.png", taille=(30, 30))  # Charger le logo des paramètres
-    bouton_parametres = ttk.Button(
-        frame_principal,
-        image=logo_parametres_tk,
-        command=lambda: print("Paramètres"),
-        style="TButton"
     )
-    bouton_parametres.image = logo_parametres_tk  # Préserver la référence pour éviter le garbage collection
-    bouton_parametres.place(relx=0.05, rely=0.9, anchor="w")
-
-
-
-    # Exemple pour un autre logo (par exemple, un logo d'aide)
-    logo_aide_tk = charger_logo("Logos/aide.png", taille=(30, 30))  # Charger le logo d'aide
-    bouton_aide = ttk.Button(
-        frame_principal,
-        image=logo_aide_tk,
-        command=lambda: print("Aide"),
-        style="TButton"
-    )
-    bouton_aide.image = logo_aide_tk  # Préserver la référence pour éviter le garbage collection
-    bouton_aide.place(relx=0.1, rely=0.9, anchor="w")
+    bouton_exit.image = logo_exit_tk  # Préserver la référence pour éviter le garbage collection
+    bouton_exit.place(relx=0.5, rely=0.5, anchor="center")  # Centrer le bouton dans la frame
