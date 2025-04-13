@@ -53,6 +53,10 @@
             "Végé (crème)": {
                 "Base": ["Crème"], 
                 "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Champignons", "Olives noires", "Roquette"]
+            },
+            "Végé (tomate)": {
+                "Base": ["Tomate"], 
+                "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Champignons", "Olives noires", "Roquette"]
             }
         }
     },
