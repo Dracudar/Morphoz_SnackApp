@@ -7,6 +7,7 @@ Code GUI de l'application SnackApp de Morphoz
 from utils import chercher_fichier, sauvegarder_chemins
 from utils import initialiser_chemins, get_stock_file_path, get_menu_file_path
 from utils import charger_logo
+from styles import configurer_styles  # Importer la configuration des styles
 
 #!! Modules pour l'interface graphique
 import tkinter as tk
@@ -14,53 +15,16 @@ from tkinter import ttk
 from tkinter import messagebox
 root = tk.Tk()
 
-
 # Initialiser les chemins
 initialiser_chemins()
+
+# Configurer les styles
+configurer_styles()
 
 #!! Arrêt de l'application
 def quitter_application():
     sauvegarder_chemins(get_stock_file_path().get(), get_menu_file_path().get())  # Sauvegarder les chemins avant de quitter
     root.destroy()  # Fermer la fenêtre
-
-#!! Configuration des styles de l'application
-style = ttk.Style()
-style.theme_use("clam")  # Utiliser un thème compatible avec la personnalisation
-
-# Configuration du style pour les boutons (TButton)
-style.configure(
-    "TButton", 
-    font=("Cambria", 12),  # Définit la police et sa taille
-    relief="flat",  # Style de bouton plat pour un design moderne
-    background="#444444",  # Couleur de fond sombre
-    foreground="white"  # Texte en blanc pour un bon contraste
-)
-style.map(
-    "TButton", 
-    background=[("active", "#555555")]  # Changer la couleur de fond lorsque le bouton est actif (interactif)
-)
-
-# Configuration du style pour les labels (TLabel)
-style.configure(
-    "TLabel", 
-    font=("Cambria", 12),  # Définit la police et sa taille
-    background="#2b2b2b",  # Couleur de fond sombre
-    foreground="white"  # Texte en blanc pour une bonne lisibilité
-)
-
-# Configuration du style pour les champs de saisie (TEntry)
-style.configure(
-    "TEntry", 
-    font=("Cambria", 10),  # Définit la police et sa taille
-    fieldbackground="#444444",  # Couleur de fond sombre
-    foreground="white"  # Texte en blanc pour un bon contraste
-)
-
-# Configuration du style pour les cadres / conteneurs principaux (TFrame)
-style.configure(
-    "TFrame", 
-    background="#2b2b2b"  # Couleur de fond sombre
-)
 
 #! Interfaces d'initialisation de l'app permettant la vérification des fichier JSON et leur chargement
 def menu_initialisation():
@@ -146,29 +110,39 @@ Permet :
 '''
 
 def menu_principal():
-    # Cadre principal
-    frame_principal = ttk.Frame(root, style="TFrame")
+    # === Création des sections ===
+    # == Cadre principal ==
+    frame_principal = ttk.Frame(root, style="TFrame", borderwidth=2, relief="solid")
     frame_principal.pack(fill="both", expand=True, padx=20, pady=20)
 
-    # === Section gauche (2/3) ===
-    frame_gauche = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
-    frame_gauche.place(relx=0, rely=0, relwidth=2/3, relheight=1)
+    # == Section gauche haut (x:2/3 y:3/4) : Menu ==
+    frame_gauche_haut = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
+    frame_gauche_haut.place(relx=0, rely=0, relwidth=2/3, relheight=1/4)
 
-    # == Sous-section gauche haut (3/4) ==
-    frame_gauche_haut = ttk.Frame(frame_gauche, style="TFrame", borderwidth=2, relief="solid")
-    frame_gauche_haut.place(relx=0, rely=0, relwidth=1, relheight=3/4)
+    # == Section gauche milieu (x:2/3 y:2/4) : Ecran de saisi ==
+    frame_gauche_bas = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
+    frame_gauche_bas.place(relx=0, rely=1/4, relwidth=2/3, relheight=2/4)
 
+    # == Section gauche bas (x:2/3 y:1/4) : Récapitulatif et paiement ==
+    frame_gauche_bas = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
+    frame_gauche_bas.place(relx=0, rely=3/4, relwidth=2/3, relheight=1/4)
+
+    # == Section droite haut (x:1/3 y:14/15) : Commandes en cours ==
+    frame_droite_haut = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
+    frame_droite_haut.place(relx=2/3, rely=0, relwidth=1/3, relheight=14/15)
+
+    # == Section droite bas (x:1/3 y:1/15) ==
+    frame_droite_bas = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
+    frame_droite_bas.place(relx=2/3, rely=14/15, relwidth=1/3, relheight=1/15)
+
+    # === Textes d'instructions ===
     ttk.Label(
         frame_gauche_haut,
-        text="Section gauche haut (3/4)",
+        text="Menu",
         style="TLabel",
         background="#2b2b2b",
         foreground="white"
     ).pack(padx=10, pady=10)
-
-    # == Récapitulatif et paiement - Sous-section gauche bas (1/4) ==
-    frame_gauche_bas = ttk.Frame(frame_gauche, style="TFrame", borderwidth=2, relief="solid")
-    frame_gauche_bas.place(relx=0, rely=3/4, relwidth=1, relheight=1/4)
 
     ttk.Label(
         frame_gauche_bas,
@@ -178,14 +152,6 @@ def menu_principal():
         foreground="white"
     ).pack(padx=10, pady=10)
 
-    # === Section droite (1/3) ===
-    frame_droite = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
-    frame_droite.place(relx=2/3, rely=0, relwidth=1/3, relheight=1)
-
-    # == Commandes en cours - Sous-section droite haut (14/15) ==
-    frame_droite_haut = ttk.Frame(frame_droite, style="TFrame", borderwidth=2, relief="solid")
-    frame_droite_haut.place(relx=0, rely=0, relwidth=1, relheight=14/15)
-
     ttk.Label(
         frame_droite_haut,
         text="Commandes en cours :\n",
@@ -194,12 +160,12 @@ def menu_principal():
         foreground="white"
     ).pack(padx=10, pady=10)
 
-    # == Sous-section droite bas (1/15) ==
-    frame_droite_bas = ttk.Frame(frame_droite, style="TFrame", borderwidth=2, relief="solid")
-    frame_droite_bas.place(relx=0, rely=14/15, relwidth=1, relheight=1/15)
-
+    # === Création des boutons ===
+    # == Bouton menu ==
+    
+    # = Bouton stock =
     # = Bouton exit =
-    frame_exit = ttk.Frame(frame_droite_bas, style="TFrame")
+    frame_exit = ttk.Frame(frame_droite_bas, style="TFrame",)
     frame_exit.place(relx=0.845, rely=0.1, relwidth=0.2, relheight=0.8)  # Ajuster la taille et la position de la frame
 
     logo_exit_tk = charger_logo("Logos/exit.png", taille=(30, 30))  # Charger le logo de sortie
