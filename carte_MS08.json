@@ -1,6 +1,6 @@
 {
     "Pizza": {
-        "Prix": 6,
+        "Prix": 6.00,
         "Base": ["Tomate", "Crème"],
         "Ingrédients": [
             "Mozzarella", 
@@ -61,15 +61,15 @@
         }
     },
     "Grillade": {
-        "Prix": 5,
+        "Prix": 5.00,
         "Viande(s)": ["Poitrine", "Chipolatta", "Merguez", "Steak vegé"],
         "Accompagnement": ["Frites", "Légumes"]
     },
-    "Barquette de frites": {
-        "Prix": 2.5
+    "Frites": {
+        "Prix": 2.50
     },
     "Salade composée": {
-        "Prix": 4,
+        "Prix": 4.00,
         "Ingrédients": [
             "Pâtes Farfalle", 
             "Poulet", 
