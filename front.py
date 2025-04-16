@@ -3,7 +3,7 @@ Code GUI de l'application SnackApp de Morphoz
 '''
 
 #! Importer les modules nécessaires
-# Import des fonctions utiolitaires et de configuration
+# Import des fonctions utilitaires et de configuration
 from utils import chercher_fichier, sauvegarder_chemins
 from utils import initialiser_chemins, get_stock_file_path, get_menu_file_path
 from utils import charger_logo
@@ -19,7 +19,8 @@ from tkinter import ttk
 from tkinter import messagebox
 root = tk.Tk()
 
-#! Initialisation et définitions mineur importantz
+#! Initialisation et définitions mineur importantes
+images_references = [] # Liste globale pour stocker les références des images
 initialiser_chemins() # Initialiser les chemins
 configurer_styles() # Configurer les styles
 
@@ -119,9 +120,17 @@ def menu_principal(): # 2nd interface
     frame_principal = ttk.Frame(root, style="TFrame", borderwidth=2, relief="solid")
     frame_principal.pack(fill="both", expand=True, padx=20, pady=20)
 
-    # == Section gauche h(x:2/3 y:3/4) aut (x:2/3 y:3/4) : Menu ==
+    # == Section gauche haut (x:2/3 y:3/4) : Menu ==
     frame_gauche_haut = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
     frame_gauche_haut.place(relx=0, rely=0, relwidth=2/3, relheight=1/4)
+
+    ttk.Label(
+        frame_gauche_haut,
+        text="Menu",
+        style="TLabel",
+        background="#2b2b2b",
+        foreground="white"
+    ).pack(padx=10, pady=10)
 
     # Charger les données du fichier JSON de menu
     try:
@@ -130,50 +139,68 @@ def menu_principal(): # 2nd interface
         messagebox.showerror("Erreur", str(e))
         return
 
-    # Ajouter des boutons pour chaque plat
-    for plat in menu_data.keys():
-        # Charger une image par défaut pour les plats (à personnaliser si nécessaire)
-        try:
-            image_path = f"Logos/{plat.lower()}.png"  # Exemple : "Logos/pizza.png"
-            logo_tk = charger_logo(image_path, taille=(50, 50))
-        except FileNotFoundError:
-            logo_tk = None  # Si l'image n'existe pas, pas d'image
+    # Créer un cadre pour centrer les boutons horizontalement
+    frame_boutons = ttk.Frame(frame_gauche_haut, style="TFrame")
+    frame_boutons.pack(expand=True)
 
-        # Créer un bouton avec texte et image
+    # Ajouter des boutons pour chaque plat
+    def structure_boutons_menu(parent, plat, logo_tk, action):
+        """
+        Crée un bouton avec une image et un texte (nom du plat) dans un conteneur de taille fixe.
+        """
+        # Créer un conteneur pour forcer une taille uniforme
+        cadre_bouton = ttk.Frame(parent, width=150, height=150, style="TFrame")
+        cadre_bouton.pack_propagate(False)  # Empêcher le conteneur de s'adapter à son contenu
+        cadre_bouton.pack(side="left", padx=10, pady=10)
+
+        # Ajouter le bouton dans le conteneur
         bouton = ttk.Button(
-            frame_gauche_haut,
+            cadre_bouton,
             text=plat,
             image=logo_tk,
-            compound="left",  # Affiche l'image à gauche du texte
+            command=action,
+            compound="top",  # Affiche le texte en dessous de l'image
             style="TButton"
         )
-        bouton.image = logo_tk  # Préserver la référence pour éviter le garbage collection
-        bouton.pack(side="left", padx=10, pady=10)
+        bouton.image = logo_tk  # Préserver la référence
+        bouton.pack(expand=True, fill="both")  # Remplir tout l'espace du conteneur
+
+    for plat in menu_data:
+        # Charger une image pour les plats
+        try:
+            image_path = f"Logos/{plat.lower()}.png"
+            logo_tk = charger_logo(image_path, taille=(100, 100))
+        except FileNotFoundError:
+            logo_tk = charger_logo("Logos/vide.png", taille=(100, 100))
+
+        images_references.append(logo_tk)  # Stocker la référence
+
+        # Créer le bouton avec la fonction dédiée
+        structure_boutons_menu(
+            parent=frame_boutons,
+            plat=plat,
+            logo_tk=logo_tk,
+            action=lambda p=plat: print(f"Plat sélectionné : {p}")
+        )
 
     # == Section gauche milieu (x:2/3 y:2/4) : Ecran de saisi ==
-    frame_gauche_bas = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
-    frame_gauche_bas.place(relx=0, rely=1/4, relwidth=2/3, relheight=2/4)
+    frame_gauche_milieu = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
+    frame_gauche_milieu.place(relx=0, rely=1/4, relwidth=2/3, relheight=2/4)
+
+    logo_vide_tk = charger_logo("Logos/vide.png", taille=(30, 30))  # Charger le logo de sortie
+    bouton_test = ttk.Button(
+        frame_gauche_milieu,
+        text="Test",
+        image=logo_vide_tk,
+        command=quitter_application,
+        style="TButton"
+    )
+    images_references.append(logo_vide_tk)  # Stocker la référence
+    bouton_test.place(relx=0.5, rely=0.5, anchor="center")  # Centrer le bouton dans la frame
 
     # == Section gauche bas (x:2/3 y:1/4) : Récapitulatif et paiement ==
     frame_gauche_bas = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
     frame_gauche_bas.place(relx=0, rely=3/4, relwidth=2/3, relheight=1/4)
-
-    # == Section droite haut (x:1/3 y:14/15) : Commandes en cours ==
-    frame_droite_haut = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
-    frame_droite_haut.place(relx=2/3, rely=0, relwidth=1/3, relheight=14/15)
-
-    # == Section droite bas (x:1/3 y:1/15) ==
-    frame_droite_bas = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
-    frame_droite_bas.place(relx=2/3, rely=14/15, relwidth=1/3, relheight=1/15)
-
-    # === Textes d'instructions ===
-    ttk.Label(
-        frame_gauche_haut,
-        text="Menu",
-        style="TLabel",
-        background="#2b2b2b",
-        foreground="white"
-    ).pack(padx=10, pady=10)
 
     ttk.Label(
         frame_gauche_bas,
@@ -183,21 +210,27 @@ def menu_principal(): # 2nd interface
         foreground="white"
     ).pack(padx=10, pady=10)
 
+    # == Section droite haut (x:1/3 y:14/15) : Liste des plats commandés ==
+    frame_droite_haut = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
+    frame_droite_haut.place(relx=2/3, rely=0, relwidth=1/3, relheight=14/15)
+
     ttk.Label(
         frame_droite_haut,
-        text="Commandes en cours :\n",
+        text="Plats commandés :\n",
         style="TLabel",
         background="#2b2b2b",
         foreground="white"
     ).pack(padx=10, pady=10)
 
-    # === Création des boutons ===
-    # == Bouton menu ==
-    
+    # == Section droite bas (x:1/3 y:1/15) ==
+    frame_droite_bas = ttk.Frame(frame_principal, style="TFrame", borderwidth=2, relief="solid")
+    frame_droite_bas.place(relx=2/3, rely=14/15, relwidth=1/3, relheight=1/15)
+
     # = Bouton stock =
+    
     # = Bouton exit =
-    frame_exit = ttk.Frame(frame_droite_bas, style="TFrame",)
-    frame_exit.place(relx=0.845, rely=0.1, relwidth=0.2, relheight=0.8)  # Ajuster la taille et la position de la frame
+    frame_exit = ttk.Frame(frame_droite_bas, style="TFrame")
+    frame_exit.place(relx=0.845, rely=0.1, relwidth=0.15, relheight=0.8)  # Ajuster la taille et la position de la frame
 
     logo_exit_tk = charger_logo("Logos/exit.png", taille=(30, 30))  # Charger le logo de sortie
     bouton_exit = ttk.Button(
@@ -206,5 +239,5 @@ def menu_principal(): # 2nd interface
         command=quitter_application,
         style="TButton"
     )
-    bouton_exit.image = logo_exit_tk  # Préserver la référence pour éviter le garbage collection
+    images_references.append(logo_exit_tk)  # Stocker la référence
     bouton_exit.place(relx=0.5, rely=0.5, anchor="center")  # Centrer le bouton dans la frame
