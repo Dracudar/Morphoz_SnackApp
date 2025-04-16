@@ -1,16 +1,16 @@
 '''
 Sous-fichier comprenant diverses fonctions utilitaires pour le projet SnackApp.
 '''
-#! Importer les modules nécessaires
+# === Importer les modules nécessaires === #
 import json
 import os
-#from datetime import datetime
+from datetime import datetime
 from PIL import Image, ImageTk
 
 import tkinter as tk
 from tkinter import filedialog
 
-#! Définir le chemin absolu pour config.json
+# Définir le chemin absolu pour config.json
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Répertoire du fichier utils.py
 CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
 
@@ -18,8 +18,7 @@ CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
 stock_file_path = None
 menu_file_path = None
 
-#! Fonctions
-#!! Récupération des valeurs des variables de config.json
+# === Récupération des valeurs des variables de config.json === #
 def get_stock_file_path():
     """Retourne la variable stock_file_path."""
     return stock_file_path
@@ -28,7 +27,7 @@ def get_menu_file_path():
     """Retourne la variable menu_file_path."""
     return menu_file_path
 
-#!! Choix et chargement des fichiers JSON
+# === Choix des fichiers JSON === #
 def chercher_fichier(): # Ouvre un explorateur de fichiers pour sélectionner un fichier JSON
     '''Ouvre un explorateur de fichiers pour sélectionner un fichier JSON.'''
     filepath = filedialog.askopenfilename(
@@ -51,7 +50,7 @@ def initialiser_chemins(): # Initialise les variables globales pour les chemins
     stock_file_path = tk.StringVar(value=chemins.get("stock_file", ""))
     menu_file_path = tk.StringVar(value=chemins.get("menu_file", ""))
 
-#!! Fonctions de sauvegarde des chemins dans config.json
+# === Fonctions de sauvegarde des chemins dans config.json === #
 def sauvegarder_chemin_stock(stock_path):  # Sauvegarde uniquement le chemin du fichier stock
     """Sauvegarde le chemin du fichier stock dans le fichier de configuration."""
     data = charger_chemins()
@@ -71,8 +70,39 @@ def sauvegarder_chemins(stock_path, menu_path):  # Regroupe les deux sauvegardes
     sauvegarder_chemin_stock(stock_path)
     sauvegarder_chemin_menu(menu_path)
 
-#!! Chargement et redimensionnement d'images
-def charger_logo(chemin, taille=()):
+# === Chargement des données JSON === #
+def charger_donnees_stock(stock_file_path):
+    """
+    Charge les données du fichier JSON de stock.
+
+    :param stock_file_path: Chemin vers le fichier JSON de stock.
+    :return: Données du fichier sous forme de dictionnaire.
+    """
+    try:
+        with open(stock_file_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Le fichier de stock '{stock_file_path}' est introuvable.")
+    except json.JSONDecodeError:
+        raise ValueError(f"Le fichier de stock '{stock_file_path}' contient des données invalides.")
+
+def charger_donnees_menu(menu_file_path):
+    """
+    Charge les données du fichier JSON de menu.
+
+    :param menu_file_path: Chemin vers le fichier JSON de menu.
+    :return: Données du fichier sous forme de dictionnaire.
+    """
+    try:
+        with open(menu_file_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Le fichier de menu '{menu_file_path}' est introuvable.")
+    except json.JSONDecodeError:
+        raise ValueError(f"Le fichier de menu '{menu_file_path}' contient des données invalides.")
+
+# === Chargement et redimensionnement d'images === #
+def charger_img(chemin, taille=()):
     """
     Charge et redimensionne une image pour tkinter.
 
