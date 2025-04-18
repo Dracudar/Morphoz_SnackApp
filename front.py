@@ -12,7 +12,7 @@ from utils import charger_img
 from styles import configurer_styles  # Importer la configuration des styles
 
 # == Fonctions backend == #
-from back import afficher_interface_pizza  # Importer la fonction pour afficher l'interface de la pizza
+from back import interface_pizza_1  # Importer la fonction pour afficher l'interface de la pizza
 
 # == Modules graphiques == #
 import tkinter as tk
@@ -175,7 +175,7 @@ def menu_principal(): # 2nd interface
     try:
         menu_data = charger_donnees_menu(get_menu_file_path().get())
     except (FileNotFoundError, ValueError) as e:
-        messagebox.showerror("Erreur", str(e))
+        messagebox.showerror("Erreur", str(e)) 
         return
 
     # Créer un cadre pour centrer les boutons horizontalement
@@ -219,7 +219,7 @@ def menu_principal(): # 2nd interface
             parent=frame_boutons,
             plat=plat,
             logo_tk=logo_tk,
-            action=lambda p=plat: afficher_interface_pizza(frame_gauche_milieu) if p.lower() == "pizza" else print(f"Plat sélectionné : {p}")
+            action=lambda p=plat: interface_pizza_1(frame_gauche_milieu) if p.lower() == "pizza" else print(f"Plat sélectionné : {p}")
         )
 
     # == Actions support == #
