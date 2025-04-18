@@ -1,31 +1,42 @@
-import json
+# === Importer les modules nécessaires === #
+# == Modules graphiques == #
+import tkinter as tk
+from tkinter import ttk
+from tkinter import messagebox
+from utils import charger_donnees_menu, get_menu_file_path 
 
-def charger_donnees_stock(stock_file_path):
-    """
-    Charge les données du fichier JSON de stock.
+# === Personnalisation des plats === #
+# == Interface pizza == #
+def interface_pizza_1(frame_gauche_milieu):
+    # Charger les données du menu à la demande
+    menu_data = charger_donnees_menu(get_menu_file_path().get())
 
-    :param stock_file_path: Chemin vers le fichier JSON de stock.
-    :return: Données du fichier sous forme de dictionnaire.
-    """
-    try:
-        with open(stock_file_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Le fichier de stock '{stock_file_path}' est introuvable.")
-    except json.JSONDecodeError:
-        raise ValueError(f"Le fichier de stock '{stock_file_path}' contient des données invalides.")
+    # Supprimer tous les widgets existants dans le cadre gauche du milieu
+    for widget in frame_gauche_milieu.winfo_children():
+        widget.destroy()
+    
+    # Récupérer les recettes de pizza
+    recettes_pizza = menu_data.get("Pizza", {}).get("Recettes", {})
 
-def charger_donnees_menu(menu_file_path):
-    """
-    Charge les données du fichier JSON de menu.
+    # Vérifier si des recettes sont disponibles
+    if not recettes_pizza:
+        ttk.Label(
+            frame_gauche_milieu,
+            text="Aucune recette de pizza disponible.",
+            style="TLabel",
+            background="#2b2b2b",
+            foreground="white"
+        ).pack(padx=10, pady=10)
+        return
 
-    :param menu_file_path: Chemin vers le fichier JSON de menu.
-    :return: Données du fichier sous forme de dictionnaire.
-    """
-    try:
-        with open(menu_file_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Le fichier de menu '{menu_file_path}' est introuvable.")
-    except json.JSONDecodeError:
-        raise ValueError(f"Le fichier de menu '{menu_file_path}' contient des données invalides.")
+    # Créer un bouton pour chaque recette de pizza
+    for nom_recette, details_recette in recettes_pizza.items():
+        ttk.Button(
+            frame_gauche_milieu,
+            text=nom_recette,  # Utiliser le nom de la recette (clé)
+            command=lambda r=details_recette: selectionner_pizza(r)  # Associer une commande pour sélectionner la pizza
+        ).pack(padx=10, pady=5, fill="x")
+
+# Fonction pour gérer la sélection d'une pizza
+def selectionner_pizza(recette):
+    messagebox.showinfo("Sélection", f"Vous avez sélectionné : {recette.get('nom', 'Pizza inconnue')}")
