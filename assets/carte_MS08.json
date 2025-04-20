@@ -1,13 +1,16 @@
 {
     "Pizza": {
         "Prix": 6.00,
-        "Base": ["Tomate", "Crème"],
+        "Base": [
+            "Tomate", 
+            "Crème"
+        ],
         "Ingrédients": [
+            "Jambon", 
+            "Lardon", 
+            "Poulet", 
             "Mozzarella", 
             "Champignons", 
-            "Jambon", 
-            "Poulet", 
-            "Lardon", 
             "Oignons", 
             "Poivrons", 
             "Haricots rouges", 
@@ -17,7 +20,10 @@
             "Sauce BBQ"
         ],
         "Recettes": {
-            "Personnalisable": {"Base": [], "Ingrédients": []},
+            "Personnalisable": {
+                "Base": [], 
+                "Ingrédients": []
+            },
             "Meat BBQ (crème poulet)": {
                 "Base": ["Crème"], 
                 "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Poulet", "Sauce BBQ"]
