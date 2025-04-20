@@ -1,5 +1,17 @@
 '''
-Code GUI de l'application SnackApp de Morphoz
+Code UI pour l'interface d'initialisation et l'interface principal de l'application SnackApp.
+
+Interfaces d'initialisation :
+- Sélection du fichier JSON de stock
+- Sélection du fichier JSON de menu
+- Sauvegarde des chemins dans un fichier de configuration
+- Passage au menu principal
+
+Interfaces principales :
+- Choix des plats
+- Récapitulatif des commandes
+- Liste des plats commandés en cours de préparation
+- Section de boutons support (stock, exit)
 '''
 
 # === Importer les modules nécessaires === #
@@ -10,7 +22,10 @@ from src.utils import charger_donnees_menu, charger_donnees_stock, charger_img
 from src.styles import configurer_styles  # Importer la configuration des styles
 
 # == Fonctions backend == #
-from front_temp import interface_pizza_1  # Import de la fonction d'interface de personnalisation de la pizza
+from front_temp import perso_pizza  # Import de la fonction d'interface de personnalisation de la pizza
+from front_temp import perso_grillade  # Import de la fonction d'interface de personnalisation de la grillade
+from front_temp import perso_salade_composee  # Import de la fonction d'interface de personnalisation de la salade composée
+from front_temp import perso_frites  # Import de la fonction d'interface de personnalisation des frites
 
 # == Modules graphiques == #
 import tkinter as tk
@@ -27,7 +42,9 @@ configurer_styles() # Configurer les styles
 def back_frame(): # Fonction pour créer le cadre principal de l'application
     """ Cette section crée la fenêtre principale de l'application, configure son apparence et mappe des touches pour la gestion du plein écran. """
     # == Configuration de la fenêtre principale == #
-    root.title("SnackApp Morphoz")
+    global root
+    root.title("SnackApp Morphoz")  # Titre de la fenêtre
+    # root.iconbitmap("assets/logo.ico")  # Icône de la fenêtre -> à créer
     root.geometry("800x600")  # Taille de la fenêtre
     root.attributes('-fullscreen', True)  # Active le mode plein écran
     root.configure(bg="#2b2b2b")  # Couleur de fond sombre
@@ -84,33 +101,7 @@ def frames_menu_principal(root): # Fonction pour créer les cadres de l'interfac
     global frame_droite_bas  
     frame_droite_bas = ttk.Frame(main_frame, style="TFrame", borderwidth=4, relief="solid")
     frame_droite_bas.place(relx=2/3, rely=14/15, relwidth=1/3, relheight=1/15)
-"""
-def frames_temporaire(main_frame): # Fonction pour créer les sections temporaires de l'interface
-    # == Plats == #
-    # Section temporaire pour la pizza : choix de la recette
-    global frame_temp_pizza_1  
-    frame_temp_pizza_1 = ttk.Frame(main_frame, style="TFrame", borderwidth=4, relief="solid")
-    frame_temp_pizza_1.place(relx=0, rely=0, relwidth=2/3, relheight=1)
-    frame_temp_pizza_1.lower()  # Masquer par défaut
 
-    # Section temporaire pour la pizza : choix de la recette
-    global frame_temp_pizza_2  
-    frame_temp_pizza_2 = ttk.Frame(main_frame, style="TFrame", borderwidth=4, relief="solid")
-    frame_temp_pizza_2.place(relx=0, rely=0, relwidth=2/3, relheight=1)
-    frame_temp_pizza_2.lower()  # Masquer par défaut
-
-    # == Support == #
-    # Section temporaire pour la gestion des stocks
-    global frame_temp_stock  
-    frame_temp_stock = ttk.Frame(main_frame, style="TFrame", borderwidth=4, relief="solid")
-    frame_temp_stock.place(relx=0, rely=0, relwidth=2/3, relheight=1)
-    frame_temp_stock.lower()  # Masquer par défaut
-
-def afficher_frame_temp(frame):
-    for temp_frame in [frame_temp_pizza_1, frame_temp_stock]:
-        temp_frame.lower()  # Masquer toutes les frames
-    frame.lift()  # Afficher la frame demandée
-"""
 def quitter_application(): # Fonction pour d'arrêt propre de l'application
     sauvegarder_chemins(get_stock_file_path().get(), get_menu_file_path().get())  # Sauvegarder les chemins avant de quitter
     root.destroy()  # Fermer la fenêtre
@@ -282,7 +273,7 @@ def menu_principal(): # 2nd interface
     frame_boutons.pack(expand=True)
 
     # Ajouter des boutons pour chaque plat
-    def structure_boutons_menu(parent, plat, logo_tk):
+    def structure_boutons_menu(parent, plat, logo_tk, action):
         """
         Crée un bouton avec une image et un texte (nom du plat) dans un conteneur de taille fixe.
         """
@@ -296,7 +287,7 @@ def menu_principal(): # 2nd interface
             cadre_bouton,
             text=plat,
             image=logo_tk,
-            command=lambda: print(f"Plat sélectionné : {plat}"),  # Impression du plat sélectionné
+            command=action,  # Appeler l'action associée au bouton
             compound="top",  # Affiche le texte en dessous de l'image
             style="TButton"
         )
@@ -312,11 +303,24 @@ def menu_principal(): # 2nd interface
 
         images_references.append(logo_tk)  # Stocker la référence
 
+        # Définir l'action en fonction du plat
+        if plat.lower() == "pizza":
+            action = lambda: perso_pizza(root)  # Appeler la personnalisation des pizzas
+        elif plat.lower() == "grillade":
+            action = lambda: perso_grillade(root)  # Appeler la personnalisation des grillades
+        elif plat.lower() == "salade composée":
+            action = lambda: perso_salade_composee(root)  # Appeler la personnalisation des salades composées
+        elif plat.lower() == "frites":
+            action = lambda: perso_frites(root)  # Appeler la personnalisation des frites
+        else:
+            action = lambda: print(f"Plat sélectionné : {plat}")  # Action par défaut (impression dans la console)
+
         # Créer le bouton avec la fonction dédiée
         structure_boutons_menu(
             parent=frame_boutons,
             plat=plat,
-            logo_tk=logo_tk
+            logo_tk=logo_tk,
+            action=action
         )
 
     # == Actions support == #
