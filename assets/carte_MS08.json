@@ -24,44 +24,24 @@
                 "Base": [], 
                 "Ingrédients": []
             },
-            "Meat BBQ (crème poulet)": {
-                "Base": ["Crème"], 
+            "Meat BBQ (poulet)": {
+                "Base": [], 
                 "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Poulet", "Sauce BBQ"]
             },
-            "Meat BBQ (crème lardon)": {
-                "Base": ["Crème"], 
+            "Meat BBQ (lardon)": {
+                "Base": [], 
                 "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Lardon", "Sauce BBQ"]
             },
-            "Meat BBQ (tomate poulet)": {
-                "Base": ["Tomate"], 
-                "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Poulet", "Sauce BBQ"]
-            },
-            "Meat BBQ (tomate lardon)": {
-                "Base": ["Tomate"], 
-                "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Lardon", "Sauce BBQ"]
-            },
-            "Aïe Caramba (crème poulet)": {
-                "Base": ["Crème"], 
+            "Aïe Caramba (poulet)": {
+                "Base": [], 
                 "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Haricots rouges", "Maïs","Poulet"]
             },
-            "Aïe Caramba (crème lardon)": {
-                "Base": ["Crème"], 
+            "Aïe Caramba (lardon)": {
+                "Base": [], 
                 "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Haricots rouges", "Maïs","Lardon"]
             },
-            "Aïe Caramba (tomate poulet)": {
-                "Base": ["Tomate"], 
-                "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Haricots rouges", "Maïs","Poulet"]
-            },
-            "Aïe Caramba (tomate lardon)": {
-                "Base": ["Tomate"], 
-                "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Haricots rouges", "Maïs","Lardon"]
-            },
-            "Végé (crème)": {
-                "Base": ["Crème"], 
-                "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Champignons", "Olives noires", "Roquette"]
-            },
-            "Végé (tomate)": {
-                "Base": ["Tomate"], 
+            "Végé": {
+                "Base": [], 
                 "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Champignons", "Olives noires", "Roquette"]
             }
         }
