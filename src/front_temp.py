@@ -42,6 +42,7 @@ def pizza_interface_recette(root):
     fenetre_pizza_1 = tk.Toplevel(root)
     fenetre_pizza_1.title("Pizza - Choix de la Recette")
     fenetre_pizza_1.configure(bg="#2b2b2b")
+    fenetre_pizza_1.attributes("-topmost", True)  # Garde la fenêtre au premier plan
 
     # Vérifier si des recettes sont disponibles
     if not recettes_pizza:
@@ -84,6 +85,7 @@ def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, menu_data):
     fenetre_pizza_2 = tk.Toplevel(root)
     fenetre_pizza_2.title("Pizza - Personnalisation")
     fenetre_pizza_2.configure(bg="#2b2b2b")
+    fenetre_pizza_2.attributes("-topmost", True)  # Garde la fenêtre au premier plan
 
     # Bases disponibles
     bases_disponibles = menu_data.get("Pizza", {}).get("Base", [])
@@ -169,7 +171,127 @@ def pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_
 
 # == Interface grillade == #
 def perso_grillade(root):
-    travaux_en_cours(root)
+    """
+    Interface pour personnaliser une grillade.
+    """
+    # Charger les données du menu
+    menu_data = charger_donnees_menu(get_menu_file_path().get())
+    grillade_data = menu_data.get("Grillade", {})
+    viandes_disponibles = grillade_data.get("Viande(s)", {})
+    accompagnements_disponibles = grillade_data.get("Accompagnement", [])
+
+    # Crée une fenêtre pour la personnalisation
+    fenetre_grillade = tk.Toplevel(root)
+    fenetre_grillade.title("Grillade - Personnalisation")
+    fenetre_grillade.configure(bg="#2b2b2b")
+    fenetre_grillade.attributes("-topmost", True)  # Garde la fenêtre au premier plan
+
+    # Variables pour suivre les quantités de viandes
+    quantites_viandes = {viande: tk.IntVar(value=0) for viande in viandes_disponibles}
+
+    # Variable pour l'accompagnement sélectionné
+    accompagnement_selectionne = tk.StringVar(value=accompagnements_disponibles[0] if accompagnements_disponibles else "")
+
+    # Fonction pour mettre à jour les quantités
+    def ajuster_quantite(viande, delta):
+        """
+        Ajuste la quantité de viande sélectionnée en respectant la limite totale de 2 portions.
+        """
+        # Récupère la valeur de la viande depuis le dictionnaire
+        valeur_viande = viandes_disponibles.get(viande, 0)
+        
+        # Calcule le total actuel en fonction des quantités et des valeurs des viandes
+        total_actuel = sum(quantites_viandes[v].get() * viandes_disponibles.get(v, 0) for v in quantites_viandes)
+
+        # Calcule la nouvelle valeur
+        nouvelle_valeur = quantites_viandes[viande].get() + delta
+
+        # Vérifie que le total ne dépasse pas 2 portions
+        if 0 <= nouvelle_valeur * valeur_viande + total_actuel - quantites_viandes[viande].get() * valeur_viande <= 2:
+            quantites_viandes[viande].set(nouvelle_valeur)
+
+    # Affichage des viandes
+    ttk.Label(
+        fenetre_grillade,
+        text="Choisissez vos viandes (max 2 portions) :",
+        font=("Cambria", 14),
+        background="#2b2b2b",
+        foreground="white"
+    ).pack(pady=10)
+
+    for viande in viandes_disponibles:
+        frame_viande = ttk.Frame(fenetre_grillade)
+        frame_viande.pack(fill="x", padx=20, pady=5)
+
+        ttk.Label(
+            frame_viande,
+            text=viande,
+            font=("Cambria", 12),
+            width=20
+        ).pack(side="left")
+
+        ttk.Button(
+            frame_viande,
+            text="-",
+            command=lambda v=viande: ajuster_quantite(v, -1)
+        ).pack(side="left", padx=5)
+
+        ttk.Label(
+            frame_viande,
+            textvariable=quantites_viandes[viande],
+            width=5,
+            anchor="center"
+        ).pack(side="left")
+
+        ttk.Button(
+            frame_viande,
+            text="+",
+            command=lambda v=viande: ajuster_quantite(v, 1)
+        ).pack(side="left", padx=5)
+
+    # Affichage des accompagnements
+    ttk.Label(
+        fenetre_grillade,
+        text="Choisissez un accompagnement :",
+        font=("Cambria", 14),
+        background="#2b2b2b",
+        foreground="white"
+    ).pack(pady=10)
+
+    frame_accompagnements = ttk.Frame(fenetre_grillade)
+    frame_accompagnements.pack(pady=10)
+
+    for i, accompagnement in enumerate(accompagnements_disponibles):
+        ttk.Radiobutton(
+            frame_accompagnements,
+            text=accompagnement,
+            variable=accompagnement_selectionne,
+            value=accompagnement,
+            style="TRadiobutton",
+            width=20  # Uniformiser la largeur
+        ).grid(row=0, column=i, padx=5, pady=5, sticky="w")  # Positionner côte à côte
+
+    # Bouton pour valider la personnalisation
+    def valider_grillade():
+        viandes_choisies = {viande: quantites_viandes[viande].get() for viande in viandes_disponibles if quantites_viandes[viande].get() > 0}
+        accompagnement = accompagnement_selectionne.get()
+
+        # Afficher les choix dans la console (ou les sauvegarder pour une commande)
+        print(f"Viandes choisies : {viandes_choisies}")
+        print(f"Accompagnement choisi : {accompagnement}")
+
+        # Fermer la fenêtre
+        fenetre_grillade.destroy()
+
+    ttk.Button(
+        fenetre_grillade,
+        text="Valider",
+        command=valider_grillade
+    ).pack(pady=20)
+
+    # Ajuster automatiquement la taille de la fenêtre
+    fenetre_grillade.update_idletasks()
+    fenetre_grillade.geometry("")
 
 # == Interface salades composées == #
 def perso_salade_composee(root):
