@@ -48,7 +48,12 @@
     },
     "Grillade": {
         "Prix": 5.00,
-        "Viande(s)": ["Poitrine", "Chipolatta", "Merguez", "Steak vegé"],
+        "Viande(s)": {
+            "Poitrine": 1,
+            "Chipolatta": 1,
+            "Merguez": 1,
+            "Steak vegé": 2
+        },
         "Accompagnement": ["Frites", "Légumes"]
     },
     "Frites": {
