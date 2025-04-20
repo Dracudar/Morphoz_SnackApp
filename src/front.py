@@ -22,10 +22,10 @@ from src.utils import charger_donnees_menu, charger_donnees_stock, charger_img
 from src.styles import configurer_styles  # Importer la configuration des styles
 
 # == Fonctions backend == #
-from front_temp import perso_pizza  # Import de la fonction d'interface de personnalisation de la pizza
-from front_temp import perso_grillade  # Import de la fonction d'interface de personnalisation de la grillade
-from front_temp import perso_salade_composee  # Import de la fonction d'interface de personnalisation de la salade composée
-from front_temp import perso_frites  # Import de la fonction d'interface de personnalisation des frites
+from src.front_temp import perso_pizza  # Import de la fonction d'interface de personnalisation de la pizza
+from src.front_temp import perso_grillade  # Import de la fonction d'interface de personnalisation de la grillade
+from src.front_temp import perso_salade_composee  # Import de la fonction d'interface de personnalisation de la salade composée
+from src.front_temp import perso_frites  # Import de la fonction d'interface de personnalisation des frites
 
 # == Modules graphiques == #
 import tkinter as tk
