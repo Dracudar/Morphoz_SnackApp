@@ -41,7 +41,6 @@ def pizza_interface_recette(root):
     # Crée une fenêtre pour la sélection des recettes
     fenetre_pizza_1 = tk.Toplevel(root)
     fenetre_pizza_1.title("Pizza - Choix de la Recette")
-    fenetre_pizza_1.geometry("600x400")
     fenetre_pizza_1.configure(bg="#2b2b2b")
 
     # Vérifier si des recettes sont disponibles
@@ -69,6 +68,10 @@ def pizza_interface_recette(root):
             text=nom_recette,
             command=lambda r=details_recette: pizza_interface_personnalisation(root, fenetre_pizza_1, r, menu_data)
         ).pack(fill="x", padx=20, pady=5)
+    
+    # Ajuster automatiquement la taille de la fenêtre
+    fenetre_pizza_1.update_idletasks()  # Recalcule la taille en fonction des widgets
+    fenetre_pizza_1.geometry("")  # Ajuste automatiquement la taille
 
 def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, menu_data):
     """
@@ -80,7 +83,6 @@ def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, menu_data):
     # Crée une fenêtre pour la personnalisation
     fenetre_pizza_2 = tk.Toplevel(root)
     fenetre_pizza_2.title("Pizza - Personnalisation")
-    fenetre_pizza_2.geometry("600x400")
     fenetre_pizza_2.configure(bg="#2b2b2b")
 
     # Bases disponibles
@@ -92,43 +94,52 @@ def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, menu_data):
     ingredients_selectionnes = {ingredient: tk.BooleanVar(value=(ingredient in recette.get("Ingrédients", [])))
                                  for ingredient in ingredients_disponibles}
 
-    # Section pour choisir la base
+    # Créer un frame principal pour organiser les colonnes
+    main_frame = ttk.Frame(fenetre_pizza_2)
+    main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+    # Colonne pour les bases
     ttk.Label(
-        fenetre_pizza_2,
-        text="Choisissez une base :",
+        main_frame,
+        text="Base :",
         font=("Cambria", 12),
         background="#2b2b2b",
         foreground="white"
-    ).pack(pady=10)
+    ).grid(row=0, column=0, padx=10, pady=10, sticky="w")
 
-    for base in bases_disponibles:
+    base_frame = ttk.Frame(main_frame)
+    base_frame.grid(row=1, column=0, padx=10, pady=10, sticky="n")
+
+    for i, base in enumerate(bases_disponibles):
         ttk.Radiobutton(
-            fenetre_pizza_2,
+            base_frame,
             text=base,
             variable=base_selectionnee,
             value=base,
-            style="TRadiobutton"
-        ).pack(anchor="w", padx=20)
+            style="TRadiobutton",
+            width=20  # Uniformiser la largeur
+        ).grid(row=i, column=0, padx=5, pady=5, sticky="w")  # Une seule colonne pour les bases
 
-    # Section pour choisir les ingrédients
+    # Colonne pour les ingrédients
     ttk.Label(
-        fenetre_pizza_2,
-        text="Choisissez vos ingrédients :",
+        main_frame,
+        text="Ingrédients :",
         font=("Cambria", 12),
         background="#2b2b2b",
         foreground="white"
-    ).pack(pady=10)
+    ).grid(row=0, column=1, padx=10, pady=10, sticky="w")
 
-    ingredients_frame = ttk.Frame(fenetre_pizza_2)
-    ingredients_frame.pack(fill="both", expand=True, padx=20, pady=10)
+    ingredients_frame = ttk.Frame(main_frame)
+    ingredients_frame.grid(row=1, column=1, padx=10, pady=10, sticky="n")
 
-    for ingredient, var in ingredients_selectionnes.items():
+    for i, (ingredient, var) in enumerate(ingredients_selectionnes.items()):
         ttk.Checkbutton(
             ingredients_frame,
             text=ingredient,
             variable=var,
-            style="TCheckbutton"
-        ).pack(anchor="w")
+            style="TCheckbutton",
+            width=20  # Uniformiser la largeur
+        ).grid(row=i, column=0, padx=5, pady=5, sticky="w")  # Une seule colonne pour les ingrédients
 
     # Bouton pour valider la personnalisation
     ttk.Button(
@@ -136,6 +147,10 @@ def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, menu_data):
         text="Valider",
         command=lambda: pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_2)
     ).pack(pady=20)
+
+    # Ajuster automatiquement la taille de la fenêtre
+    fenetre_pizza_2.update_idletasks()  # Recalcule la taille en fonction des widgets
+    fenetre_pizza_2.geometry("")  # Ajuste automatiquement la taille
 
 # Validation de la personnalisation
 def pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_2):
