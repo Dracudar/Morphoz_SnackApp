@@ -22,6 +22,32 @@ def configurer_styles():
         background=[("active", "#555555")]  # Changer la couleur de fond lorsque le bouton est actif (interactif)
     )
 
+    # Configuration du style pour les boutons de selection unique (TRadiobutton)
+    style.configure(
+        "TRadiobutton", 
+        font=("Cambria", 12),  # Définit la police et sa taille
+        relief="flat",  # Style de bouton plat pour un design moderne
+        background="#444444",  # Couleur de fond sombre
+        foreground="white"  # Texte en blanc pour un bon contraste
+    )
+    style.map(
+        "TRadiobutton", 
+        background=[("active", "#555555")]  # Changer la couleur de fond lorsque le bouton est actif (interactif)
+    )
+
+    # Configuration du style pour les boutons de selection multiples (TCheckbutton)
+    style.configure(
+        "TCheckbutton",
+        font=("Cambria", 12),  # Définit la police et sa taille
+        relief="flat",  # Style de bouton plat pour un design moderne
+        background="#444444",  # Couleur de fond sombre
+        foreground="white"  # Texte en blanc pour un bon contraste
+    )
+    style.map(
+        "TCheckbutton",
+        background=[("active", "#555555")]  # Changer la couleur de fond lorsque le bouton est actif (interactif)
+    )
+
     # Configuration du style pour les labels (TLabel)
     style.configure(
         "TLabel", 
