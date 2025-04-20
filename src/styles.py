@@ -48,6 +48,21 @@ def configurer_styles():
         background=[("active", "#555555")]  # Changer la couleur de fond lorsque le bouton est actif (interactif)
     )
 
+    # Configuration du style pour les listes déroulantes (TCombobox)
+    style.configure(
+        "TCombobox",
+        font=("Cambria", 12),  # Définit la police et sa taille
+        fieldbackground="#444444",  # Couleur de fond sombre pour le champ
+        background="#2b2b2b",  # Couleur de fond sombre pour la liste déroulante
+        foreground="white"  # Texte en blanc pour un bon contraste
+    )
+    style.map(
+        "TCombobox",
+        fieldbackground=[("readonly", "#444444")],  # Couleur de fond pour les champs en lecture seule
+        foreground=[("readonly", "white")],  # Texte en blanc pour les champs en lecture seule
+        background=[("active", "#555555")]  # Couleur de fond lorsque la liste est active
+    )
+
     # Configuration du style pour les labels (TLabel)
     style.configure(
         "TLabel", 
@@ -59,7 +74,7 @@ def configurer_styles():
     # Configuration du style pour les champs de saisie (TEntry)
     style.configure(
         "TEntry", 
-        font=("Cambria", 10),  # Définit la police et sa taille
+        font=("Cambria", 12),  # Définit la police et sa taille
         fieldbackground="#444444",  # Couleur de fond sombre
         foreground="white"  # Texte en blanc pour un bon contraste
     )
