@@ -2,17 +2,19 @@
 Sous-fichier comprenant diverses fonctions utilitaires pour le projet SnackApp.
 '''
 # === Importer les modules nécessaires === #
+# == Fonctions utilitaires et de configuration == #
 import json
 import os
 from datetime import datetime
 from PIL import Image, ImageTk
 
+# == Modules graphiques == #
 import tkinter as tk
 from tkinter import filedialog
 
 # Définir le chemin absolu pour config.json
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Répertoire du fichier utils.py
-CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
+CONFIG_FILE = os.path.join(BASE_DIR, "../assets/config.json") # Chemin vers le fichier de configuration
 
 # Variables globales pour les chemins
 stock_file_path = None
@@ -102,14 +104,20 @@ def charger_donnees_menu(menu_file_path):
         raise ValueError(f"Le fichier de menu '{menu_file_path}' contient des données invalides.")
 
 # === Chargement et redimensionnement d'images === #
-def charger_img(chemin, taille=()):
+def charger_img(nom_image, taille=()):
     """
-    Charge et redimensionne une image pour tkinter.
+    Charge et redimensionne une image pour tkinter depuis le dossier assets/img.
 
-    :param chemin: Chemin vers le fichier image.
+    :param nom_image: Nom du fichier image (ex. "image.png").
     :param taille: Tuple (largeur, hauteur) pour redimensionner l'image.
     :return: ImageTk.PhotoImage pour utilisation dans tkinter.
     """
-    img = Image.open(chemin)
-    img = img.resize(taille, Image.Resampling.LANCZOS)
-    return ImageTk.PhotoImage(img)
+    chemin = os.path.join(os.path.dirname(__file__), "../assets/img", nom_image)
+    try:
+        img = Image.open(chemin)
+        img = img.resize(taille, Image.Resampling.LANCZOS)
+        return ImageTk.PhotoImage(img)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"L'image '{nom_image}' est introuvable dans 'assets/img'.")
+    except Exception as e:
+        raise RuntimeError(f"Une erreur est survenue lors du chargement de l'image '{nom_image}': {e}")
