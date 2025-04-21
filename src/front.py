@@ -26,6 +26,7 @@ from src.front_temp import perso_pizza  # Import de la fonction d'interface de p
 from src.front_temp import perso_grillade  # Import de la fonction d'interface de personnalisation de la grillade
 from src.front_temp import perso_salade_composee  # Import de la fonction d'interface de personnalisation de la salade composée
 from src.front_temp import perso_frites  # Import de la fonction d'interface de personnalisation des frites
+from src.front_temp import gestion_stock  # Import de la fonction d'interface de gestion du stock
 
 # == Modules graphiques == #
 import tkinter as tk
@@ -325,7 +326,18 @@ def menu_principal(): # 2nd interface
 
     # == Actions support == #
     # = Bouton stock = #
-    
+    frame_stock = ttk.Frame(frame_droite_bas, style="TFrame")
+    frame_stock.place(relx=0, rely=0.1, relwidth=0.2, relheight=0.8) # Positionner le bouton de sortie
+
+    bouton_stock = ttk.Button(
+        frame_stock,
+        text="Stock",
+        command=lambda: gestion_stock(root),  # Appeler la fonction de gestion du stock
+        style="TButton"
+    )
+    bouton_stock.place(relx=0.5, rely=0.5, anchor="center")  # Centrer le bouton dans la frame
+
+
     # = Bouton exit = #
     frame_exit = ttk.Frame(frame_droite_bas, style="TFrame")
     frame_exit.place(relx=0.9, rely=0.1, relwidth=0.1, relheight=0.8) # Positionner le bouton de sortie
