@@ -15,6 +15,32 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 
+# Variable globale pour suivre les fenêtres ouvertes
+fenetres_ouvertes = {}
+
+def ouvrir_fenetre_unique(titre, creation_fenetre, fermer_autres=False):
+    """
+    Vérifie si une fenêtre avec le même titre est déjà ouverte.
+    Si oui, ramène cette fenêtre au premier plan.
+    Sinon, crée une nouvelle fenêtre.
+    Si `fermer_autres` est True, ferme les autres fenêtres avant d'ouvrir la nouvelle.
+    """
+    if fermer_autres:
+        # Fermer toutes les fenêtres ouvertes
+        for fenetre in list(fenetres_ouvertes.values()):
+            if fenetre.winfo_exists():
+                fenetre.destroy()
+        fenetres_ouvertes.clear()
+
+    if titre in fenetres_ouvertes and fenetres_ouvertes[titre].winfo_exists():
+        # Ramène la fenêtre existante au premier plan
+        fenetres_ouvertes[titre].lift()
+        fenetres_ouvertes[titre].focus_force()
+    else:
+        # Crée une nouvelle fenêtre et l'ajoute au dictionnaire
+        fenetre = creation_fenetre()
+        fenetres_ouvertes[titre] = fenetre
+
 # === Interface "travaux en cours" === #
 def travaux_en_cours(root):
     """
@@ -34,46 +60,52 @@ def pizza_interface_recette(root):
     """
     Fenêtre pour sélectionner une recette de pizza.
     """
-    # Charger les données du menu
-    menu_data = charger_donnees_menu(get_menu_file_path().get())
-    recettes_pizza = menu_data.get("Pizza", {}).get("Recettes", {})
+    def creation_fenetre():
+        # Charger les données du menu
+        menu_data = charger_donnees_menu(get_menu_file_path().get())
+        recettes_pizza = menu_data.get("Pizza", {}).get("Recettes", {})
 
-    # Crée une fenêtre pour la sélection des recettes
-    fenetre_pizza_1 = tk.Toplevel(root)
-    fenetre_pizza_1.title("Pizza")
-    fenetre_pizza_1.configure(bg="#2b2b2b")
-    fenetre_pizza_1.attributes("-topmost", True)  # Garde la fenêtre au premier plan
+        # Crée une fenêtre pour la sélection des recettes
+        fenetre_pizza_1 = tk.Toplevel(root)
+        fenetre_pizza_1.title("Pizza")
+        fenetre_pizza_1.configure(bg="#2b2b2b")
+        fenetre_pizza_1.attributes("-topmost", True)  # Garde la fenêtre au premier plan
 
-    # Vérifier si des recettes sont disponibles
-    if not recettes_pizza:
+        # Vérifier si des recettes sont disponibles
+        if not recettes_pizza:
+            ttk.Label(
+                fenetre_pizza_1,
+                text="Aucune recette de pizza disponible.",
+                background="#2b2b2b",
+                foreground="white"
+            ).pack(padx=10, pady=10)
+            return fenetre_pizza_1
+
+        # Ajouter les boutons pour chaque recette
         ttk.Label(
             fenetre_pizza_1,
-            text="Aucune recette de pizza disponible.",
+            text="Choisissez une recette :",
+            font=("Cambria", 14),
             background="#2b2b2b",
             foreground="white"
-        ).pack(padx=10, pady=10)
-        return
+        ).pack(pady=10)
 
-    # Ajouter les boutons pour chaque recette
-    ttk.Label(
-        fenetre_pizza_1,
-        text="Choisissez une recette :",
-        font=("Cambria", 14),
-        background="#2b2b2b",
-        foreground="white"
-    ).pack(pady=10)
+        for nom_recette, details_recette in recettes_pizza.items():
+            details_recette["Nom"] = nom_recette  # Ajoutez le nom de la recette au dictionnaire
+            ttk.Button(
+                fenetre_pizza_1,
+                text=nom_recette,
+                command=lambda r=details_recette: pizza_interface_personnalisation(root, fenetre_pizza_1, r, menu_data)
+            ).pack(fill="x", padx=20, pady=5)
 
-    for nom_recette, details_recette in recettes_pizza.items():
-        details_recette["Nom"] = nom_recette  # Ajoutez le nom de la recette au dictionnaire
-        ttk.Button(
-            fenetre_pizza_1,
-            text=nom_recette,
-            command=lambda r=details_recette: pizza_interface_personnalisation(root, fenetre_pizza_1, r, menu_data)
-        ).pack(fill="x", padx=20, pady=5)
-    
-    # Ajuster automatiquement la taille de la fenêtre
-    fenetre_pizza_1.update_idletasks()  # Recalcule la taille en fonction des widgets
-    fenetre_pizza_1.geometry("")  # Ajuste automatiquement la taille
+        # Ajuster automatiquement la taille de la fenêtre
+        fenetre_pizza_1.update_idletasks()  # Recalcule la taille en fonction des widgets
+        fenetre_pizza_1.geometry("")  # Ajuste automatiquement la taille
+
+        return fenetre_pizza_1
+
+    # Utiliser la fonction pour ouvrir une fenêtre unique
+    ouvrir_fenetre_unique("Pizza", creation_fenetre, fermer_autres=True)
 
 def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, menu_data):
     """
@@ -82,78 +114,84 @@ def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, menu_data):
     # Fermer la première fenêtre
     fenetre_pizza_1.destroy()
 
-    # Crée une fenêtre pour la personnalisation
-    fenetre_pizza_2 = tk.Toplevel(root)
-    fenetre_pizza_2.title("Pizza")
-    fenetre_pizza_2.configure(bg="#2b2b2b")
-    fenetre_pizza_2.attributes("-topmost", True)  # Garde la fenêtre au premier plan
+    def creation_fenetre():
+        # Crée une fenêtre pour la personnalisation
+        fenetre_pizza_2 = tk.Toplevel(root)
+        fenetre_pizza_2.title("Pizza")
+        fenetre_pizza_2.configure(bg="#2b2b2b")
+        fenetre_pizza_2.attributes("-topmost", True)  # Garde la fenêtre au premier plan
 
-    # Bases disponibles
-    bases_disponibles = menu_data.get("Pizza", {}).get("Base", [])
-    base_selectionnee = tk.StringVar(value=recette.get("Base", [])[0] if recette.get("Base") else "")
+        # Bases disponibles
+        bases_disponibles = menu_data.get("Pizza", {}).get("Base", [])
+        base_selectionnee = tk.StringVar(value=recette.get("Base", [])[0] if recette.get("Base") else "")
 
-    # Ingrédients disponibles
-    ingredients_disponibles = menu_data.get("Pizza", {}).get("Ingrédients", [])
-    ingredients_selectionnes = {ingredient: tk.BooleanVar(value=(ingredient in recette.get("Ingrédients", [])))
-                                 for ingredient in ingredients_disponibles}
+        # Ingrédients disponibles
+        ingredients_disponibles = menu_data.get("Pizza", {}).get("Ingrédients", [])
+        ingredients_selectionnes = {ingredient: tk.BooleanVar(value=(ingredient in recette.get("Ingrédients", [])))
+                                     for ingredient in ingredients_disponibles}
 
-    # Créer un frame principal pour organiser les colonnes
-    main_frame = ttk.Frame(fenetre_pizza_2)
-    main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        # Créer un frame principal pour organiser les colonnes
+        main_frame = ttk.Frame(fenetre_pizza_2)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-    # Colonne pour les bases
-    ttk.Label(
-        main_frame,
-        text="Base :",
-        font=("Cambria", 12),
-        background="#2b2b2b",
-        foreground="white"
-    ).grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        # Colonne pour les bases
+        ttk.Label(
+            main_frame,
+            text="Base :",
+            font=("Cambria", 12),
+            background="#2b2b2b",
+            foreground="white"
+        ).grid(row=0, column=0, padx=10, pady=10, sticky="w")
 
-    base_frame = ttk.Frame(main_frame)
-    base_frame.grid(row=1, column=0, padx=10, pady=10, sticky="n")
+        base_frame = ttk.Frame(main_frame)
+        base_frame.grid(row=1, column=0, padx=10, pady=10, sticky="n")
 
-    for i, base in enumerate(bases_disponibles):
-        ttk.Radiobutton(
-            base_frame,
-            text=base,
-            variable=base_selectionnee,
-            value=base,
-            style="TRadiobutton",
-            width=20  # Uniformiser la largeur
-        ).grid(row=i, column=0, padx=5, pady=5, sticky="w")  # Une seule colonne pour les bases
+        for i, base in enumerate(bases_disponibles):
+            ttk.Radiobutton(
+                base_frame,
+                text=base,
+                variable=base_selectionnee,
+                value=base,
+                style="TRadiobutton",
+                width=20  # Uniformiser la largeur
+            ).grid(row=i, column=0, padx=5, pady=5, sticky="w")  # Une seule colonne pour les bases
 
-    # Colonne pour les ingrédients
-    ttk.Label(
-        main_frame,
-        text="Ingrédients :",
-        font=("Cambria", 12),
-        background="#2b2b2b",
-        foreground="white"
-    ).grid(row=0, column=1, padx=10, pady=10, sticky="w")
+        # Colonne pour les ingrédients
+        ttk.Label(
+            main_frame,
+            text="Ingrédients :",
+            font=("Cambria", 12),
+            background="#2b2b2b",
+            foreground="white"
+        ).grid(row=0, column=1, padx=10, pady=10, sticky="w")
 
-    ingredients_frame = ttk.Frame(main_frame)
-    ingredients_frame.grid(row=1, column=1, padx=10, pady=10, sticky="n")
+        ingredients_frame = ttk.Frame(main_frame)
+        ingredients_frame.grid(row=1, column=1, padx=10, pady=10, sticky="n")
 
-    for i, (ingredient, var) in enumerate(ingredients_selectionnes.items()):
-        ttk.Checkbutton(
-            ingredients_frame,
-            text=ingredient,
-            variable=var,
-            style="TCheckbutton",
-            width=20  # Uniformiser la largeur
-        ).grid(row=i, column=0, padx=5, pady=5, sticky="w")  # Une seule colonne pour les ingrédients
+        for i, (ingredient, var) in enumerate(ingredients_selectionnes.items()):
+            ttk.Checkbutton(
+                ingredients_frame,
+                text=ingredient,
+                variable=var,
+                style="TCheckbutton",
+                width=20  # Uniformiser la largeur
+            ).grid(row=i, column=0, padx=5, pady=5, sticky="w")  # Une seule colonne pour les ingrédients
 
-    # Bouton pour valider la personnalisation
-    ttk.Button(
-        fenetre_pizza_2,
-        text="Valider",
-        command=lambda: pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_2, recette)
-    ).pack(pady=20)
+        # Bouton pour valider la personnalisation
+        ttk.Button(
+            fenetre_pizza_2,
+            text="Valider",
+            command=lambda: pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_2, recette)
+        ).pack(pady=20)
 
-    # Ajuster automatiquement la taille de la fenêtre
-    fenetre_pizza_2.update_idletasks()  # Recalcule la taille en fonction des widgets
-    fenetre_pizza_2.geometry("")  # Ajuste automatiquement la taille
+        # Ajuster automatiquement la taille de la fenêtre
+        fenetre_pizza_2.update_idletasks()  # Recalcule la taille en fonction des widgets
+        fenetre_pizza_2.geometry("")  # Ajuste automatiquement la taille
+
+        return fenetre_pizza_2
+
+    # Utiliser la fonction pour ouvrir une fenêtre unique
+    ouvrir_fenetre_unique("Pizza", creation_fenetre, fermer_autres=True)
 
 # Validation de la personnalisation
 def pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_2, recette=None):
@@ -206,124 +244,131 @@ def perso_grillade(root):
     """
     Interface pour personnaliser une grillade.
     """
-    # Charger les données du menu
-    menu_data = charger_donnees_menu(get_menu_file_path().get())
-    grillade_data = menu_data.get("Grillade", {})
-    viandes_disponibles = grillade_data.get("Viande(s)", {})
-    accompagnements_disponibles = grillade_data.get("Accompagnement", [])
+    def creation_fenetre():
+        # Charger les données du menu
+        menu_data = charger_donnees_menu(get_menu_file_path().get())
+        grillade_data = menu_data.get("Grillade", {})
+        viandes_disponibles = grillade_data.get("Viande(s)", {})
+        accompagnements_disponibles = grillade_data.get("Accompagnement", [])
 
-    # Crée une fenêtre pour la personnalisation
-    fenetre_grillade = tk.Toplevel(root)
-    fenetre_grillade.title("Grillade")
-    fenetre_grillade.configure(bg="#2b2b2b")
-    fenetre_grillade.attributes("-topmost", True)  # Garde la fenêtre au premier plan
+        # Crée une fenêtre pour la personnalisation
+        fenetre_grillade = tk.Toplevel(root)
+        fenetre_grillade.title("Grillade")
+        fenetre_grillade.configure(bg="#2b2b2b")
+        fenetre_grillade.attributes("-topmost", True)  # Garde la fenêtre au premier plan
 
-    # Variables pour suivre les quantités de viandes
-    quantites_viandes = {viande: tk.IntVar(value=0) for viande in viandes_disponibles}
+        # Variables pour suivre les quantités de viandes
+        quantites_viandes = {viande: tk.IntVar(value=0) for viande in viandes_disponibles}
 
-    # Variable pour l'accompagnement sélectionné
-    accompagnement_selectionne = tk.StringVar(value=accompagnements_disponibles[0] if accompagnements_disponibles else "")
+        # Variable pour l'accompagnement sélectionné
+        accompagnement_selectionne = tk.StringVar(value=accompagnements_disponibles[0] if accompagnements_disponibles else "")
 
-    # Fonction pour mettre à jour les quantités
-    def ajuster_quantite(viande, delta):
-        """
-        Ajuste la quantité de viande sélectionnée en respectant la limite totale de 2 portions.
-        """
-        # Récupère la valeur de la viande depuis le dictionnaire
-        valeur_viande = viandes_disponibles.get(viande, 0)
-        
-        # Calcule le total actuel en fonction des quantités et des valeurs des viandes
-        total_actuel = sum(quantites_viandes[v].get() * viandes_disponibles.get(v, 0) for v in quantites_viandes)
+        # Fonction pour mettre à jour les quantités
+        def ajuster_quantite(viande, delta):
+            """
+            Ajuste la quantité de viande sélectionnée en respectant la limite totale de 2 portions.
+            """
+            # Récupère la valeur de la viande depuis le dictionnaire
+            valeur_viande = viandes_disponibles.get(viande, 0)
+            
+            # Calcule le total actuel en fonction des quantités et des valeurs des viandes
+            total_actuel = sum(quantites_viandes[v].get() * viandes_disponibles.get(v, 0) for v in quantites_viandes)
 
-        # Calcule la nouvelle valeur
-        nouvelle_valeur = quantites_viandes[viande].get() + delta
+            # Calcule la nouvelle valeur
+            nouvelle_valeur = quantites_viandes[viande].get() + delta
 
-        # Vérifie que le total ne dépasse pas 2 portions
-        if 0 <= nouvelle_valeur * valeur_viande + total_actuel - quantites_viandes[viande].get() * valeur_viande <= 2:
-            quantites_viandes[viande].set(nouvelle_valeur)
+            # Vérifie que le total ne dépasse pas 2 portions
+            if 0 <= nouvelle_valeur * valeur_viande + total_actuel - quantites_viandes[viande].get() * valeur_viande <= 2:
+                quantites_viandes[viande].set(nouvelle_valeur)
 
-    # Affichage des viandes
-    ttk.Label(
-        fenetre_grillade,
-        text="Choisissez vos viandes (max 2 portions) :",
-        font=("Cambria", 14),
-        background="#2b2b2b",
-        foreground="white"
-    ).pack(pady=10)
-
-    for viande in viandes_disponibles:
-        frame_viande = ttk.Frame(fenetre_grillade)
-        frame_viande.pack(fill="x", padx=20, pady=5)
-
+        # Affichage des viandes
         ttk.Label(
-            frame_viande,
-            text=viande,
-            font=("Cambria", 12),
-            width=20
-        ).pack(side="left")
+            fenetre_grillade,
+            text="Choisissez vos viandes (max 2 portions) :",
+            font=("Cambria", 14),
+            background="#2b2b2b",
+            foreground="white"
+        ).pack(pady=10)
+
+        for viande in viandes_disponibles:
+            frame_viande = ttk.Frame(fenetre_grillade)
+            frame_viande.pack(fill="x", padx=20, pady=5)
+
+            ttk.Label(
+                frame_viande,
+                text=viande,
+                font=("Cambria", 12),
+                width=20
+            ).pack(side="left")
+
+            ttk.Button(
+                frame_viande,
+                text="-",
+                command=lambda v=viande: ajuster_quantite(v, -1)
+            ).pack(side="left", padx=5)
+
+            ttk.Label(
+                frame_viande,
+                textvariable=quantites_viandes[viande],
+                width=5,
+                anchor="center"
+            ).pack(side="left")
+
+            ttk.Button(
+                frame_viande,
+                text="+",
+                command=lambda v=viande: ajuster_quantite(v, 1)
+            ).pack(side="left", padx=5)
+
+        # Affichage des accompagnements
+        ttk.Label(
+            fenetre_grillade,
+            text="Choisissez un accompagnement :",
+            font=("Cambria", 14),
+            background="#2b2b2b",
+            foreground="white"
+        ).pack(pady=10)
+
+        frame_accompagnements = ttk.Frame(fenetre_grillade)
+        frame_accompagnements.pack(pady=10)
+
+        for i, accompagnement in enumerate(accompagnements_disponibles):
+            ttk.Radiobutton(
+                frame_accompagnements,
+                text=accompagnement,
+                variable=accompagnement_selectionne,
+                value=accompagnement,
+                style="TRadiobutton",
+                width=20  # Uniformiser la largeur
+            ).grid(row=0, column=i, padx=5, pady=5, sticky="w")  # Positionner côte à côte
+
+        # Bouton pour valider la personnalisation
+        def valider_grillade():
+            viandes_choisies = {viande: quantites_viandes[viande].get() for viande in viandes_disponibles if quantites_viandes[viande].get() > 0}
+            accompagnement = accompagnement_selectionne.get()
+
+            # Afficher les choix dans la console (ou les sauvegarder pour une commande)
+            print(f"Viandes choisies : {viandes_choisies}")
+            print(f"Accompagnement choisi : {accompagnement}")
+
+            # Fermer la fenêtre
+            fenetre_grillade.destroy()
 
         ttk.Button(
-            frame_viande,
-            text="-",
-            command=lambda v=viande: ajuster_quantite(v, -1)
-        ).pack(side="left", padx=5)
+            fenetre_grillade,
+            text="Valider",
+            command=valider_grillade
+        ).pack(pady=20)
 
-        ttk.Label(
-            frame_viande,
-            textvariable=quantites_viandes[viande],
-            width=5,
-            anchor="center"
-        ).pack(side="left")
+        # Ajuster automatiquement la taille de la fenêtre
+        fenetre_grillade.update_idletasks()
+        fenetre_grillade.geometry("")
 
-        ttk.Button(
-            frame_viande,
-            text="+",
-            command=lambda v=viande: ajuster_quantite(v, 1)
-        ).pack(side="left", padx=5)
+        # Retourner la fenêtre créée
+        return fenetre_grillade
 
-    # Affichage des accompagnements
-    ttk.Label(
-        fenetre_grillade,
-        text="Choisissez un accompagnement :",
-        font=("Cambria", 14),
-        background="#2b2b2b",
-        foreground="white"
-    ).pack(pady=10)
-
-    frame_accompagnements = ttk.Frame(fenetre_grillade)
-    frame_accompagnements.pack(pady=10)
-
-    for i, accompagnement in enumerate(accompagnements_disponibles):
-        ttk.Radiobutton(
-            frame_accompagnements,
-            text=accompagnement,
-            variable=accompagnement_selectionne,
-            value=accompagnement,
-            style="TRadiobutton",
-            width=20  # Uniformiser la largeur
-        ).grid(row=0, column=i, padx=5, pady=5, sticky="w")  # Positionner côte à côte
-
-    # Bouton pour valider la personnalisation
-    def valider_grillade():
-        viandes_choisies = {viande: quantites_viandes[viande].get() for viande in viandes_disponibles if quantites_viandes[viande].get() > 0}
-        accompagnement = accompagnement_selectionne.get()
-
-        # Afficher les choix dans la console (ou les sauvegarder pour une commande)
-        print(f"Viandes choisies : {viandes_choisies}")
-        print(f"Accompagnement choisi : {accompagnement}")
-
-        # Fermer la fenêtre
-        fenetre_grillade.destroy()
-
-    ttk.Button(
-        fenetre_grillade,
-        text="Valider",
-        command=valider_grillade
-    ).pack(pady=20)
-
-    # Ajuster automatiquement la taille de la fenêtre
-    fenetre_grillade.update_idletasks()
-    fenetre_grillade.geometry("")
+    # Utiliser la fonction pour ouvrir une fenêtre unique
+    ouvrir_fenetre_unique("Grillade", creation_fenetre, fermer_autres=True)
 
 # == Interface salades composées == #
 def perso_salade_composee(root):
