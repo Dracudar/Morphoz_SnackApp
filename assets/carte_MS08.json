@@ -54,7 +54,7 @@
             "Merguez": 1,
             "Steak vegé": 2
         },
-        "Accompagnement": ["Frites", "Légumes"]
+        "Accompagnement": ["Sans","Frites", "Légumes"]
     },
     "Frites": {
         "Prix": 2.50
