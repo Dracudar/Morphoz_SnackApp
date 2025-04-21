@@ -339,7 +339,7 @@ def perso_grillade(root):
                 variable=accompagnement_selectionne,
                 value=accompagnement,
                 style="TRadiobutton",
-                width=20  # Uniformiser la largeur
+                width=15  # Uniformiser la largeur
             ).grid(row=0, column=i, padx=5, pady=5, sticky="w")  # Positionner côte à côte
 
         # Bouton pour valider la personnalisation
