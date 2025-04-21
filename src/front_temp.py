@@ -40,7 +40,7 @@ def pizza_interface_recette(root):
 
     # Crée une fenêtre pour la sélection des recettes
     fenetre_pizza_1 = tk.Toplevel(root)
-    fenetre_pizza_1.title("Pizza - Choix de la Recette")
+    fenetre_pizza_1.title("Pizza")
     fenetre_pizza_1.configure(bg="#2b2b2b")
     fenetre_pizza_1.attributes("-topmost", True)  # Garde la fenêtre au premier plan
 
@@ -64,6 +64,7 @@ def pizza_interface_recette(root):
     ).pack(pady=10)
 
     for nom_recette, details_recette in recettes_pizza.items():
+        details_recette["Nom"] = nom_recette  # Ajoutez le nom de la recette au dictionnaire
         ttk.Button(
             fenetre_pizza_1,
             text=nom_recette,
@@ -83,7 +84,7 @@ def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, menu_data):
 
     # Crée une fenêtre pour la personnalisation
     fenetre_pizza_2 = tk.Toplevel(root)
-    fenetre_pizza_2.title("Pizza - Personnalisation")
+    fenetre_pizza_2.title("Pizza")
     fenetre_pizza_2.configure(bg="#2b2b2b")
     fenetre_pizza_2.attributes("-topmost", True)  # Garde la fenêtre au premier plan
 
@@ -147,7 +148,7 @@ def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, menu_data):
     ttk.Button(
         fenetre_pizza_2,
         text="Valider",
-        command=lambda: pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_2)
+        command=lambda: pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_2, recette)
     ).pack(pady=20)
 
     # Ajuster automatiquement la taille de la fenêtre
@@ -155,16 +156,47 @@ def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, menu_data):
     fenetre_pizza_2.geometry("")  # Ajuste automatiquement la taille
 
 # Validation de la personnalisation
-def pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_2):
+def pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_2, recette=None):
     """
     Valide la personnalisation de la pizza et affiche les choix sélectionnés.
     """
     base = base_selectionnee.get()
+    if not base:
+        # Afficher un message d'erreur si aucune base n'est sélectionnée
+        messagebox.showerror("Erreur", "Veuillez sélectionner une base pour la pizza.")
+        return
+
+    # Ingrédients sélectionnés
     ingredients = [ingredient for ingredient, var in ingredients_selectionnes.items() if var.get()]
 
+    # Calculer les ingrédients retirés et supplémentaires par rapport à la recette
+    if recette:
+        recette_nom = recette.get("Nom", "personnalisée")  # Utilisez le nom de la recette si disponible
+        recette_ingredients = set(recette.get("Ingrédients", []))
+        ingredients_non_selectionnes = recette_ingredients - set(ingredients)
+        ingredients_supplementaires = set(ingredients) - recette_ingredients
+    else:
+        recette_nom = "personnalisée"
+        recette_ingredients = set()
+        ingredients_non_selectionnes = set()
+        ingredients_supplementaires = set()
+
+    # Construire le message
+    if recette_nom == "Personnalisable":
+        message = f"Pizza personnalisée base {base} avec {', '.join(ingredients)}"
+    else:
+        message = f"Pizza {recette_nom} base {base}"
+        if ingredients_non_selectionnes:
+            message += f" (sans {', '.join(ingredients_non_selectionnes)})"
+        if ingredients_supplementaires:
+            message += f" (supplément {', '.join(ingredients_supplementaires)})"
+
     # Afficher les choix dans la console (ou les sauvegarder pour une commande)
-    print(f"Base sélectionnée : {base}")
-    print(f"Ingrédients sélectionnés : {', '.join(ingredients)}")
+    print(message)
+
+    # Réinitialiser la recette après l'impression
+    if recette and isinstance(recette, dict):
+        recette.clear()
 
     # Fermer la fenêtre de personnalisation
     fenetre_pizza_2.destroy()
@@ -182,7 +214,7 @@ def perso_grillade(root):
 
     # Crée une fenêtre pour la personnalisation
     fenetre_grillade = tk.Toplevel(root)
-    fenetre_grillade.title("Grillade - Personnalisation")
+    fenetre_grillade.title("Grillade")
     fenetre_grillade.configure(bg="#2b2b2b")
     fenetre_grillade.attributes("-topmost", True)  # Garde la fenêtre au premier plan
 
