@@ -1,33 +1,113 @@
 {
-  "Produits": {
+  "Plats": {
     "Pizza": {
-      "Quantité": 50, 
-      "OutOfStock": false
+      "Pâte à pizza": {
+        "Quantité": 50,
+        "OutOfStock": false
+      },
+      "Bases": {
+        "Sauce tomate": {
+          "OutOfStock": false
+        },
+        "Crème": {
+          "OutOfStock": false
+        }
+      }
     },
-    "Poitrine": {
-      "Quantité": 50, 
-      "OutOfStock": false
-    },
-    "Chipolatta": {
-      "Quantité": 50, 
-      "OutOfStock": false
-    },
-    "Merguez": {
-      "Quantité": 50, 
-      "OutOfStock": false
-    },
-    "Steak vegé": {
-      "Quantité": 50, 
-      "OutOfStock": false
+    "Grillades": {
+      "Poitrine": {
+        "Valeur": 1,
+        "Quantité": 50,
+        "OutOfStock": false
+      },
+      "Chipolatta": {
+        "Valeur": 1,
+        "Quantité": 50,
+        "OutOfStock": false
+      },
+      "Merguez": {
+        "Valeur": 1,
+        "Quantité": 50,
+        "OutOfStock": false
+      },
+      "Steak vegé": {
+        "Valeur": 2,
+        "Quantité": 50,
+        "OutOfStock": false
+      }
     },
     "Salade composée": {
       "OutOfStock": false
-    },
+    }
+  },
+
+  "Accompagnement": {
     "Frites": {
       "OutOfStock": false
     },
     "Légumes": {
       "OutOfStock": false
+    }
+  },
+
+  "Ingrédients": {
+    "Pâtes": {
+      "Farfalle": {
+        "OutOfStock": false
+      },
+      "Penne": {
+        "OutOfStock": false
+      }
+    },
+    "Viande": {
+      "Poulet": {
+        "OutOfStock": false
+      },
+      "Lardon": {
+        "OutOfStock": false
+      },
+      "Jambon": {
+        "OutOfStock": false
+      }
+    },
+    "Fromage": {
+      "Mozzarella": {
+        "OutOfStock": false
+      },
+      "Parmesan": {
+        "OutOfStock": false
+      },
+      "Emmental": {
+        "OutOfStock": false
+      }
+    },
+    "Légumes": {
+      "Oignons": {
+        "OutOfStock": false
+      },
+      "Poivrons": {
+        "OutOfStock": false
+      },
+      "Champignons": {
+        "OutOfStock": false
+      },
+      "Haricots rouges": {
+        "OutOfStock": false
+      },
+      "Maïs": {
+        "OutOfStock": false
+      },
+      "Olives noires": {
+        "OutOfStock": false
+      },
+      "Roquette": {
+        "OutOfStock": false
+      }
+    },
+    "Sauces": {
+      "Sauce BBQ": {
+        "OutOfStock": false
+      }
     }
   }
 }
