@@ -8,7 +8,16 @@ Code UI pour les interfaces temporaire de l'application SnackApp :
 
 # === Importer les modules nécessaires === #
 # == Fonctions utilitaires et de configuration == #
-from src.utils import charger_donnees_menu, get_menu_file_path 
+from src.utils import (
+    charger_donnees_menu, 
+    get_menu_file_path,
+)
+from src.utils import (
+    get_stock_file_path,
+    charger_donnees_stock,
+    sauvegarder_chemin_stock
+)
+from functools import partial
 
 # == Modules graphiques == #
 import tkinter as tk
@@ -65,6 +74,9 @@ def pizza_interface_recette(root):
         menu_data = charger_donnees_menu(get_menu_file_path().get())
         recettes_pizza = menu_data.get("Pizza", {}).get("Recettes", {})
 
+        # Charger les données du stock
+        stock_data = charger_donnees_stock(get_stock_file_path().get())
+
         # Crée une fenêtre pour la sélection des recettes
         fenetre_pizza_1 = tk.Toplevel(root)
         fenetre_pizza_1.title("Pizza")
@@ -95,7 +107,7 @@ def pizza_interface_recette(root):
             ttk.Button(
                 fenetre_pizza_1,
                 text=nom_recette,
-                command=lambda r=details_recette: pizza_interface_personnalisation(root, fenetre_pizza_1, r, menu_data)
+                command=lambda r=details_recette: pizza_interface_personnalisation(root, fenetre_pizza_1, r, stock_data)
             ).pack(fill="x", padx=20, pady=5)
 
         # Ajuster automatiquement la taille de la fenêtre
@@ -107,7 +119,7 @@ def pizza_interface_recette(root):
     # Utiliser la fonction pour ouvrir une fenêtre unique
     ouvrir_fenetre_unique("Pizza", creation_fenetre, fermer_autres=True)
 
-def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, menu_data):
+def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, stock_data):
     """
     Fenêtre de personnalisation des ingrédients après avoir sélectionné une recette.
     """
@@ -121,14 +133,24 @@ def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, menu_data):
         fenetre_pizza_2.configure(bg="#2b2b2b")
         fenetre_pizza_2.attributes("-topmost", True)  # Garde la fenêtre au premier plan
 
-        # Bases disponibles
-        bases_disponibles = menu_data.get("Pizza", {}).get("Base", [])
+        # Bases disponibles (sauces)
+        bases_disponibles = stock_data.get("Plats", {}).get("Pizza", {}).get("Bases", {})
+        bases_disponibles = [base for base, data in bases_disponibles.items() if not data.get("OutOfStock", False)]
         base_selectionnee = tk.StringVar(value=recette.get("Base", [])[0] if recette.get("Base") else "")
 
-        # Ingrédients disponibles
-        ingredients_disponibles = menu_data.get("Pizza", {}).get("Ingrédients", [])
-        ingredients_selectionnes = {ingredient: tk.BooleanVar(value=(ingredient in recette.get("Ingrédients", [])))
-                                     for ingredient in ingredients_disponibles}
+        # Ingrédients disponibles (par catégorie)
+        ingredients_disponibles = {
+            categorie: {
+                ingredient: data for ingredient, data in ingredients.items() if not data.get("OutOfStock", False)
+            }
+            for categorie, ingredients in stock_data.get("Ingrédients", {}).items()
+            if categorie != "Pâtes"  # Exclure la catégorie "Pâtes"
+        }
+        ingredients_selectionnes = {
+            ingredient: tk.BooleanVar(value=(ingredient in recette.get("Ingrédients", [])))
+            for categorie, ingredients in ingredients_disponibles.items()
+            for ingredient in ingredients
+        }
 
         # Créer un frame principal pour organiser les colonnes
         main_frame = ttk.Frame(fenetre_pizza_2)
@@ -168,14 +190,28 @@ def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, menu_data):
         ingredients_frame = ttk.Frame(main_frame)
         ingredients_frame.grid(row=1, column=1, padx=10, pady=10, sticky="n")
 
-        for i, (ingredient, var) in enumerate(ingredients_selectionnes.items()):
-            ttk.Checkbutton(
+        row = 0
+        for categorie, ingredients in ingredients_disponibles.items():
+            # Ajouter un titre pour chaque catégorie
+            ttk.Label(
                 ingredients_frame,
-                text=ingredient,
-                variable=var,
-                style="TCheckbutton",
-                width=20  # Uniformiser la largeur
-            ).grid(row=i, column=0, padx=5, pady=5, sticky="w")  # Une seule colonne pour les ingrédients
+                text=categorie,
+                font=("Cambria", 10, "bold"),
+                background="#2b2b2b",
+                foreground="white"
+            ).grid(row=row, column=0, padx=5, pady=5, sticky="w")
+            row += 1
+
+            # Ajouter les ingrédients de la catégorie
+            for ingredient in ingredients:
+                ttk.Checkbutton(
+                    ingredients_frame,
+                    text=ingredient,
+                    variable=ingredients_selectionnes[ingredient],
+                    style="TCheckbutton",
+                    width=20
+                ).grid(row=row, column=0, padx=5, pady=5, sticky="w")
+                row += 1
 
         # Bouton pour valider la personnalisation
         ttk.Button(
@@ -245,11 +281,11 @@ def perso_grillade(root):
     Interface pour personnaliser une grillade.
     """
     def creation_fenetre():
-        # Charger les données du menu
-        menu_data = charger_donnees_menu(get_menu_file_path().get())
-        grillade_data = menu_data.get("Grillade", {})
-        viandes_disponibles = grillade_data.get("Viande(s)", {})
-        accompagnements_disponibles = grillade_data.get("Accompagnement", [])
+        # Charger les données du stock
+        stock_data = charger_donnees_stock(get_stock_file_path().get())
+        viandes_disponibles = stock_data.get("Plats", {}).get("Grillades", {})
+        accompagnements_disponibles = stock_data.get("Accompagnement", {})
+        accompagnements_disponibles = ["Sans"] + [acc for acc, data in accompagnements_disponibles.items() if not data.get("OutOfStock", False)]
 
         # Crée une fenêtre pour la personnalisation
         fenetre_grillade = tk.Toplevel(root)
@@ -261,18 +297,21 @@ def perso_grillade(root):
         quantites_viandes = {viande: tk.IntVar(value=0) for viande in viandes_disponibles}
 
         # Variable pour l'accompagnement sélectionné
-        accompagnement_selectionne = tk.StringVar(value=accompagnements_disponibles[0] if accompagnements_disponibles else "")
+        accompagnement_selectionne = tk.StringVar(value="Frites")
 
-        # Fonction pour mettre à jour les quantités
+        # Fonction pour ajuster les quantités
         def ajuster_quantite(viande, delta):
             """
             Ajuste la quantité de viande sélectionnée en respectant la limite totale de 2 portions.
             """
             # Récupère la valeur de la viande depuis le dictionnaire
-            valeur_viande = viandes_disponibles.get(viande, 0)
+            valeur_viande = viandes_disponibles.get(viande, {}).get("Valeur", 0)
             
             # Calcule le total actuel en fonction des quantités et des valeurs des viandes
-            total_actuel = sum(quantites_viandes[v].get() * viandes_disponibles.get(v, 0) for v in quantites_viandes)
+            total_actuel = sum(
+                quantites_viandes[v].get() * viandes_disponibles.get(v, {}).get("Valeur", 0)
+                for v in quantites_viandes
+            )
 
             # Calcule la nouvelle valeur
             nouvelle_valeur = quantites_viandes[viande].get() + delta
@@ -372,12 +411,232 @@ def perso_grillade(root):
 
 # == Interface salades composées == #
 def perso_salade_composee(root):
-    travaux_en_cours(root)
+    """
+    Interface pour personnaliser une salade composée.
+    """
+    def creation_fenetre():
+        # Charger les données du stock
+        stock_data = charger_donnees_stock(get_stock_file_path().get())
+        ingredients_disponibles = {
+            categorie: {
+                ingredient: data for ingredient, data in ingredients.items() if not data.get("OutOfStock", False)
+            }
+            for categorie, ingredients in stock_data.get("Ingrédients", {}).items()
+        }
+        ingredients_selectionnes = {
+            ingredient: tk.BooleanVar(value=False)
+            for categorie, ingredients in ingredients_disponibles.items()
+            for ingredient in ingredients
+        }
 
-# == Interface salades composées == #
+        # Crée une fenêtre pour la personnalisation
+        fenetre_salade = tk.Toplevel(root)
+        fenetre_salade.title("Salade composée")
+        fenetre_salade.configure(bg="#2b2b2b")
+        fenetre_salade.attributes("-topmost", True)  # Garde la fenêtre au premier plan
+
+        # Affichage des ingrédients
+        ttk.Label(
+            fenetre_salade,
+            text="Choisissez vos ingrédients :",
+            font=("Cambria", 14),
+            background="#2b2b2b",
+            foreground="white"
+        ).pack(pady=10)
+
+        frame_ingredients = ttk.Frame(fenetre_salade)
+        frame_ingredients.pack(pady=10)
+
+        row = 0
+        for categorie, ingredients in ingredients_disponibles.items():
+            # Ajouter un titre pour chaque catégorie
+            ttk.Label(
+                frame_ingredients,
+                text=categorie,
+                font=("Cambria", 10, "bold"),
+                background="#2b2b2b",
+                foreground="white"
+            ).grid(row=row, column=0, padx=5, pady=5, sticky="w")
+            row += 1
+
+            # Ajouter les ingrédients de la catégorie
+            for ingredient in ingredients:
+                ttk.Checkbutton(
+                    frame_ingredients,
+                    text=ingredient,
+                    variable=ingredients_selectionnes[ingredient],
+                    style="TCheckbutton",
+                    width=20
+                ).grid(row=row, column=0, padx=5, pady=5, sticky="w")
+                row += 1
+
+        # Bouton pour valider la personnalisation
+        def valider_salade():
+            ingredients_choisis = [ingredient for ingredient, var in ingredients_selectionnes.items() if var.get()]
+            print(f"Ingrédients choisis : {', '.join(ingredients_choisis)}")
+            fenetre_salade.destroy()
+
+        ttk.Button(
+            fenetre_salade,
+            text="Valider",
+            command=valider_salade
+        ).pack(pady=20)
+
+        # Ajuster automatiquement la taille de la fenêtre
+        fenetre_salade.update_idletasks()
+        fenetre_salade.geometry("")
+
+        return fenetre_salade
+
+    # Utiliser la fonction pour ouvrir une fenêtre unique
+    ouvrir_fenetre_unique("Salade composée", creation_fenetre, fermer_autres=True)
+
+# == Interface frites == #
 def perso_frites(root):
     travaux_en_cours(root)
 
+# === Support === #
 # == Interface gestion des stocks == #
 def gestion_stock(root):
-    travaux_en_cours(root)
+    """
+    Interface pour gérer les stocks.
+    """
+    def creation_fenetre():
+        # Charger les données du fichier stock.json
+        stock_file_path = get_stock_file_path().get()
+        stock_data = charger_donnees_stock(stock_file_path)
+        plats = stock_data.get("Plats", {})
+        ingredients = stock_data.get("Ingrédients", {})
+
+        # Crée une fenêtre pour la gestion des stocks
+        fenetre_stock = tk.Toplevel(root)
+        fenetre_stock.title("Gestion des Stocks")
+        fenetre_stock.configure(bg="#2b2b2b")
+        fenetre_stock.attributes("-topmost", True)  # Garde la fenêtre au premier plan
+
+        # Fonction pour ajuster les quantités
+        def ajuster_quantite(plat, produit, delta):
+            if "Quantité" in plats[plat][produit]:
+                plats[plat][produit]["Quantité"] = max(0, plats[plat][produit]["Quantité"] + delta)
+                mise_a_jour_interface()
+
+        # Fonction pour basculer le mode "Hors Stock"
+        def basculer_hors_stock(plat, etat):
+            plats[plat]["OutOfStock"] = etat
+            mise_a_jour_interface()
+
+# Fonction pour ouvrir la gestion des ingrédients
+        def ouvrir_gestion_ingredients():
+            gestion_ingredients(root)
+
+        # Fonction pour mettre à jour l'interface
+        def mise_a_jour_interface():
+            for plat, produits in plats.items():
+                if plat == "Grillades":
+                    for produit, data in produits.items():
+                        if "Quantité" in data:
+                            labels_quantites[plat][produit].config(text=f"Quantité : {data['Quantité']}")
+                elif "Quantité" in produits:
+                    labels_quantites[plat].config(text=f"Quantité : {produits['Quantité']}")
+                if "OutOfStock" in produits:
+                    checkbuttons_hors_stock[plat].set(produits.get("OutOfStock", False))
+
+        # Fonction pour sauvegarder les modifications dans le fichier stock.json
+        def sauvegarder_stocks():
+            try:
+                with open(stock_file_path, "w", encoding="utf-8") as fichier:
+                    json.dump({"Plats": plats, "Ingrédients": ingredients}, fichier, indent=4, ensure_ascii=False)
+                print("Les stocks ont été sauvegardés avec succès.")
+            except Exception as e:
+                print(f"Erreur lors de la sauvegarde des stocks : {e}")
+            fenetre_stock.destroy()
+
+        # Conteneur principal
+        frame_principale = ttk.Frame(fenetre_stock, padding=10)
+        frame_principale.pack(fill="both", expand=True)
+
+        # Widgets pour chaque plat
+        labels_quantites = {}
+        checkbuttons_hors_stock = {}
+
+        for plat, produits in plats.items():
+            frame_plat = ttk.Frame(frame_principale, padding=5)
+            frame_plat.pack(fill="x", pady=5)
+
+            # Nom du plat
+            ttk.Label(
+                frame_plat,
+                text=plat,
+                font=("Cambria", 12),
+                background="#2b2b2b",
+                foreground="white"
+            ).pack(side="left", padx=5)
+
+            if plat == "Pizza":
+                # Quantité de "Pâte à pizza"
+                labels_quantites[plat] = ttk.Label(frame_plat, text=f"Quantité : {produits['Pâte à pizza']['Quantité']}")
+                labels_quantites[plat].pack(side="left", padx=5)
+
+                # Boutons de modification de quantité
+                ttk.Button(frame_plat, text="-", command=lambda: ajuster_quantite(plat, "Pâte à pizza", -1)).pack(side="left", padx=2)
+                ttk.Button(frame_plat, text="+", command=lambda: ajuster_quantite(plat, "Pâte à pizza", 1)).pack(side="left", padx=2)
+
+            elif plat == "Grillades":
+                # Sous-catégorie pour les viandes
+                for viande, data in produits.items():
+                    frame_viande = ttk.Frame(frame_principale, padding=5)
+                    frame_viande.pack(fill="x", pady=5)
+
+                    ttk.Label(
+                        frame_viande,
+                        text=viande,
+                        font=("Cambria", 10),
+                        background="#2b2b2b",
+                        foreground="white"
+                    ).pack(side="left", padx=5)
+
+                    labels_quantites[plat] = labels_quantites.get(plat, {})
+                    labels_quantites[plat][viande] = ttk.Label(frame_viande, text=f"Quantité : {data['Quantité']}")
+                    labels_quantites[plat][viande].pack(side="left", padx=5)
+
+                    ttk.Button(frame_viande, text="-", command=lambda v=viande: ajuster_quantite(plat, v, -1)).pack(side="left", padx=2)
+                    ttk.Button(frame_viande, text="+", command=lambda v=viande: ajuster_quantite(plat, v, 1)).pack(side="left", padx=2)
+
+            elif plat in ["Frites", "Légumes"]:
+                # Regrouper dans une catégorie "Accompagnement"
+                if "Accompagnement" not in labels_quantites:
+                    frame_accompagnement = ttk.Frame(frame_principale, padding=5)
+                    frame_accompagnement.pack(fill="x", pady=5)
+
+                    ttk.Label(
+                        frame_accompagnement,
+                        text="Accompagnement",
+                        font=("Cambria", 12),
+                        background="#2b2b2b",
+                        foreground="white"
+                    ).pack(side="left", padx=5)
+
+                    labels_quantites["Accompagnement"] = {}
+
+                labels_quantites["Accompagnement"][plat] = ttk.Label(frame_accompagnement, text=f"{plat} : {produits['Quantité']}")
+                labels_quantites["Accompagnement"][plat].pack(side="left", padx=5)
+
+                ttk.Button(frame_accompagnement, text="-", command=lambda p=plat: ajuster_quantite(plat, plat, -1)).pack(side="left", padx=2)
+                ttk.Button(frame_accompagnement, text="+", command=lambda p=plat: ajuster_quantite(plat, plat, 1)).pack(side="left", padx=2)
+
+        # Bouton pour sauvegarder les modifications
+        ttk.Button(
+            fenetre_stock,
+            text="Sauvegarder",
+            style="TButton",
+            command=sauvegarder_stocks
+        ).pack(pady=20)
+
+        # Ajuster automatiquement la taille de la fenêtre
+        fenetre_stock.update_idletasks()
+        fenetre_stock.geometry("")
+
+        return fenetre_stock
+
+    # Utiliser la fonction pour ouvrir une fenêtre unique
+    ouvrir_fenetre_unique("Gestion des Stocks", creation_fenetre, fermer_autres=False)
