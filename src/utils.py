@@ -5,7 +5,6 @@ Sous-fichier comprenant diverses fonctions utilitaires pour le projet SnackApp.
 # == Fonctions utilitaires et de configuration == #
 import json
 import os
-from datetime import datetime
 from PIL import Image, ImageTk
 
 # == Modules graphiques == #
