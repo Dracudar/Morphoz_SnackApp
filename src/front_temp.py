@@ -499,137 +499,167 @@ def perso_frites(root):
 # == Interface gestion des stocks == #
 def gestion_stock(root):
     """
-    Interface pour gérer les stocks.
+    Interface pour gérer les stocks avec des catégories en onglets.
     """
     def creation_fenetre():
-        # Charger les données du fichier stock.json
-        stock_file_path = get_stock_file_path().get()
-        stock_data = charger_donnees_stock(stock_file_path)
-        plats = stock_data.get("Plats", {})
-        ingredients = stock_data.get("Ingrédients", {})
+        # Charger les données du stock
+        stock_data = charger_donnees_stock(get_stock_file_path().get())
 
         # Crée une fenêtre pour la gestion des stocks
         fenetre_stock = tk.Toplevel(root)
-        fenetre_stock.title("Gestion des Stocks")
+        fenetre_stock.title("Gestion des stocks")
         fenetre_stock.configure(bg="#2b2b2b")
         fenetre_stock.attributes("-topmost", True)  # Garde la fenêtre au premier plan
 
-        # Fonction pour ajuster les quantités
-        def ajuster_quantite(plat, produit, delta):
-            if "Quantité" in plats[plat][produit]:
-                plats[plat][produit]["Quantité"] = max(0, plats[plat][produit]["Quantité"] + delta)
-                mise_a_jour_interface()
+        # Titre principal
+        ttk.Label(
+            fenetre_stock,
+            text="Stock",
+            font=("Cambria", 16, "bold"),
+            background="#2b2b2b",
+            foreground="white"
+        ).pack(pady=10)
 
-        # Fonction pour basculer le mode "Hors Stock"
-        def basculer_hors_stock(plat, etat):
-            plats[plat]["OutOfStock"] = etat
-            mise_a_jour_interface()
+        # Créer un Notebook pour les onglets
+        notebook = ttk.Notebook(fenetre_stock)
+        notebook.pack(fill="both", expand=True, padx=10, pady=10)
 
-# Fonction pour ouvrir la gestion des ingrédients
-        def ouvrir_gestion_ingredients():
-            gestion_ingredients(root)
+        # Onglet "Plats"
+        if "Plats" in stock_data:
+            tab_plats = ttk.Frame(notebook)
+            notebook.add(tab_plats, text="Plats")
 
-        # Fonction pour mettre à jour l'interface
-        def mise_a_jour_interface():
-            for plat, produits in plats.items():
-                if plat == "Grillades":
-                    for produit, data in produits.items():
-                        if "Quantité" in data:
-                            labels_quantites[plat][produit].config(text=f"Quantité : {data['Quantité']}")
-                elif "Quantité" in produits:
-                    labels_quantites[plat].config(text=f"Quantité : {produits['Quantité']}")
-                if "OutOfStock" in produits:
-                    checkbuttons_hors_stock[plat].set(produits.get("OutOfStock", False))
+            # Détails des pizzas
+            if "Pizza" in stock_data["Plats"]:
+                frame_pizza = ttk.LabelFrame(tab_plats, text="Pizzas", padding=10)
+                frame_pizza.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Fonction pour sauvegarder les modifications dans le fichier stock.json
-        def sauvegarder_stocks():
-            try:
-                with open(stock_file_path, "w", encoding="utf-8") as fichier:
-                    json.dump({"Plats": plats, "Ingrédients": ingredients}, fichier, indent=4, ensure_ascii=False)
-                print("Les stocks ont été sauvegardés avec succès.")
-            except Exception as e:
-                print(f"Erreur lors de la sauvegarde des stocks : {e}")
-            fenetre_stock.destroy()
-
-        # Conteneur principal
-        frame_principale = ttk.Frame(fenetre_stock, padding=10)
-        frame_principale.pack(fill="both", expand=True)
-
-        # Widgets pour chaque plat
-        labels_quantites = {}
-        checkbuttons_hors_stock = {}
-
-        for plat, produits in plats.items():
-            frame_plat = ttk.Frame(frame_principale, padding=5)
-            frame_plat.pack(fill="x", pady=5)
-
-            # Nom du plat
-            ttk.Label(
-                frame_plat,
-                text=plat,
-                font=("Cambria", 12),
-                background="#2b2b2b",
-                foreground="white"
-            ).pack(side="left", padx=5)
-
-            if plat == "Pizza":
-                # Quantité de "Pâte à pizza"
-                labels_quantites[plat] = ttk.Label(frame_plat, text=f"Quantité : {produits['Pâte à pizza']['Quantité']}")
-                labels_quantites[plat].pack(side="left", padx=5)
-
-                # Boutons de modification de quantité
-                ttk.Button(frame_plat, text="-", command=lambda: ajuster_quantite(plat, "Pâte à pizza", -1)).pack(side="left", padx=2)
-                ttk.Button(frame_plat, text="+", command=lambda: ajuster_quantite(plat, "Pâte à pizza", 1)).pack(side="left", padx=2)
-
-            elif plat == "Grillades":
-                # Sous-catégorie pour les viandes
-                for viande, data in produits.items():
-                    frame_viande = ttk.Frame(frame_principale, padding=5)
-                    frame_viande.pack(fill="x", pady=5)
-
+                for pizza, data in stock_data["Plats"]["Pizza"].items():
                     ttk.Label(
-                        frame_viande,
-                        text=viande,
+                        frame_pizza,
+                        text=pizza,
                         font=("Cambria", 10),
-                        background="#2b2b2b",
-                        foreground="white"
-                    ).pack(side="left", padx=5)
+                        width=20,
+                        anchor="w"
+                    ).grid(row=0, column=0, padx=5, pady=5)
 
-                    labels_quantites[plat] = labels_quantites.get(plat, {})
-                    labels_quantites[plat][viande] = ttk.Label(frame_viande, text=f"Quantité : {data['Quantité']}")
-                    labels_quantites[plat][viande].pack(side="left", padx=5)
+                    quantite = tk.IntVar(value=data.get("Quantité", 0))
+                    out_of_stock = tk.BooleanVar(value=data.get("OutOfStock", False))
 
-                    ttk.Button(frame_viande, text="-", command=lambda v=viande: ajuster_quantite(plat, v, -1)).pack(side="left", padx=2)
-                    ttk.Button(frame_viande, text="+", command=lambda v=viande: ajuster_quantite(plat, v, 1)).pack(side="left", padx=2)
+                    ttk.Checkbutton(
+                        frame_pizza,
+                        text="Out of Stock",
+                        variable=out_of_stock,
+                        style="TCheckbutton"
+                    ).grid(row=0, column=1, padx=5)
 
-            elif plat in ["Frites", "Légumes"]:
-                # Regrouper dans une catégorie "Accompagnement"
-                if "Accompagnement" not in labels_quantites:
-                    frame_accompagnement = ttk.Frame(frame_principale, padding=5)
-                    frame_accompagnement.pack(fill="x", pady=5)
+            # Détails des grillades
+            if "Grillades" in stock_data["Plats"]:
+                frame_grillades = ttk.LabelFrame(tab_plats, text="Grillades", padding=10)
+                frame_grillades.pack(fill="both", expand=True, padx=10, pady=10)
 
+                for grillade, data in stock_data["Plats"]["Grillades"].items():
                     ttk.Label(
-                        frame_accompagnement,
-                        text="Accompagnement",
-                        font=("Cambria", 12),
-                        background="#2b2b2b",
-                        foreground="white"
-                    ).pack(side="left", padx=5)
+                        frame_grillades,
+                        text=grillade,
+                        font=("Cambria", 10),
+                        width=20,
+                        anchor="w"
+                    ).grid(row=0, column=0, padx=5, pady=5)
 
-                    labels_quantites["Accompagnement"] = {}
+                    quantite = tk.IntVar(value=data.get("Quantité", 0))
+                    out_of_stock = tk.BooleanVar(value=data.get("OutOfStock", False))
 
-                labels_quantites["Accompagnement"][plat] = ttk.Label(frame_accompagnement, text=f"{plat} : {produits['Quantité']}")
-                labels_quantites["Accompagnement"][plat].pack(side="left", padx=5)
+                    ttk.Checkbutton(
+                        frame_grillades,
+                        text="Out of Stock",
+                        variable=out_of_stock,
+                        style="TCheckbutton"
+                    ).grid(row=0, column=1, padx=5)
 
-                ttk.Button(frame_accompagnement, text="-", command=lambda p=plat: ajuster_quantite(plat, plat, -1)).pack(side="left", padx=2)
-                ttk.Button(frame_accompagnement, text="+", command=lambda p=plat: ajuster_quantite(plat, plat, 1)).pack(side="left", padx=2)
+        # Onglet "Accompagnement"
+        if "Accompagnement" in stock_data:
+            tab_accompagnement = ttk.Frame(notebook)
+            notebook.add(tab_accompagnement, text="Accompagnement")
+
+            frame_accompagnement = ttk.Frame(tab_accompagnement)
+            frame_accompagnement.pack(fill="both", expand=True, padx=20, pady=20)
+
+            row = 0
+            for accompagnement, data in stock_data["Accompagnement"].items():
+                ttk.Label(
+                    frame_accompagnement,
+                    text=accompagnement,
+                    font=("Cambria", 10),
+                    width=20,
+                    anchor="w"
+                ).grid(row=row, column=0, padx=5, pady=5)
+
+                quantite = tk.IntVar(value=data.get("Quantité", 0))
+                out_of_stock = tk.BooleanVar(value=data.get("OutOfStock", False))
+
+                ttk.Checkbutton(
+                    frame_accompagnement,
+                    text="Out of Stock",
+                    variable=out_of_stock,
+                    style="TCheckbutton"
+                ).grid(row=row, column=1, padx=5)
+
+                row += 1
+
+        # Onglet "Ingrédients"
+        if "Ingrédients" in stock_data:
+            tab_ingredients = ttk.Frame(notebook)
+            notebook.add(tab_ingredients, text="Ingrédients")
+
+            frame_ingredients = ttk.Frame(tab_ingredients)
+            frame_ingredients.pack(fill="both", expand=True, padx=20, pady=20)
+
+            row = 0
+            for categorie, ingredients in stock_data["Ingrédients"].items():
+                ttk.Label(
+                    frame_ingredients,
+                    text=categorie,
+                    font=("Cambria", 12, "bold"),
+                    background="#2b2b2b",
+                    foreground="white"
+                ).grid(row=row, column=0, padx=5, pady=5, sticky="w")
+                row += 1
+
+                for ingredient, data in ingredients.items():
+                    ttk.Label(
+                        frame_ingredients,
+                        text=ingredient,
+                        font=("Cambria", 10),
+                        width=20,
+                        anchor="w"
+                    ).grid(row=row, column=0, padx=5, pady=5)
+
+                    out_of_stock = tk.BooleanVar(value=data.get("OutOfStock", False))
+
+                    ttk.Checkbutton(
+                        frame_ingredients,
+                        text="Out of Stock",
+                        variable=out_of_stock,
+                        style="TCheckbutton"
+                    ).grid(row=row, column=1, padx=5)
+
+                    row += 1
 
         # Bouton pour sauvegarder les modifications
+        def sauvegarder():
+            # Mettre à jour les données du stock
+            for categorie, elements in stock_data.items():
+                for element, data in elements.items():
+                    data["Quantité"] = quantite.get()
+                    data["OutOfStock"] = out_of_stock.get()
+            sauvegarder_chemin_stock(stock_data)
+            fenetre_stock.destroy()
+
         ttk.Button(
             fenetre_stock,
             text="Sauvegarder",
-            style="TButton",
-            command=sauvegarder_stocks
+            command=sauvegarder
         ).pack(pady=20)
 
         # Ajuster automatiquement la taille de la fenêtre
@@ -639,4 +669,4 @@ def gestion_stock(root):
         return fenetre_stock
 
     # Utiliser la fonction pour ouvrir une fenêtre unique
-    ouvrir_fenetre_unique("Gestion des Stocks", creation_fenetre, fermer_autres=False)
+    ouvrir_fenetre_unique("Gestion des stocks", creation_fenetre, fermer_autres=True)
