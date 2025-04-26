@@ -1,0 +1,44 @@
+// Maquette de fichier commande pour exemple de la 18ème du 24/04/2025
+// Nom du fichier : "commande_20250424-018.json"
+{
+    "Information": {
+        "ID": "20250424-018",
+        "Montant": "",
+        "Devise": "EUR",
+        "Type de paiement": "CB", // "CB", "Espèce", "Repas gratuit"
+        "Date": "2023-10-01", // YYYY-MM-DD
+        "Statut": "En saisie" // "En saisie", "Validée", "Annulée", "Terminée"
+    },
+    "Commande": {
+        "#01": {
+            "ID": "20250424-018-01",
+            "Nom": "Pizza Meat BBQ (lardon) base Sauce tomate",
+            "Statut": "Annulé", // "En attente", "En préparation", "Annulé", "Prêt", "Livré"
+            "Prix": 6.00,
+            "Composition": {
+                "Base": "Sauce tomate",
+                "Ingrédients": ["Lardon", "Mozzarella", "Emmental","Oignon", "Poivron"]
+            }
+        },
+        "#02": {
+            "ID": "20250424-018-02",
+            "Nom": "Grillade",
+            "Statut": "En attente", // "En attente", "En préparation", "Annulé", "Prêt", "Livré"
+            "Prix": 5.00,
+            "Composition": {
+                "Viande": ["Poitrine", "Chipolatta"],
+                "Accompagnement": "Frites"
+            }
+        },
+        "#03": {
+            "ID": "20250424-018-03",
+            "Nom": "Pizza personnalisée",
+            "Statut": "En attente", // "En attente", "En préparation", "Annulé", "Prêt", "Livré"
+            "Prix": 6.00,
+            "Composition": {
+                "Base": "Crème",
+                "Ingrédients": ["Jambon", "Mozzarella", "Emmental", "Champignons"]
+            }
+        }
+    }
+}
