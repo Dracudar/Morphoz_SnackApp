@@ -2,3 +2,5 @@ __pycache__/
 assets/__pycache__/
 .pytest_cache__/
 .vscode/
+.venv/
+assets/config.json
