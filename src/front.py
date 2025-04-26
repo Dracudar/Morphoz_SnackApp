@@ -18,20 +18,25 @@ Interfaces principales :
 # == Fonctions utilitaires et de configuration == #
 from src.utils import chercher_fichier, sauvegarder_chemins
 from src.utils import initialiser_chemins, get_stock_file_path, get_menu_file_path
-from src.utils import charger_donnees_menu, charger_donnees_stock, charger_img
+from src.utils import charger_donnees_menu, charger_img
 from src.styles import configurer_styles  # Importer la configuration des styles
 
 # == Fonctions backend == #
-from src.front_temp import perso_pizza  # Import de la fonction d'interface de personnalisation de la pizza
-from src.front_temp import perso_grillade  # Import de la fonction d'interface de personnalisation de la grillade
-from src.front_temp import perso_salade_composee  # Import de la fonction d'interface de personnalisation de la salade composée
-from src.front_temp import perso_frites  # Import de la fonction d'interface de personnalisation des frites
-from src.front_temp import gestion_stock  # Import de la fonction d'interface de gestion du stock
+from src.front_temp import (
+    perso_pizza,  # Import de la fonction d'interface de personnalisation de la pizza
+    perso_grillade,  # Import de la fonction d'interface de personnalisation de la grillade
+    perso_salade_composee,  # Import de la fonction d'interface de personnalisation de la salade composée
+    perso_frites,  # Import de la fonction d'interface de personnalisation des frites
+    gestion_stock  # Import de la fonction d'interface de gestion du stock
+)
+# == Modules fonctionnels == #
+import os  # Importer le module os pour vérifier l'existence des fichiers
 
 # == Modules graphiques == #
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
+
 root = tk.Tk()
 
 # === Initialisation des variables === #
@@ -125,12 +130,22 @@ def menu_selection(): # 1ère interface
         if not stock_file_path.get() or not menu_file_path.get():
             messagebox.showerror("Erreur", "Veuillez sélectionner les deux fichiers JSON.")
             return
+
+        # Vérifier si les fichiers existent
+        if not os.path.exists(stock_file_path.get()):
+            messagebox.showerror("Erreur", f"Le fichier de stock '{stock_file_path.get()}' est introuvable.")
+            return
+
+        if not os.path.exists(menu_file_path.get()):
+            messagebox.showerror("Erreur", f"Le fichier de menu '{menu_file_path.get()}' est introuvable.")
+            return
+
         sauvegarder_chemins(stock_file_path.get(), menu_file_path.get())  # Sauvegarder les chemins avant de passer au menu principal
 
-        for widget in root.winfo_children(): # Supprimer tous les widgets existants dans frame_principal
+        for widget in root.winfo_children():  # Supprimer tous les widgets existants dans frame_principal
             widget.destroy()
 
-        menu_principal() # Passer au menu principal
+        menu_principal()  # Passer au menu principal
 
     # === Initialisation des frames === #
     back_frame()  # Créer la fenêtre principale
