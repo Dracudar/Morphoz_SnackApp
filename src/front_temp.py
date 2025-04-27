@@ -10,21 +10,24 @@ Code UI pour les interfaces temporaire de l'application SnackApp :
 # == Fonctions utilitaires et de configuration == #
 from src.utils import (
     charger_donnees_menu, 
-    get_menu_file_path,
-)
-from src.utils import (
-    get_stock_file_path,
     charger_donnees_stock,
     sauvegarder_chemin_stock
-)
+    )
+from src.utils import (
+    get_menu_file_path,
+    get_stock_file_path,
+    get_archive_folder_path
+    )
+from src.back import ajouter_ou_mettre_a_jour_commande
 from functools import partial
+import os  # Pour manipuler les chemins de fichiers
 
 # == Modules graphiques == #
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 
-# Variable globale pour suivre les fenêtres ouvertes
+# === Suivi des fenêtres ouvertes === #
 fenetres_ouvertes: dict[str, tk.Toplevel] = {}
 
 def ouvrir_fenetre_unique(titre, creation_fenetre, fermer_autres=False):
@@ -232,7 +235,7 @@ def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, stock_data)
 # Validation de la personnalisation
 def pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_2, recette=None):
     """
-    Valide la personnalisation de la pizza et affiche les choix sélectionnés.
+    Valide la personnalisation de la pizza, affiche les choix sélectionnés et ajoute la pizza au fichier de commande.
     """
     base = base_selectionnee.get()
     if not base:
@@ -265,10 +268,30 @@ def pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_
         if ingredients_supplementaires:
             message += f" (supplément {', '.join(ingredients_supplementaires)})"
 
-    # Afficher les choix dans la console (ou les sauvegarder pour une commande)
+    # Afficher les choix dans la console
     print(message)
 
-    # Réinitialiser la recette après l'impression
+    # Charger le prix des pizzas depuis le fichier menu
+    menu_data = charger_donnees_menu(get_menu_file_path().get())
+    prix_pizza = menu_data.get("Pizza", {}).get("Prix", 0)
+
+    # Préparer les données du plat
+    plat = {
+        "Nom": message,  # Utiliser le message comme nom
+        "Statut": "En attente",
+        "Prix": prix_pizza,  # Utiliser le prix global des pizzas
+        "Composition": {
+            "Base": base,
+            "Ingrédients": ingredients
+        }
+    }
+
+    # Ajouter le plat au fichier de commande
+    commandes_path = os.path.join(get_archive_folder_path().get(), "commandes")
+    logs_path = os.path.join(get_archive_folder_path().get(), "logs")
+    ajouter_ou_mettre_a_jour_commande(commandes_path, logs_path, plat)
+
+    # Réinitialiser la recette après l'ajout
     if recette and isinstance(recette, dict):
         recette.clear()
 
