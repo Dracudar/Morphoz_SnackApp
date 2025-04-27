@@ -1,10 +1,10 @@
-"""
+'''
 Code UI pour les interfaces temporaire de l'application SnackApp :
 - Personnalisation des pizzas
 - Personnalisation des grillades
 - Personnalisation des salades composées
 - Gestion des stocks
-"""
+'''
 
 # === Importer les modules nécessaires === #
 # == Fonctions utilitaires et de configuration == #
@@ -25,7 +25,7 @@ from tkinter import ttk
 from tkinter import messagebox
 
 # Variable globale pour suivre les fenêtres ouvertes
-fenetres_ouvertes = {}
+fenetres_ouvertes: dict[str, tk.Toplevel] = {}
 
 def ouvrir_fenetre_unique(titre, creation_fenetre, fermer_autres=False):
     """
