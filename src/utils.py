@@ -55,7 +55,7 @@ def charger_chemins(): # Charge les chemins des fichiers JSON depuis un fichier 
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "r") as f:
             return json.load(f)
-    return {"stock_file": "", "menu_file": ""}
+    return {"stock_file": "", "menu_file": "", "archive_folder": ""}  # Valeurs par défaut si le fichier n'existe pas
 
 def initialiser_chemins(): # Initialise les variables globales pour les chemins
     """Initialise les variables globales pour les chemins."""
@@ -136,10 +136,14 @@ def initialiser_dossier_archive():
         commandes_path = os.path.join(dossier_path, "commandes")
         en_cours_path = os.path.join(commandes_path, "en_cours")
         terminee_path = os.path.join(commandes_path, "terminee")
+        annulee_path = os.path.join(commandes_path, "annulee")
+        corrompu_path = os.path.join(commandes_path, "corrompu")
 
         os.makedirs(logs_path, exist_ok=True)
         os.makedirs(en_cours_path, exist_ok=True)
         os.makedirs(terminee_path, exist_ok=True)
+        os.makedirs(annulee_path, exist_ok=True)
+        os.makedirs(corrompu_path, exist_ok=True)
     else:
         raise ValueError("Le chemin du dossier d'archivage n'est pas défini dans le fichier de configuration.")
 
