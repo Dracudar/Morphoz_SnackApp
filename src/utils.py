@@ -16,8 +16,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Répertoire du fichier 
 CONFIG_FILE = os.path.join(BASE_DIR, "../assets/config.json") # Chemin vers le fichier de configuration
 
 # Variables globales pour les chemins
-stock_file_path = None
-menu_file_path = None
+stock_file_path = None  # Variable pour le chemin du fichier de stock
+menu_file_path = None  # Variable pour le chemin du fichier de menu
+archive_folder_path = None  # Variable pour le chemin du dossier d'archivage
 
 # === Récupération des valeurs des variables de config.json === #
 def get_stock_file_path():
@@ -28,7 +29,11 @@ def get_menu_file_path():
     """Retourne la variable menu_file_path."""
     return menu_file_path
 
-# === Choix des fichiers JSON === #
+def get_archive_folder_path():
+    """Retourne la variable archive_folder_path."""
+    return archive_folder_path
+
+# === Recherche de fichiers et dossiers === #
 def chercher_fichier(): # Ouvre un explorateur de fichiers pour sélectionner un fichier JSON
     '''Ouvre un explorateur de fichiers pour sélectionner un fichier JSON.'''
     filepath = filedialog.askopenfilename(
@@ -37,6 +42,14 @@ def chercher_fichier(): # Ouvre un explorateur de fichiers pour sélectionner un
     )
     return filepath
 
+def chercher_dossier():  # Ouvre un explorateur de fichiers pour sélectionner un dossier
+    """Ouvre un explorateur de fichiers pour sélectionner un dossier."""
+    folder_path = filedialog.askdirectory(
+        title="Sélectionner un dossier pour l'archivage et le suivi"
+    )
+    return folder_path
+
+# === Chargement et sauvegarde des chemins === #
 def charger_chemins(): # Charge les chemins des fichiers JSON depuis un fichier de configuration
     """Charge les chemins des fichiers JSON depuis un fichier de configuration."""
     if os.path.exists(CONFIG_FILE):
@@ -46,10 +59,11 @@ def charger_chemins(): # Charge les chemins des fichiers JSON depuis un fichier 
 
 def initialiser_chemins(): # Initialise les variables globales pour les chemins
     """Initialise les variables globales pour les chemins."""
-    global stock_file_path, menu_file_path
+    global stock_file_path, menu_file_path, archive_folder_path
     chemins = charger_chemins()
-    stock_file_path = tk.StringVar(value=chemins.get("stock_file", ""))
-    menu_file_path = tk.StringVar(value=chemins.get("menu_file", ""))
+    stock_file_path = tk.StringVar(value=chemins.get("stock_file", ""))  # Initialisation du fichier de stock
+    menu_file_path = tk.StringVar(value=chemins.get("menu_file", ""))  # Initialisation du fichier de menu
+    archive_folder_path = tk.StringVar(value=chemins.get("archive_folder", ""))  # Initialisation du dossier d'archivage
 
 # === Fonctions de sauvegarde des chemins dans config.json === #
 def sauvegarder_chemin_stock(stock_path):  # Sauvegarde uniquement le chemin du fichier stock
@@ -66,10 +80,18 @@ def sauvegarder_chemin_menu(menu_path):  # Sauvegarde uniquement le chemin du fi
     with open(CONFIG_FILE, "w") as f:
         json.dump(data, f)
 
-def sauvegarder_chemins(stock_path, menu_path):  # Regroupe les deux sauvegardes
-    """Sauvegarde les chemins des fichiers stock et menu dans le fichier de configuration."""
-    sauvegarder_chemin_stock(stock_path)
-    sauvegarder_chemin_menu(menu_path)
+def sauvegarder_chemin_dossier(dossier_path):
+    """Sauvegarde le chemin du dossier dans le fichier de configuration."""
+    data = charger_chemins()
+    data["archive_folder"] = dossier_path
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(data, f)
+
+def sauvegarder_chemins(stock_path, menu_path, dossier_path):  # Regroupe les trois sauvegardes
+    """Sauvegarde les chemins des fichiers stock, menu et dossier dans le fichier de configuration."""
+    sauvegarder_chemin_stock(stock_path)  # Sauvegarde le chemin du fichier stock
+    sauvegarder_chemin_menu(menu_path)  # Sauvegarde le chemin du fichier menu
+    sauvegarder_chemin_dossier(dossier_path)  # Sauvegarde le chemin du dossier d'archivage
 
 # === Chargement des données JSON === #
 def charger_donnees_stock(stock_file_path):
@@ -101,6 +123,25 @@ def charger_donnees_menu(menu_file_path):
         raise FileNotFoundError(f"Le fichier de menu '{menu_file_path}' est introuvable.")
     except json.JSONDecodeError:
         raise ValueError(f"Le fichier de menu '{menu_file_path}' contient des données invalides.")
+
+# === Dossier d'archivage === #
+def initialiser_dossier_archive():
+    """Initialise le dossier d'archivage et crée la structure si nécessaire."""
+    chemins = charger_chemins()
+    dossier_path = chemins.get("archive_folder", "")
+
+    if dossier_path:
+        # Créer la structure de dossiers si elle n'existe pas
+        logs_path = os.path.join(dossier_path, "logs")
+        commandes_path = os.path.join(dossier_path, "commandes")
+        en_cours_path = os.path.join(commandes_path, "en_cours")
+        terminee_path = os.path.join(commandes_path, "terminee")
+
+        os.makedirs(logs_path, exist_ok=True)
+        os.makedirs(en_cours_path, exist_ok=True)
+        os.makedirs(terminee_path, exist_ok=True)
+    else:
+        raise ValueError("Le chemin du dossier d'archivage n'est pas défini dans le fichier de configuration.")
 
 # === Chargement et redimensionnement d'images === #
 def charger_img(nom_image, taille=()):
