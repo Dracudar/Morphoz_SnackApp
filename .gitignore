@@ -4,3 +4,4 @@ assets/__pycache__/
 .vscode/
 .venv/
 assets/config.json
+tests/data/
