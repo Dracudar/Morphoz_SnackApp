@@ -16,8 +16,20 @@ Interfaces principales :
 
 # === Importer les modules nécessaires === #
 # == Fonctions utilitaires et de configuration == #
-from src.utils import chercher_fichier, sauvegarder_chemins
-from src.utils import initialiser_chemins, get_stock_file_path, get_menu_file_path
+from src.utils import (
+    chercher_fichier, 
+    chercher_dossier,
+    sauvegarder_chemins
+    )
+from src.utils import (
+    initialiser_chemins,
+    initialiser_dossier_archive
+    )
+from src.utils import (
+    get_stock_file_path, 
+    get_menu_file_path,
+    get_archive_folder_path
+    )
 from src.utils import charger_donnees_menu, charger_img
 from src.styles import configurer_styles  # Importer la configuration des styles
 
@@ -108,8 +120,13 @@ def frames_menu_principal(root): # Fonction pour créer les cadres de l'interfac
     frame_droite_bas = ttk.Frame(main_frame, style="TFrame", borderwidth=4, relief="solid")
     frame_droite_bas.place(relx=2/3, rely=14/15, relwidth=1/3, relheight=1/15)
 
-def quitter_application(): # Fonction pour d'arrêt propre de l'application
-    sauvegarder_chemins(get_stock_file_path().get(), get_menu_file_path().get())  # Sauvegarder les chemins avant de quitter
+def quitter_application():
+    """Fonction pour quitter proprement l'application."""
+    sauvegarder_chemins(
+        get_stock_file_path().get(),  # Valeur brute du chemin du fichier stock
+        get_menu_file_path().get(),  # Valeur brute du chemin du fichier menu
+        get_archive_folder_path().get()  # Valeur brute du chemin du dossier d'archivage
+    )
     root.destroy()  # Fermer la fenêtre
 
 # === Code principal === #
@@ -124,11 +141,12 @@ def menu_selection(): # 1ère interface
     # Charger les chemins sauvegardés
     stock_file_path = get_stock_file_path()
     menu_file_path = get_menu_file_path()
+    archive_folder_path = get_archive_folder_path()
 
     # Fonction pour vérifier les fichiers et passer au menu principal
-    def demarrer_menu_principal():
-        if not stock_file_path.get() or not menu_file_path.get():
-            messagebox.showerror("Erreur", "Veuillez sélectionner les deux fichiers JSON.")
+    def demarrer_menu_principal(archive_folder_path):
+        if not stock_file_path.get() or not menu_file_path.get() or not archive_folder_path:
+            messagebox.showerror("Erreur", "Veuillez sélectionner les fichiers JSON et le dossier d'archivage.")
             return
 
         # Vérifier si les fichiers existent
@@ -140,7 +158,15 @@ def menu_selection(): # 1ère interface
             messagebox.showerror("Erreur", f"Le fichier de menu '{menu_file_path.get()}' est introuvable.")
             return
 
-        sauvegarder_chemins(stock_file_path.get(), menu_file_path.get())  # Sauvegarder les chemins avant de passer au menu principal
+        # Sauvegarder les chemins avant de passer au menu principal
+        sauvegarder_chemins(stock_file_path.get(), menu_file_path.get(), archive_folder_path)
+
+        # Initialiser le dossier d'archivage
+        try:
+            initialiser_dossier_archive()
+        except ValueError as e:
+            messagebox.showerror("Erreur", str(e))
+            return
 
         for widget in root.winfo_children():  # Supprimer tous les widgets existants dans frame_principal
             widget.destroy()
@@ -215,6 +241,32 @@ def menu_selection(): # 1ère interface
         style="TButton"
     ).pack(side="left", padx=10)
 
+    # === Sélecteur du dossier d'archivage dans frame_milieu === #
+    frame_archive = ttk.Frame(frame_milieu, style="TFrame")
+    frame_archive.pack(fill="x", pady=10)
+
+    ttk.Label(
+        frame_archive,
+        text="Dossier d'archivage :",
+        foreground="white",
+        background="#2b2b2b",
+        font=("Cambria", 12)
+    ).pack(side="left", padx=10)
+
+    ttk.Entry(
+        frame_archive,
+        textvariable=archive_folder_path,
+        width=60,
+        font=("Cambria", 10)
+    ).pack(side="left", padx=10)
+
+    ttk.Button(
+        frame_archive,
+        text="Chercher",
+        command=lambda: archive_folder_path.set(chercher_dossier() or archive_folder_path.get()),
+        style="TButton"
+    ).pack(side="left", padx=10)
+
     # === Boutons en bas dans frame_bas === #
     frame_boutons = ttk.Frame(frame_bas, style="TFrame")
     frame_boutons.pack(pady=20)
@@ -229,7 +281,7 @@ def menu_selection(): # 1ère interface
     ttk.Button(
         frame_boutons,
         text="Démarrer",
-        command=demarrer_menu_principal,
+        command=lambda: demarrer_menu_principal(archive_folder_path.get()),
         style="TButton"
     ).pack(side="left", padx=20)
 
