@@ -525,8 +525,41 @@ def perso_salade_composee(root):
 
         # Bouton pour valider la personnalisation
         def valider_salade():
+            """
+            Valide la personnalisation de la salade composée et ajoute la commande au fichier.
+            """
+            # Récupérer les ingrédients choisis
             ingredients_choisis = [ingredient for ingredient, var in ingredients_selectionnes.items() if var.get()]
-            print(f"Ingrédients choisis : {', '.join(ingredients_choisis)}")
+
+            if not ingredients_choisis:
+                messagebox.showerror("Erreur", "Veuillez sélectionner au moins un ingrédient.")
+                return
+
+            # Construire le message pour la commande
+            message = f"Salade composée avec {', '.join(ingredients_choisis)}"
+
+            # Charger le prix des salades depuis le fichier menu
+            menu_data = charger_donnees_menu(get_menu_file_path().get())
+            prix_salade = menu_data.get("Salade composée", {}).get("Prix", 0)
+
+            # Préparer les données du plat
+            plat = {
+                "Nom": message,
+                "Statut": "En attente",
+                "Prix": prix_salade,
+                "Composition": {
+                    "Ingrédients": ingredients_choisis
+                }
+            }
+
+            # Charger les chemins nécessaires pour la commande
+            commandes_path = os.path.join(get_archive_folder_path().get(), "commandes")
+            logs_path = os.path.join(get_archive_folder_path().get(), "logs")
+
+            # Ajouter ou mettre à jour la commande
+            ajouter_ou_mettre_a_jour_commande(commandes_path, logs_path, plat)
+
+            # Fermer la fenêtre
             fenetre_salade.destroy()
 
         ttk.Button(
