@@ -268,9 +268,6 @@ def pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_
         if ingredients_supplementaires:
             message += f" (supplément {', '.join(ingredients_supplementaires)})"
 
-    # Afficher les choix dans la console
-    print(message)
-
     # Charger le prix des pizzas depuis le fichier menu
     menu_data = charger_donnees_menu(get_menu_file_path().get())
     prix_pizza = menu_data.get("Pizza", {}).get("Prix", 0)
@@ -407,12 +404,44 @@ def perso_grillade(root):
 
         # Bouton pour valider la personnalisation
         def valider_grillade():
+            """
+            Valide la personnalisation de la grillade et ajoute la commande au fichier.
+            """
+            # Récupérer les viandes choisies et leurs quantités
             viandes_choisies = {viande: quantites_viandes[viande].get() for viande in viandes_disponibles if quantites_viandes[viande].get() > 0}
             accompagnement = accompagnement_selectionne.get()
 
-            # Afficher les choix dans la console (ou les sauvegarder pour une commande)
-            print(f"Viandes choisies : {viandes_choisies}")
-            print(f"Accompagnement choisi : {accompagnement}")
+            if not viandes_choisies:
+                messagebox.showerror("Erreur", "Veuillez sélectionner au moins une viande.")
+                return
+
+            # Construire le message pour la commande
+            if accompagnement == "Sans":
+                message = f"Grillade : {' et '.join([f'{q} {v}' for v, q in viandes_choisies.items()])} sans accompagnement"
+            else:
+                message = f"Grillade : {' et '.join([f'{q} {v}' for v, q in viandes_choisies.items()])} avec {accompagnement}"
+
+            # Charger le prix des pizzas depuis le fichier menu
+            menu_data = charger_donnees_menu(get_menu_file_path().get())
+            prix_grillade = menu_data.get("Grillade", {}).get("Prix", 0)
+
+            # Préparer les données du plat
+            plat = {
+                "Nom": message,
+                "Statut": "En attente",
+                "Prix": prix_grillade,  # Vous pouvez ajouter une logique pour calculer le prix en fonction des viandes et de l'accompagnement
+                "Composition": {
+                    "Viandes": viandes_choisies,
+                    "Accompagnement": accompagnement
+                }
+            }
+
+            # Charger les données nécessaires pour la commande
+            commandes_path = os.path.join(get_archive_folder_path().get(), "commandes")
+            logs_path = os.path.join(get_archive_folder_path().get(), "logs")
+
+            # Ajouter ou mettre à jour la commande
+            ajouter_ou_mettre_a_jour_commande(commandes_path, logs_path, plat)
 
             # Fermer la fenêtre
             fenetre_grillade.destroy()
