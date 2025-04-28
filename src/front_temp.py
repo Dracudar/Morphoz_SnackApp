@@ -325,7 +325,8 @@ def perso_grillade(root):
         # Fonction pour ajuster les quantités
         def ajuster_quantite(viande, delta):
             """
-            Ajuste la quantité de viande sélectionnée en respectant la limite totale de 2 portions.
+            Ajuste la quantité de viande sélectionnée en respectant la limite totale de 2 portions
+            et empêche les valeurs négatives.
             """
             # Récupère la valeur de la viande depuis le dictionnaire
             valeur_viande = viandes_disponibles.get(viande, {}).get("Valeur", 0)
@@ -339,8 +340,8 @@ def perso_grillade(root):
             # Calcule la nouvelle valeur
             nouvelle_valeur = quantites_viandes[viande].get() + delta
 
-            # Vérifie que le total ne dépasse pas 2 portions
-            if 0 <= nouvelle_valeur * valeur_viande + total_actuel - quantites_viandes[viande].get() * valeur_viande <= 2:
+            # Vérifie que la nouvelle valeur est positive et que le total ne dépasse pas 2 portions
+            if 0 <= nouvelle_valeur <= 2 and 0 <= nouvelle_valeur * valeur_viande + total_actuel - quantites_viandes[viande].get() * valeur_viande <= 2:
                 quantites_viandes[viande].set(nouvelle_valeur)
 
         # Affichage des viandes
