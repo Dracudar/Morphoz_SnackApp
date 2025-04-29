@@ -174,6 +174,13 @@ def terminer_commande(chemin_fichier):
     os.makedirs(dossier_terminee, exist_ok=True)
     os.rename(chemin_fichier, os.path.join(dossier_terminee, os.path.basename(chemin_fichier)))
 
+def modifier_plat(plat):
+    """
+    Ouvre la fenêtre de personnalisation pour modifier un plat existant.
+    """
+    from front_temp import travaux_en_cours
+    travaux_en_cours()
+
 def annuler_commande(chemin_fichier):
     commande = charger_fichier_json(chemin_fichier)
     if not commande:
@@ -182,7 +189,7 @@ def annuler_commande(chemin_fichier):
     # Vérifier si tous les plats sont annulés
     plats = commande["Commande"].values()
     if all(plat["Statut"] == "Annulé" for plat in plats):
-        commande["Information"]["Statut"] = "Annulée"
+        commande["Informations"]["Statut"] = "Annulée"
 
         # Sauvegarder les modifications
         with open(chemin_fichier, "w", encoding="utf-8") as fichier:
@@ -192,3 +199,29 @@ def annuler_commande(chemin_fichier):
         dossier_annulee = os.path.join(os.path.dirname(chemin_fichier), "annulee")
         os.makedirs(dossier_annulee, exist_ok=True)
         os.rename(chemin_fichier, os.path.join(dossier_annulee, os.path.basename(chemin_fichier)))
+
+def annuler_plat(commande_file, plat_id, chemin_fichier, affichage_commande_actuelle):
+    """
+    Annule un plat dans la commande en cours.
+    """
+    commande_data = charger_fichier_json(commande_file)
+    if not commande_data:
+        return
+
+    # Mettre à jour le statut du plat
+    commande_data["Commande"][plat_id]["Statut"] = "Annulé"
+
+    # Recalculer le montant total
+    commande_data["Informations"]["Montant"] = sum(
+        plat["Prix"] for plat in commande_data["Commande"].values() if plat["Statut"] != "Annulé"
+    )
+    
+    # Sauvegarder les modifications
+    with open(commande_file, "w", encoding="utf-8") as f:
+        json.dump(commande_data, f, indent=4, ensure_ascii=False)
+
+    # Vérifier si tous les plats sont annulés
+    annuler_commande(chemin_fichier)
+
+    # Rafraîchir l'affichage
+    affichage_commande_actuelle()
