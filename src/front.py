@@ -514,6 +514,17 @@ def menu_principal(): # 2nd interface
     )
     bouton_stock.place(relx=0.5, rely=0.5, anchor="center")  # Centrer le bouton dans la frame
 
+# = Bouton refrech = #
+    frame_refrech = ttk.Frame(frame_droite_bas, style="TFrame")
+    frame_refrech.place(relx=0.2, rely=0.1, relwidth=0.2, relheight=0.8) # Positionner le bouton de refrech
+
+    bouton_refrech = ttk.Button(
+        frame_refrech,
+        text="Refrech",
+        command=lambda: affichage_commande_actuelle(),  # Appeler la fonction d'affichage de la commande actuelle afin de le rafraichir 
+        style="TButton"
+    )
+    bouton_refrech.place(relx=0.5, rely=0.5, anchor="center")  # Centrer le bouton dans la frame
 
     # = Bouton exit = #
     frame_exit = ttk.Frame(frame_droite_bas, style="TFrame")
