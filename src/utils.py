@@ -132,18 +132,27 @@ def initialiser_dossier_archive():
 
     if dossier_path:
         # Créer la structure de dossiers si elle n'existe pas
-        logs_path = os.path.join(dossier_path, "logs")
-        commandes_path = os.path.join(dossier_path, "commandes")
-        en_cours_path = os.path.join(commandes_path, "en_cours")
-        terminee_path = os.path.join(commandes_path, "terminee")
-        annulee_path = os.path.join(commandes_path, "annulee")
-        corrompu_path = os.path.join(commandes_path, "corrompu")
+        logs_path = os.path.join(dossier_path, "logs") # Définie le dossier des logs
+        os.makedirs(logs_path, exist_ok=True) # Crée le dossier des logs
 
-        os.makedirs(logs_path, exist_ok=True)
-        os.makedirs(en_cours_path, exist_ok=True)
-        os.makedirs(terminee_path, exist_ok=True)
-        os.makedirs(annulee_path, exist_ok=True)
-        os.makedirs(corrompu_path, exist_ok=True)
+        saisie_path = os.path.join(dossier_path, "saisie") # Définie le dossier de saisie
+        os.makedirs(saisie_path, exist_ok=True) # Crée le dossier de saisie
+
+        commandes_path = os.path.join(dossier_path, "commandes") # Définie le dossier des commandes
+        os.makedirs(commandes_path, exist_ok=True) # Crée le dossier des commandes
+
+        en_cours_path = os.path.join(commandes_path, "en_cours") # Définie le dossier des commandes en cours
+        os.makedirs(en_cours_path, exist_ok=True) # Crée le dossier des commandes en cours
+
+        terminee_path = os.path.join(commandes_path, "terminee") # Définie le dossier des commandes terminées
+        os.makedirs(terminee_path, exist_ok=True) # Crée le dossier des commandes terminées
+
+        annulee_path = os.path.join(commandes_path, "annulee") # Définie le dossier des commandes annulées
+        os.makedirs(annulee_path, exist_ok=True) # Crée le dossier des commandes annulées
+
+        corrompu_path = os.path.join(commandes_path, "corrompu") # Définie le dossier des fichiers de commandes corrompus
+        os.makedirs(corrompu_path, exist_ok=True) # Crée le dossier des fichiers de commandes corrompus
+        
     else:
         raise ValueError("Le chemin du dossier d'archivage n'est pas défini dans le fichier de configuration.")
 
