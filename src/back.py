@@ -135,13 +135,14 @@ def ajouter_ou_mettre_a_jour_commande(commandes_path, logs_path, plat):
         with open(chemin_fichier, "w", encoding="utf-8") as fichier:
             json.dump(nouvelle_commande, fichier, indent=4, ensure_ascii=False)
 
+# === Gestion des commandes === #
 def valider_commande(chemin_fichier):
     commande = charger_fichier_json(chemin_fichier)
     if not commande:
         return
 
     # Mettre à jour les statuts
-    commande["Information"]["Statut"] = "Validée"
+    commande["Informations"]["Statut"] = "Validée"
     for plat in commande["Commande"].values():
         if plat["Statut"] == "En attente":
             plat["Statut"] = "En préparation"
@@ -154,6 +155,12 @@ def valider_commande(chemin_fichier):
     dossier_en_cours = os.path.join(os.path.dirname(chemin_fichier), "en_cours")
     os.makedirs(dossier_en_cours, exist_ok=True)
     os.rename(chemin_fichier, os.path.join(dossier_en_cours, os.path.basename(chemin_fichier)))
+
+def plat_pret(chemin_fichier, plat_id):
+    pass
+
+def plat_livre(chemin_fichier, plat_id):
+    pass
 
 def terminer_commande(chemin_fichier):
     commande = charger_fichier_json(chemin_fichier)
@@ -174,13 +181,7 @@ def terminer_commande(chemin_fichier):
     os.makedirs(dossier_terminee, exist_ok=True)
     os.rename(chemin_fichier, os.path.join(dossier_terminee, os.path.basename(chemin_fichier)))
 
-def modifier_plat(plat):
-    """
-    Ouvre la fenêtre de personnalisation pour modifier un plat existant.
-    """
-    from front_temp import travaux_en_cours
-    travaux_en_cours()
-
+# == Annulation de commande == #
 def annuler_commande(chemin_fichier):
     commande = charger_fichier_json(chemin_fichier)
     if not commande:
@@ -225,3 +226,11 @@ def annuler_plat(commande_file, plat_id, chemin_fichier, affichage_commande_actu
 
     # Rafraîchir l'affichage
     affichage_commande_actuelle()
+
+# == Modification de commande == #
+def modifier_plat(plat):
+    """
+    Ouvre la fenêtre de personnalisation pour modifier un plat existant.
+    """
+    from front_temp import travaux_en_cours
+    travaux_en_cours()
