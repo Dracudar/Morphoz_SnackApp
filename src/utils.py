@@ -135,9 +135,6 @@ def initialiser_dossier_archive():
         logs_path = os.path.join(dossier_path, "logs") # Définie le dossier des logs
         os.makedirs(logs_path, exist_ok=True) # Crée le dossier des logs
 
-        saisie_path = os.path.join(dossier_path, "saisie") # Définie le dossier de saisie
-        os.makedirs(saisie_path, exist_ok=True) # Crée le dossier de saisie
-
         commandes_path = os.path.join(dossier_path, "commandes") # Définie le dossier des commandes
         os.makedirs(commandes_path, exist_ok=True) # Crée le dossier des commandes
 
