@@ -597,7 +597,7 @@ def menu_principal(): # 2nd interface
                 ttk.Button(
                     frame_plat,
                     text="Livrer",
-                    command=lambda p_id=id_complet: livrer_plat(chemin_fichier, p_id, affichage_commandes_validées),  # Appel à la fonction plat_livre
+                    command=lambda p_id=id_complet: livrer_plat(chemin_fichier, p_id, affichage_commandes_validées),
                     style="TButton"
                 ).pack(side="right", padx=5)
             elif plat["Statut"] == "En préparation":
