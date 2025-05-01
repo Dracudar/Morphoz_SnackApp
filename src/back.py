@@ -190,10 +190,48 @@ def plat_prêt(chemin_fichier, plat_id_complet, affichage_commandes_validées):
         # Rafraîchir l'affichage
         affichage_commandes_validées()
 
-def livrer_plat(chemin_fichier, plat_id, affichage_commandes_validées):
-    pass
+def livrer_plat(chemin_fichier, plat_id_complet, affichage_commandes_validées):
+    """
+    Change le statut d'un plat de "Prêt" à "Livré", remplit la date de livraison,
+    exécute la commande terminer_commande et rafraîchit l'affichage.
+
+    :param chemin_fichier: Chemin vers le fichier JSON de la commande.
+    :param plat_id_complet: Identifiant complet du plat (aaaammjj-000-00).
+    :param affichage_commandes_validées: Fonction pour rafraîchir l'affichage des commandes validées.
+    """
+    commande_data = charger_fichier_json(chemin_fichier)
+    if not commande_data:
+        return
+
+    # Extraire le numéro de plat (ex. #00) à partir de l'ID complet
+    numero_plat = f"#{plat_id_complet.split('-')[-1]}"
+
+    # Vérifier si le plat existe et est prêt
+    if numero_plat in commande_data["Commande"] and commande_data["Commande"][numero_plat]["Statut"] == "Prêt":
+        # Mettre à jour le statut du plat
+        commande_data["Commande"][numero_plat]["Statut"] = "Livré"
+
+        # Remplir la date et l'heure de livraison
+        date_actuelle = datetime.now().strftime("%d/%m/%Y")
+        heure_actuelle = datetime.now().strftime("%H:%M")
+        commande_data["Commande"][numero_plat]["Date de livraison"] = [date_actuelle, heure_actuelle]
+
+        # Sauvegarder les modifications
+        with open(chemin_fichier, "w", encoding="utf-8") as fichier:
+            json.dump(commande_data, fichier, indent=4, ensure_ascii=False)
+
+        # Exécuter la commande terminer_commande
+        terminer_commande(chemin_fichier)
+
+        # Rafraîchir l'affichage
+        affichage_commandes_validées()
 
 def terminer_commande(chemin_fichier):
+    """
+    Termine une commande si tous les plats (hors annulés) sont livrés.
+
+    :param chemin_fichier: Chemin vers le fichier JSON de la commande.
+    """
     commande = charger_fichier_json(chemin_fichier)
     if not commande:
         return
@@ -201,16 +239,26 @@ def terminer_commande(chemin_fichier):
     # Vérifier si tous les plats (hors annulés) sont livrés
     plats = commande["Commande"].values()
     if all(plat["Statut"] in ["Livré", "Annulé"] for plat in plats):
-        commande["Information"]["Statut"] = "Terminée"
+        # Modifier le statut de la commande
+        commande["Informations"]["Statut"] = "Terminée"
 
-    # Sauvegarder les modifications
-    with open(chemin_fichier, "w", encoding="utf-8") as fichier:
-        json.dump(commande, fichier, indent=4, ensure_ascii=False)
+        # Trouver la date et l'heure de livraison du dernier plat livré
+        dernier_livraison = max(
+            (plat["Date de livraison"] for plat in plats if plat["Statut"] == "Livré"),
+            default=["", ""]
+        )
+        commande["Informations"]["Date de livraison"] = dernier_livraison
 
-    # Déplacer le fichier
-    dossier_terminee = os.path.join(os.path.dirname(chemin_fichier), "terminee")
-    os.makedirs(dossier_terminee, exist_ok=True)
-    os.rename(chemin_fichier, os.path.join(dossier_terminee, os.path.basename(chemin_fichier)))
+        # Sauvegarder les modifications
+        with open(chemin_fichier, "w", encoding="utf-8") as fichier:
+            json.dump(commande, fichier, indent=4, ensure_ascii=False)
+
+        # Déplacer le fichier dans le dossier "terminee"
+        dossier_terminee = os.path.join(
+            os.path.dirname(os.path.dirname(chemin_fichier)), "terminee"
+        )
+        os.makedirs(dossier_terminee, exist_ok=True)
+        os.rename(chemin_fichier, os.path.join(dossier_terminee, os.path.basename(chemin_fichier)))
 
 # == Annulation de commande == #
 def annuler_commande(chemin_fichier):
