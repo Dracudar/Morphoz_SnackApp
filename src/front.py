@@ -489,7 +489,7 @@ def menu_principal(): # 2nd interface
         ttk.Button(
             frame_gauche_bas,
             text="Valider la commande",
-            command=lambda: valider_commande(commande_file),
+            command=lambda: valider_commande(commande_file, affichage_commande_actuelle, affichage_commandes_validées),
             style="TButton"
         ).pack(pady=10)
 

@@ -136,7 +136,7 @@ def ajouter_ou_mettre_a_jour_commande(commandes_path, logs_path, plat):
             json.dump(nouvelle_commande, fichier, indent=4, ensure_ascii=False)
 
 # === Gestion des commandes === #
-def valider_commande(chemin_fichier):
+def valider_commande(chemin_fichier, affichage_commande_actuelle, affichage_commandes_validées):
     commande = charger_fichier_json(chemin_fichier)
     if not commande:
         return
@@ -155,6 +155,10 @@ def valider_commande(chemin_fichier):
     dossier_en_cours = os.path.join(os.path.dirname(chemin_fichier), "en_cours")
     os.makedirs(dossier_en_cours, exist_ok=True)
     os.rename(chemin_fichier, os.path.join(dossier_en_cours, os.path.basename(chemin_fichier)))
+
+    # Rafraîchir l'affichage
+    affichage_commande_actuelle()
+    affichage_commandes_validées()
 
 def plat_pret(chemin_fichier, plat_id):
     pass
