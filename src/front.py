@@ -40,8 +40,8 @@ from src.back import (
     annuler_plat, 
     valider_commande, 
     charger_fichier_json,
-    plat_livre,
-    plat_pret
+    livrer_plat,
+    plat_prêt
     )
 from src.front_temp import (
     perso_pizza,  # Import de la fonction d'interface de personnalisation de la pizza
@@ -554,7 +554,7 @@ def menu_principal(): # 2nd interface
         # Ajouter un titre dynamique avec le nombre de plats affichés
         ttk.Label(
             frame_droite_haut,
-            text=f"Commandes en préparations : {len(plats_a_afficher)} plats",
+            text=f"Plats en préparations : {len(plats_a_afficher)}",
             style="TLabel",
             background="#2b2b2b",
             foreground="white",
@@ -597,14 +597,14 @@ def menu_principal(): # 2nd interface
                 ttk.Button(
                     frame_plat,
                     text="Livrer",
-                    command=lambda p_id=id_complet: plat_livre(chemin_fichier, p_id),  # Appel à la fonction plat_livre
+                    command=lambda p_id=id_complet: livrer_plat(chemin_fichier, p_id, affichage_commandes_validées),  # Appel à la fonction plat_livre
                     style="TButton"
                 ).pack(side="right", padx=5)
             elif plat["Statut"] == "En préparation":
                 ttk.Button(
                     frame_plat,
                     text="Prêt",
-                    command=lambda p_id=id_complet: plat_pret(chemin_fichier, p_id),  # Appel à la fonction plat_pret
+                    command=lambda p_id=id_complet: plat_prêt(chemin_fichier, p_id, affichage_commandes_validées),  # Appel à la fonction plat_pret
                     style="TButton"
                 ).pack(side="right", padx=5)
 

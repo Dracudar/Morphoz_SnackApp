@@ -160,10 +160,37 @@ def valider_commande(chemin_fichier, affichage_commande_actuelle, affichage_comm
     affichage_commande_actuelle()
     affichage_commandes_validées()
 
-def plat_pret(chemin_fichier, plat_id):
-    pass
+def plat_prêt(chemin_fichier, plat_id_complet, affichage_commandes_validées):
+    """
+    Change le statut d'un plat de "En préparation" à "Prêt" et rafraîchit l'affichage.
 
-def plat_livre(chemin_fichier, plat_id):
+    :param chemin_fichier: Chemin vers le fichier JSON de la commande.
+    :param plat_id_complet: Identifiant complet du plat (aaaammjj-000-00).
+    :param affichage_commandes_validées: Fonction pour rafraîchir l'affichage des commandes validées.
+    """
+    commande_data = charger_fichier_json(chemin_fichier)
+    if not commande_data:
+        return
+
+    # Extraire le numéro de plat (ex. #00) à partir de l'ID complet
+    numero_plat = f"#{plat_id_complet.split('-')[-1]}"
+
+    # Vérifier si le plat existe et est en préparation
+    if numero_plat in commande_data["Commande"] and commande_data["Commande"][numero_plat]["Statut"] == "En préparation":
+        # Mettre à jour le statut du plat
+        commande_data["Commande"][numero_plat]["Statut"] = "Prêt"
+
+        # TODO: Intégrer un système d'envoi de SMS pour prévenir que le plat est prêt
+        # Exemple : envoyer_sms(commande_data["Informations"]["Contact"], f"Votre plat {commande_data['Commande'][numero_plat]['Nom']} est prêt !")
+
+        # Sauvegarder les modifications
+        with open(chemin_fichier, "w", encoding="utf-8") as fichier:
+            json.dump(commande_data, fichier, indent=4, ensure_ascii=False)
+
+        # Rafraîchir l'affichage
+        affichage_commandes_validées()
+
+def livrer_plat(chemin_fichier, plat_id, affichage_commandes_validées):
     pass
 
 def terminer_commande(chemin_fichier):
