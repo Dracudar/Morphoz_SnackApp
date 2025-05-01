@@ -123,6 +123,7 @@ def ajouter_ou_mettre_a_jour_commande(commandes_path, logs_path, plat):
                 "#01": {
                     "ID": f"{nouvel_id}-01", # Identifiant du plat au format aaaammjj-000-01 (regroupement du numéro de la commande et du numéro du plat)
                     "Nom": plat["Nom"], # Nom du plat permtant de l'identifier dans l'affichage
+                    "Date de mise en livraison": ["", ""], # Date et heure où le plat a fini d'être préparé et est mis en livraison
                     "Date de livraison": ["", ""], # Date et heure où le plat a été livré
                     "Statut": "En attente", # Statut du plat (En attente, En préparation, Prêt, Livré, Annulé)
                     "Prix": plat["Prix"], # Prix du plat
@@ -141,11 +142,20 @@ def valider_commande(chemin_fichier, affichage_commande_actuelle, affichage_comm
     if not commande:
         return
 
+    # TODO : mettre en place le système de paiement (CB, espèces, repas gratuits) et mettre à jour le type de paiement dans le fichier JSON
+    
+    # Mettre à jour la date de validation
+    commande["Informations"]["Date de validation"] = [datetime.now().strftime("%d/%m/%Y"), datetime.now().strftime("%H:%M")]
+
     # Mettre à jour les statuts
     commande["Informations"]["Statut"] = "Validée"
     for plat in commande["Commande"].values():
         if plat["Statut"] == "En attente":
             plat["Statut"] = "En préparation"
+
+    # TODO : Mettre en place un système d'impression de ticket de commande
+    # 1 ticket par plat mis en préparation avec l'ID complet, le nom du plat et la composition
+    # 1 ticket récapitulatif avec l'ID de la commande, le montant total, le type de paiement et la date de validation, la liste des plats mis en préparation (numéro de plat et nom du plat)
 
     # Sauvegarder les modifications
     with open(chemin_fichier, "w", encoding="utf-8") as fichier:
@@ -180,6 +190,9 @@ def plat_prêt(chemin_fichier, plat_id_complet, affichage_commandes_validées):
         # Mettre à jour le statut du plat
         commande_data["Commande"][numero_plat]["Statut"] = "Prêt"
 
+        # Remplir la date et l'heure de mise en livraison
+        commande_data["Commande"][numero_plat]["Date de mise en livraison"] = [datetime.now().strftime("%d/%m/%Y"), datetime.now().strftime("%H:%M")]
+
         # TODO: Intégrer un système d'envoi de SMS pour prévenir que le plat est prêt
         # Exemple : envoyer_sms(commande_data["Informations"]["Contact"], f"Votre plat {commande_data['Commande'][numero_plat]['Nom']} est prêt !")
 
@@ -212,9 +225,7 @@ def livrer_plat(chemin_fichier, plat_id_complet, affichage_commandes_validées):
         commande_data["Commande"][numero_plat]["Statut"] = "Livré"
 
         # Remplir la date et l'heure de livraison
-        date_actuelle = datetime.now().strftime("%d/%m/%Y")
-        heure_actuelle = datetime.now().strftime("%H:%M")
-        commande_data["Commande"][numero_plat]["Date de livraison"] = [date_actuelle, heure_actuelle]
+        commande_data["Commande"][numero_plat]["Date de livraison"] = [datetime.now().strftime("%d/%m/%Y"), datetime.now().strftime("%H:%M")]
 
         # Sauvegarder les modifications
         with open(chemin_fichier, "w", encoding="utf-8") as fichier:
