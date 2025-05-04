@@ -2,7 +2,7 @@
   "Plats": {
     "Pizza": {
       "Pâte à pizza": {
-        "Quantité": 50,
+        "Quantité": 200,
         "OutOfStock": false
       },
       "Bases": {
@@ -17,22 +17,28 @@
     "Grillades": {
       "Poitrine": {
         "Valeur": 1,
-        "Quantité": 50,
+        "Quantité": 200,
         "OutOfStock": false
       },
       "Chipolatta": {
         "Valeur": 1,
-        "Quantité": 50,
+        "Quantité": 200,
         "OutOfStock": false
       },
       "Merguez": {
         "Valeur": 1,
-        "Quantité": 50,
+        "Quantité": 200,
         "OutOfStock": false
       },
       "Steak vegé": {
         "Valeur": 2,
-        "Quantité": 50,
+        "Quantité": 100,
+        "OutOfStock": false
+      }
+    },
+    "Fish & Chips": {
+      "Poisson": {
+        "Quantité": 200,
         "OutOfStock": false
       }
     },
@@ -53,7 +59,7 @@
   "Ingrédients": {
     "Pâtes": {
       "Farfalle": {
-        "OutOfStock": false
+        "OutOfStock": true
       },
       "Penne": {
         "OutOfStock": false
@@ -67,7 +73,7 @@
         "OutOfStock": false
       },
       "Jambon": {
-        "OutOfStock": false
+        "OutOfStock": true
       }
     },
     "Fromage": {
@@ -75,10 +81,10 @@
         "OutOfStock": false
       },
       "Parmesan": {
-        "OutOfStock": false
+        "OutOfStock": true
       },
       "Emmental": {
-        "OutOfStock": false
+        "OutOfStock": true
       }
     },
     "Légumes": {
@@ -92,10 +98,10 @@
         "OutOfStock": false
       },
       "Haricots rouges": {
-        "OutOfStock": false
+        "OutOfStock": true
       },
       "Maïs": {
-        "OutOfStock": false
+        "OutOfStock": true
       },
       "Olives noires": {
         "OutOfStock": false
@@ -105,9 +111,35 @@
       }
     },
     "Sauces": {
+      "Ketchup": {
+        "OutOfStock": false
+      },
+      "Mayonnaise": {
+        "OutOfStock": false
+      },
       "Sauce BBQ": {
         "OutOfStock": false
+      },
+      "Sauce bernaise": {
+        "OutOfStock": false
       }
-    }
+    },
+    "Herbes": {
+      "Basilic": {
+        "OutOfStock": true
+      },
+      "Ciboulette": {
+        "OutOfStock": true
+      },
+      "Persil": {
+        "OutOfStock": true
+      },
+      "Thym": {
+        "OutOfStock": true
+      },
+      "Origan": {
+        "OutOfStock": false
+      }
+    },
   }
 }
