@@ -87,6 +87,7 @@ def ajouter_ou_mettre_a_jour_commande(commandes_path, logs_path, plat):
         plat_id = f"{commande['Informations']['ID']}-{numero_plat:02d}"
         commande["Commande"][f"#{numero_plat:02d}"] = {
             "ID": plat_id,
+            "Type": plat["Type"],
             "Nom": plat["Nom"],
             "Statut": "En attente",
             "Prix": plat["Prix"],
@@ -122,6 +123,7 @@ def ajouter_ou_mettre_a_jour_commande(commandes_path, logs_path, plat):
             "Commande": {
                 "#01": {
                     "ID": f"{nouvel_id}-01", # Identifiant du plat au format aaaammjj-000-01 (regroupement du numéro de la commande et du numéro du plat)
+                    "Type": plat["Type"], # Type de plat (Entrée, Plat, Dessert, Boisson)
                     "Nom": plat["Nom"], # Nom du plat permtant de l'identifier dans l'affichage
                     "Date de mise en livraison": ["", ""], # Date et heure où le plat a fini d'être préparé et est mis en livraison
                     "Date de livraison": ["", ""], # Date et heure où le plat a été livré

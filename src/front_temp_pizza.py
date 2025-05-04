@@ -18,7 +18,7 @@ import os  # Pour manipuler les chemins de fichiers
 
 # == Modules graphiques == #
 from src.front import * # Modules Tinker
-from src.front_temp import *
+from src.front_temp import * # Modules de gestion des fenêtres
 
 # === Personnalisation des plats === #
 # == Interface pizza == #
@@ -228,6 +228,7 @@ def pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_
 
     # Préparer les données du plat
     plat = {
+        "Type": "Pizza",
         "Nom": message,  # Utiliser le message comme nom
         "Statut": "En attente",
         "Prix": prix_pizza,  # Utiliser le prix global des pizzas
@@ -248,5 +249,3 @@ def pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_
 
     # Fermer la fenêtre de personnalisation
     fenetre_pizza_2.destroy()
-
-# === Export === #
