@@ -28,13 +28,7 @@ from src.back import (
     livrer_plat,
     plat_prêt
     )
-from src.front_temp import (
-    perso_pizza,  # Import de la fonction d'interface de personnalisation de la pizza
-    perso_grillade,  # Import de la fonction d'interface de personnalisation de la grillade
-    perso_salade_composee,  # Import de la fonction d'interface de personnalisation de la salade composée
-    perso_frites,  # Import de la fonction d'interface de personnalisation des frites
-    gestion_stock  # Import de la fonction d'interface de gestion du stock
-    )
+from src.temp.export import fenetre_temp
 
 # == Modules fonctionnels == #
 import os  # Importer le module os pour vérifier l'existence des fichiers
