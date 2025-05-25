@@ -3,7 +3,7 @@ Point d'entrée de l'application SnackApp
 '''
 
 # Importer la fonction menu_initialisation depuis front.py
-from front_ini import menu_selection
+from src.front_ini import menu_selection
 
 def main(): # Point d'entrée principal de l'application.
     menu_selection()

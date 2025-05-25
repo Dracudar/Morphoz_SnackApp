@@ -28,7 +28,16 @@ from src.utils import (
 from src.front import * # Modules Tinker
 from src.front import base_frame 
 
-initialiser_chemins() # Initialiser les chemins
+# === Initialiser les variables globales === #
+initialiser_chemins()  # Initialiser les chemins
+configurer_styles()  # Configurer les styles de l'application
+
+vpath = {
+    "stock": get_stock_file_path(),
+    "menu": get_menu_file_path(),
+    "archive": get_archive_folder_path()
+    }
+
 
 # === Structure de l'interface === #
 def frames_menu_initialisation(root): # Fonction pour créer les cadres de l'interface d'initialisation
@@ -54,21 +63,21 @@ def frames_menu_initialisation(root): # Fonction pour créer les cadres de l'int
 
 # Fonction pour vérifier les fichiers et passer au menu principal
 def demarrer_menu_principal(archive_folder_path):
-    if not stock_file_path.get() or not menu_file_path.get() or not archive_folder_path:
+    if not vpath["stock"].get() or not vpath["menu"].get() or not archive_folder_path:
         messagebox.showerror("Erreur", "Veuillez sélectionner les fichiers JSON et le dossier d'archivage.")
         return
 
     # Vérifier si les fichiers existent
-    if not os.path.exists(stock_file_path.get()):
-        messagebox.showerror("Erreur", f"Le fichier de stock '{stock_file_path.get()}' est introuvable.")
+    if not os.path.exists(vpath["stock"].get()):
+        messagebox.showerror("Erreur", f"Le fichier de stock '{vpath['stock'].get()}' est introuvable.")
         return
 
-    if not os.path.exists(menu_file_path.get()):
-        messagebox.showerror("Erreur", f"Le fichier de menu '{menu_file_path.get()}' est introuvable.")
+    if not os.path.exists(vpath["menu"].get()):
+        messagebox.showerror("Erreur", f"Le fichier de menu '{vpath['menu'].get()}' est introuvable.")
         return
 
     # Sauvegarder les chemins avant de passer au menu principal
-    sauvegarder_chemins(stock_file_path.get(), menu_file_path.get(), archive_folder_path)
+    sauvegarder_chemins(vpath["stock"].get(), vpath["menu"].get(), archive_folder_path)
 
     # Initialiser le dossier d'archivage
     try:
@@ -98,7 +107,7 @@ def menu_selection(): # 1ère interface
     archive_folder_path = get_archive_folder_path()
 
     # === Initialisation des frames === #
-    back_frame()  # Créer la fenêtre principale
+    base_frame["back"]  # Créer la fenêtre principale
     frames_menu_initialisation(root)
     frame_haut = main_frame_ini.winfo_children()[0]  # Récupérer le premier frame (haut)
     frame_milieu = main_frame_ini.winfo_children()[1]  # Récupérer le premier frame (milieu)
@@ -198,7 +207,7 @@ def menu_selection(): # 1ère interface
     ttk.Button(
         frame_boutons,
         text="Quitter",
-        command=quitter_app,
+        command=base_frame["quitter"],
         style="TButton"
     ).pack(side="left", padx=20)
 

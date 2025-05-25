@@ -39,7 +39,6 @@ from src.front import base_frame
 
 # === Initialisation des variables === #
 images_references = [] # Liste globale pour stocker les références des images
-initialiser_chemins() # Initialiser les chemins
 configurer_styles() # Configurer les styles
 
 # === Fonctions générales === #
@@ -108,11 +107,6 @@ def frames_menu_principal(root): # Fonction pour créer les cadres de l'interfac
 
 def quitter_app():
     """Fonction pour quitter proprement l'application."""
-    sauvegarder_chemins(
-        get_stock_file_path().get(),  # Valeur brute du chemin du fichier stock
-        get_menu_file_path().get(),  # Valeur brute du chemin du fichier menu
-        get_archive_folder_path().get()  # Valeur brute du chemin du dossier d'archivage
-    )
     root.destroy()  # Fermer la fenêtre
 
 # === Code principal === #

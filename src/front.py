@@ -29,5 +29,8 @@ def quitter_app():
     root.destroy()  # Fermer la fenêtre
 
 # === Export === #
-__all__ = [tk, ttk, messagebox, root]  # Liste des modules graphiques importés
-base_frame = [back_frame(), quitter_app]
+__all__ = ["tk", "ttk", "messagebox", "root"]  # Liste des noms de modules graphiques à exporter
+base_frame = {
+    "back": back_frame,
+    "quitter": quitter_app
+    }

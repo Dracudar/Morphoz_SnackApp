@@ -93,6 +93,13 @@ def sauvegarder_chemins(stock_path, menu_path, dossier_path):  # Regroupe les tr
     sauvegarder_chemin_menu(menu_path)  # Sauvegarde le chemin du fichier menu
     sauvegarder_chemin_dossier(dossier_path)  # Sauvegarde le chemin du dossier d'archivage
 
+save_chemins = {
+    "stock": sauvegarder_chemin_stock,
+    "menu": sauvegarder_chemin_menu,
+    "dossier": sauvegarder_chemin_dossier,
+    "all": sauvegarder_chemins
+    }
+
 # === Chargement des données JSON === #
 def charger_donnees_stock(stock_file_path):
     """
@@ -123,6 +130,11 @@ def charger_donnees_menu(menu_file_path):
         raise FileNotFoundError(f"Le fichier de menu '{menu_file_path}' est introuvable.")
     except json.JSONDecodeError:
         raise ValueError(f"Le fichier de menu '{menu_file_path}' contient des données invalides.")
+
+charger_donnees = {
+    "stock": charger_donnees_stock,
+    "menu": charger_donnees_menu
+    }
 
 # === Dossier d'archivage === #
 def initialiser_dossier_archive():
