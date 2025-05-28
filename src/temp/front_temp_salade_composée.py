@@ -16,7 +16,7 @@ from src.back import ajouter_ou_mettre_a_jour_commande
 import os  # Pour manipuler les chemins de fichiers
 
 # == Modules graphiques == #
-from src.front import * # Modules Tinker
+from UI.front import * # Modules Tinker
 from src.front_temp import * # Modules de gestion des fenêtres
 
 # === Personnalisation des plats === #

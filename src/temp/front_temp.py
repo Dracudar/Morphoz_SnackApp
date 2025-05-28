@@ -4,7 +4,7 @@ Définition d'un message d'information pour indiquer que la fonctionnalité est 
 '''
 
 # === Importer les modules nécessaires === #
-from src.front import * # Modules Tinker
+from UI.front import * # Modules Tinker
 
 # === Suivi des fenêtres ouvertes === #
 fenetres_ouvertes: dict[str, tk.Toplevel] = {}
