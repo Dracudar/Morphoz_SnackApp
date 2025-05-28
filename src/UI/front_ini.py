@@ -10,7 +10,7 @@ Interfaces d'initialisation :
 
 # === Importer les modules nécessaires === #
 import os
-from src.styles import configurer_styles  # Importer la configuration des styles
+from UI.styles import configurer_styles  # Importer la configuration des styles
 from src.utils import (
     chercher_fichier, 
     chercher_dossier,
@@ -25,8 +25,9 @@ from src.utils import (
     get_menu_file_path,
     get_archive_folder_path
     )
-from src.front import * # Modules Tinker
-from src.front import base_frame 
+from UI.front import * # Modules Tinker
+from UI.front import base_frame 
+from UI.ui_utils import create_main_window, create_frames_structure, AppContext
 
 # === Initialiser les variables globales === #
 initialiser_chemins()  # Initialiser les chemins
@@ -89,7 +90,7 @@ def demarrer_menu_principal(archive_folder_path):
     for widget in root.winfo_children():  # Supprimer tous les widgets existants dans frame_principal
         widget.destroy()
 
-    from src.front_main import menu_principal
+    from UI.front_main import menu_principal
     menu_principal()  # Passer au menu principal
 
 # === Code principal === #
@@ -101,6 +102,11 @@ def menu_selection(): # 1ère interface
     - La sauvegarde des chemins dans un fichier de configuration
     - Le passage au menu principal
     """
+    # Créer la fenêtre principale et le contexte
+    root = create_main_window()
+    context = AppContext(root=root)
+    create_frames_structure(context, mode="init")
+
     # Charger les chemins sauvegardés
     stock_file_path = get_stock_file_path()
     menu_file_path = get_menu_file_path()
