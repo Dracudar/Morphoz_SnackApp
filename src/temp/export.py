@@ -16,5 +16,5 @@ fenetre_temp = {
     "pizza": pizza_interface_recette,
     "grillade": perso_grillade,
     "frites": perso_frites,
-    "salade_composee": perso_salade_composee
+    "salade_composée": perso_salade_composee
 }
