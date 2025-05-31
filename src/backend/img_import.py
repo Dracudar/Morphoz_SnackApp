@@ -5,6 +5,8 @@ Gestion des images et icônes pour l'interface tkinter.
 import os
 from PIL import Image, ImageTk
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Répertoire du fichier
+
 # === Chargement et redimensionnement d'images === #
 def charger_img(nom_image, taille=()):
     """
