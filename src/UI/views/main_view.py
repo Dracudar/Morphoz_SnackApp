@@ -1,7 +1,7 @@
 from tkinter import ttk
-
 from ..styles import configurer_styles
 
+images_references = []  # Liste pour stocker les références des images
 
 def render_main_view(context, parent):
     """
@@ -25,10 +25,9 @@ def render_main_view(context, parent):
     frame_gauche_haut = ttk.Frame(back_frame, style="TFrame", borderwidth=4, relief="solid")
     frame_gauche_haut.place(relx=0, rely=0, relwidth=2/3, relheight=1/4)
 
-    '''
     from ...frontend.boutons_menu import affichage_menu
-    affichage_menu(frame_gauche_haut, context)
-    '''
+    affichage_menu(frame_gauche_haut, context, images_references)
+    
 
     # Section gauche bas (x:2/3 y:3/4) : Commande en saisie
     frame_gauche_bas = ttk.Frame(back_frame, style="TFrame", borderwidth=4, relief="solid")
