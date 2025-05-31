@@ -1,7 +1,6 @@
 from tkinter import ttk
 
 from ..styles import configurer_styles
-#from ...frontend.boutons_menu import affichage_menu
 
 
 def render_main_view(context, parent):
@@ -26,44 +25,27 @@ def render_main_view(context, parent):
     frame_gauche_haut = ttk.Frame(back_frame, style="TFrame", borderwidth=4, relief="solid")
     frame_gauche_haut.place(relx=0, rely=0, relwidth=2/3, relheight=1/4)
 
-    # Section gauche bas (x:2/3 y:3/4) : Récapitulatif et paiement
+    '''
+    from ...frontend.boutons_menu import affichage_menu
+    affichage_menu(frame_gauche_haut, context)
+    '''
+
+    # Section gauche bas (x:2/3 y:3/4) : Commande en saisie
     frame_gauche_bas = ttk.Frame(back_frame, style="TFrame", borderwidth=4, relief="solid")
     frame_gauche_bas.place(relx=0, rely=1/4, relwidth=2/3, relheight=3/4)
 
-    # Section droite haut (x:1/3 y:14/15) : Liste des plats commandés    global frame_droite_haut
+    # Section droite haut (x:1/3 y:14/15) : Liste des plats commandés
     frame_droite_haut = ttk.Frame(back_frame, style="TFrame", borderwidth=4, relief="solid")
     frame_droite_haut.place(relx=2/3, rely=0, relwidth=1/3, relheight=14/15)
 
-    # Section droite bas (x:1/3 y:1/15)
+    # Section droite bas (x:1/3 y:1/15) : Boutons support
     frame_droite_bas = ttk.Frame(back_frame, style="TFrame", borderwidth=4, relief="solid")
     frame_droite_bas.place(relx=2/3, rely=14/15, relwidth=1/3, relheight=1/15)
 
-    
-    #affichage_menu(frame_gauche_haut, context)
+    from ...frontend.boutons_utilitaires import (
+        bouton_exit, 
+        bouton_retour
+    )
 
-
-
-
-
-
-
-
-'''
-
-    ttk.Label(back_frame, text="Menu principal", font=("Cambria", 20)).pack(pady=20)
-    try:
-        menu_data = charger_donnees_menu(get_menu_file_path().get())
-    except Exception as e:
-        ttk.Label(back_frame, text=f"Erreur de chargement du menu : {e}").pack()
-        return
-    frame_boutons = ttk.Frame(back_frame)
-    frame_boutons.pack()
-    for plat in menu_data:
-        ttk.Button(frame_boutons, text=plat, command=lambda p=plat: print(f"Plat choisi : {p}")).pack(side="left", padx=10)
-    ttk.Button(back_frame, text="Retour à l'accueil", command=lambda: __retour_init(context)).pack(pady=20)
-
-def __retour_init(context):
-    from ..ui_utils import show_view
-    show_view(context, "init")
-
-'''
+    bouton_exit(frame_droite_bas, context)
+    bouton_retour(frame_droite_bas, context)
