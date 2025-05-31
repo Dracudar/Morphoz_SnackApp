@@ -61,6 +61,13 @@ def render_init_view(context, parent):
             messagebox.showerror("Erreur", f"Le dossier d'archive est introuvable : {vpath['archive'].get()}")
             return
 
+        # Sauvegarder les chemins dans le context pour la suite
+        context.paths = {
+            "stock": vpath["stock"].get(),
+            "menu": vpath["menu"].get(),
+            "archive": vpath["archive"].get()
+        }
+
         # Sauvegarder les chemins dans le fichier de configuration
         save_chemins["all"](vpath["stock"].get(), vpath["menu"].get(), vpath["archive"].get())
 
