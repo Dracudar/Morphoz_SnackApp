@@ -50,17 +50,17 @@ def render_init_view(context, parent):
         
         # Vérifier si les fichiers existent
         if not os.path.exists(vpath["stock"].get()):
-            messagebox.showerror("Erreur", f"Le fichier de stock '{vpath['stock'].get()}' est introuvable.")
+            messagebox.showerror("Erreur", f"Le fichier de stock est introuvable : {vpath['stock'].get()}")
             return
 
         if not os.path.exists(vpath["menu"].get()):
-            messagebox.showerror("Erreur", f"Le fichier de menu '{vpath['menu'].get()}' est introuvable.")
+            messagebox.showerror("Erreur", f"Le fichier de menu est introuvable : {vpath['menu'].get()}")
             return
-        
+
         if not os.path.exists(vpath["archive"].get()):
-            messagebox.showerror("Erreur", f"Le dossier d'archive '{vpath['archive'].get()}' est introuvable.")
+            messagebox.showerror("Erreur", f"Le dossier d'archive est introuvable : {vpath['archive'].get()}")
             return
-        
+
         # Sauvegarder les chemins dans le fichier de configuration
         save_chemins["all"](vpath["stock"].get(), vpath["menu"].get(), vpath["archive"].get())
 
