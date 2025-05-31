@@ -26,7 +26,7 @@ from ..styles import configurer_styles
 
 # === Fonction de rendu de l'affichage d'initialisation === #
 def render_init_view(context, parent):
-    """Affiche l'interface de sélection des fichiers JSON de stock et de menu."""
+    """Affiche l'interface de sélection des fichiers JSON de stock et de menu ainsi que l'emplacement du dossier d'archive."""
     configurer_styles()
 
     # Initialiser les chemins AVEC le root du contexte
@@ -64,7 +64,9 @@ def render_init_view(context, parent):
         # Sauvegarder les chemins dans le fichier de configuration
         save_chemins["all"](vpath["stock"].get(), vpath["menu"].get(), vpath["archive"].get())
 
-
+        # Initialiser le dossier d'archivage
+        from ...backend.exploitation_chemins import initialiser_dossier_archive
+        initialiser_dossier_archive({"archive": vpath["archive"].get()})
 
         # Passer à la vue principale
         from ..ui_utils import show_view
