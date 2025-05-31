@@ -10,7 +10,7 @@ Permet :
 from tkinter import ttk, messagebox
 import os
 
-from ...backend.gestion_chemins import (
+from ...backend.chemins_gestion import (
     get_stock_file_path,
     get_menu_file_path,
     get_archive_folder_path,
@@ -72,7 +72,7 @@ def render_init_view(context, parent):
         save_chemins["all"](vpath["stock"].get(), vpath["menu"].get(), vpath["archive"].get())
 
         # Initialiser le dossier d'archivage
-        from ...backend.exploitation_chemins import initialiser_dossier_archive
+        from ...backend.chemins_exploitation import initialiser_dossier_archive
         initialiser_dossier_archive({"archive": vpath["archive"].get()})
 
         # Passer à la vue principale

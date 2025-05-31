@@ -2,7 +2,7 @@
 Module de gestion des boutons de prise de commande selon le menu.
 """
 from tkinter import ttk, messagebox
-from ..backend.exploitation_chemins import (
+from ..backend.chemins_exploitation import (
     charger_donnees_menu,
     charger_donnees_stock
     )
