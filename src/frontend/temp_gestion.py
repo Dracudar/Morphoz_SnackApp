@@ -42,6 +42,4 @@ def travaux_en_cours(root):
         "Travaux en cours",
         "Cette fonctionnalité est en cours de développement."
     )
-
-# === Export === #
-__all__ = [ouvrir_fenetre_unique, travaux_en_cours]
+    
