@@ -1,6 +1,7 @@
 """
 Module de gestion des boutons de prise de commande selon le menu.
 """
+
 from tkinter import ttk, messagebox
 from ..backend.chemins_exploitation import (
     charger_donnees_menu,
@@ -8,10 +9,22 @@ from ..backend.chemins_exploitation import (
     )
 from ..backend.img_import import charger_img
 from ..UI.styles import configurer_styles
-from .export_temp import (
-    fenetre_plats,
-    fenetres_temp
-    )
+
+# Importation des modules de personnalisation des plats
+from .temp.pizza import pizza_interface_recette
+from .temp.grillade import perso_grillade
+# TODO: from .temp import fish_and_chips
+# TODO: from .temp import perso_frites
+from .temp.salade_composée import perso_salade_composee
+# TODO: from .temp import pizza_dessert
+
+fenetre_plats = {
+    "pizza": pizza_interface_recette,
+    "grillade": perso_grillade,
+    "salade_composée": perso_salade_composee
+    }
+
+from .temp_gestion import travaux_en_cours as messages_dev
 
 configurer_styles()
 
@@ -35,7 +48,8 @@ def affichage_menu(frame_gauche_haut, context, images_references):
 
     # Charger les données du fichier JSON de menu
     try:
-        menu_data = charger_donnees_menu(menu_path)
+        menu_data = charger_donnees_menu(context.paths)
+        stock_data = charger_donnees_stock(context.paths)
     except (FileNotFoundError, ValueError) as e:
         messagebox.showerror("Erreur", str(e)) 
         return
@@ -77,15 +91,13 @@ def affichage_menu(frame_gauche_haut, context, images_references):
         
         # Définir l'action en fonction du plat
         if plat.lower() == "pizza":
-            action = lambda root=context.root: fenetre_plats["pizza"](root)
+            action = lambda: fenetre_plats["pizza"](context)
         elif plat.lower() == "grillade":
-            action = lambda root=context.root: fenetre_plats["grillade"](root)
+            action = lambda: fenetre_plats["grillade"](context)
         elif plat.lower() == "salade composée":
-            action = lambda root=context.root: fenetre_plats["salade_composée"](root)
-        elif plat.lower() == "frites":
-            action = lambda root=context.root: fenetre_plats["frites"](root)
+            action = lambda: fenetre_plats["salade_composée"](context)
         else:
-            action = lambda root=context.root: fenetres_temp["dev"](root)
+            action = lambda: messages_dev(context.root)
         
         # Créer le bouton avec la fonction dédiée
         structure_boutons_menu(
