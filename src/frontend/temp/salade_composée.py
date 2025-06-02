@@ -3,30 +3,24 @@ Code UI pour les interfaces temporaire de personnalisation des salades composée
 '''
 
 # === Importer les modules nécessaires === #
-from src.utils import (
+from ...backend.chemins_exploitation import (
     charger_donnees_menu, 
     charger_donnees_stock,
-    )
-from src.utils import (
-    get_menu_file_path,
-    get_stock_file_path,
-    get_archive_folder_path
-    )
-from src.back import ajouter_ou_mettre_a_jour_commande
-import os  # Pour manipuler les chemins de fichiers
-
-# == Modules graphiques == #
-from UI.front import * # Modules Tinker
-from src.front_temp import * # Modules de gestion des fenêtres
+)
+from src.backend.commandes_saisie_save import MAJ_commande
+import os
+import tkinter as tk
+from tkinter import ttk, messagebox
+from src.frontend.temp_gestion import ouvrir_fenetre_unique
 
 # === Personnalisation des plats === #
-def perso_salade_composee(root):
+def perso_salade_composee(context):
     """
     Interface pour personnaliser une salade composée.
     """
     def creation_fenetre():
         # Charger les données du stock
-        stock_data = charger_donnees_stock(get_stock_file_path().get())
+        stock_data = charger_donnees_stock(context.paths)
         ingredients_disponibles = {
             categorie: {
                 ingredient: data for ingredient, data in ingredients.items() if not data.get("OutOfStock", False)
@@ -40,7 +34,7 @@ def perso_salade_composee(root):
         }
 
         # Crée une fenêtre pour la personnalisation
-        fenetre_salade = tk.Toplevel(root)
+        fenetre_salade = tk.Toplevel(context.root)
         fenetre_salade.title("Salade composée")
         fenetre_salade.configure(bg="#2b2b2b")
         fenetre_salade.attributes("-topmost", True)  # Garde la fenêtre au premier plan
@@ -96,7 +90,7 @@ def perso_salade_composee(root):
             message = f"Salade composée avec {', '.join(ingredients_choisis)}"
 
             # Charger le prix des salades depuis le fichier menu
-            menu_data = charger_donnees_menu(get_menu_file_path().get())
+            menu_data = charger_donnees_menu(context.paths)
             prix_salade = menu_data.get("Salade composée", {}).get("Prix", 0)
 
             # Préparer les données du plat
@@ -110,11 +104,11 @@ def perso_salade_composee(root):
             }
 
             # Charger les chemins nécessaires pour la commande
-            commandes_path = os.path.join(get_archive_folder_path().get(), "commandes")
-            logs_path = os.path.join(get_archive_folder_path().get(), "logs")
+            commandes_path = os.path.join(context.paths["archive"], "commandes")
+            logs_path = os.path.join(context.paths["archive"], "logs")
 
             # Ajouter ou mettre à jour la commande
-            ajouter_ou_mettre_a_jour_commande(commandes_path, logs_path, plat)
+            MAJ_commande(commandes_path, logs_path, plat)
 
             # Fermer la fenêtre
             fenetre_salade.destroy()

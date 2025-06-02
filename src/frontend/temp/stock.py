@@ -10,7 +10,7 @@ from src.utils import (
     get_stock_file_path,
     get_archive_folder_path
     )
-from src.back import ajouter_ou_mettre_a_jour_commande
+from src.back import MAJ_commande
 import os  # Pour manipuler les chemins de fichiers
 
 # == Modules graphiques == #

@@ -4,38 +4,33 @@ Code UI pour l'interface temporaire de personnalisation des pizzas
 
 # === Importer les modules nécessaires === #
 # == Fonctions utilitaires et de configuration == #
-from src.utils import (
+from ...backend.chemins_exploitation import (
     charger_donnees_menu, 
     charger_donnees_stock,
     )
-from src.utils import (
-    get_menu_file_path,
-    get_stock_file_path,
-    get_archive_folder_path
-    )
-from src.back import ajouter_ou_mettre_a_jour_commande
-import os  # Pour manipuler les chemins de fichiers
+from src.backend.commandes_saisie_save import MAJ_commande
 
-# == Modules graphiques == #
-from UI.front import * # Modules Tinker
-from src.front_temp import * # Modules de gestion des fenêtres
+import os
+import tkinter as tk
+from tkinter import ttk, messagebox
+from src.frontend.temp_gestion import ouvrir_fenetre_unique
 
 # === Personnalisation des plats === #
 # == Interface pizza == #
-def pizza_interface_recette(root):
+def pizza_interface_recette(context):
     """
     Fenêtre pour sélectionner une recette de pizza.
     """
     def creation_fenetre():
         # Charger les données du menu
-        menu_data = charger_donnees_menu(get_menu_file_path().get())
+        menu_data = charger_donnees_menu(context.paths)
         recettes_pizza = menu_data.get("Pizza", {}).get("Recettes", {})
 
         # Charger les données du stock
-        stock_data = charger_donnees_stock(get_stock_file_path().get())
+        stock_data = charger_donnees_stock(context.paths)
 
         # Crée une fenêtre pour la sélection des recettes
-        fenetre_pizza_1 = tk.Toplevel(root)
+        fenetre_pizza_1 = tk.Toplevel(context.root)
         fenetre_pizza_1.title("Pizza")
         fenetre_pizza_1.configure(bg="#2b2b2b")
         fenetre_pizza_1.attributes("-topmost", True)  # Garde la fenêtre au premier plan
@@ -64,7 +59,7 @@ def pizza_interface_recette(root):
             ttk.Button(
                 fenetre_pizza_1,
                 text=nom_recette,
-                command=lambda r=details_recette: pizza_interface_personnalisation(root, fenetre_pizza_1, r, stock_data)
+                command=lambda r=details_recette: pizza_interface_personnalisation(context, fenetre_pizza_1, r, stock_data)
             ).pack(fill="x", padx=20, pady=5)
 
         # Ajuster automatiquement la taille de la fenêtre
@@ -76,7 +71,7 @@ def pizza_interface_recette(root):
     # Utiliser la fonction pour ouvrir une fenêtre unique
     ouvrir_fenetre_unique("Pizza", creation_fenetre, fermer_autres=True)
 
-def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, stock_data):
+def pizza_interface_personnalisation(context, fenetre_pizza_1, recette, stock_data):
     """
     Fenêtre de personnalisation des ingrédients après avoir sélectionné une recette.
     """
@@ -85,7 +80,7 @@ def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, stock_data)
 
     def creation_fenetre():
         # Crée une fenêtre pour la personnalisation
-        fenetre_pizza_2 = tk.Toplevel(root)
+        fenetre_pizza_2 = tk.Toplevel(context.root)
         fenetre_pizza_2.title("Pizza")
         fenetre_pizza_2.configure(bg="#2b2b2b")
         fenetre_pizza_2.attributes("-topmost", True)  # Garde la fenêtre au premier plan
@@ -174,7 +169,7 @@ def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, stock_data)
         ttk.Button(
             fenetre_pizza_2,
             text="Valider",
-            command=lambda: pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_2, recette)
+            command=lambda: pizza_validation(context, base_selectionnee, ingredients_selectionnes, fenetre_pizza_2, recette)
         ).pack(pady=20)
 
         # Ajuster automatiquement la taille de la fenêtre
@@ -187,7 +182,7 @@ def pizza_interface_personnalisation(root, fenetre_pizza_1, recette, stock_data)
     ouvrir_fenetre_unique("Pizza", creation_fenetre, fermer_autres=True)
 
 # Validation de la personnalisation
-def pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_2, recette=None):
+def pizza_validation(context, base_selectionnee, ingredients_selectionnes, fenetre_pizza_2, recette=None):
     """
     Valide la personnalisation de la pizza, affiche les choix sélectionnés et ajoute la pizza au fichier de commande.
     """
@@ -223,7 +218,7 @@ def pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_
             message += f" (supplément {', '.join(ingredients_supplementaires)})"
 
     # Charger le prix des pizzas depuis le fichier menu
-    menu_data = charger_donnees_menu(get_menu_file_path().get())
+    menu_data = charger_donnees_menu(context.paths)
     prix_pizza = menu_data.get("Pizza", {}).get("Prix", 0)
 
     # Préparer les données du plat
@@ -239,9 +234,9 @@ def pizza_validation(base_selectionnee, ingredients_selectionnes, fenetre_pizza_
     }
 
     # Ajouter le plat au fichier de commande
-    commandes_path = os.path.join(get_archive_folder_path().get(), "commandes")
-    logs_path = os.path.join(get_archive_folder_path().get(), "logs")
-    ajouter_ou_mettre_a_jour_commande(commandes_path, logs_path, plat)
+    commandes_path = os.path.join(context.paths["archive"], "commandes")
+    logs_path = os.path.join(context.paths["archive"], "logs")
+    MAJ_commande(commandes_path, logs_path, plat)
 
     # Réinitialiser la recette après l'ajout
     if recette and isinstance(recette, dict):
