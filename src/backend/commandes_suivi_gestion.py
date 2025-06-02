@@ -5,9 +5,9 @@ Gestion des changements de statut des plats dans une commande validée.
 import os
 import json
 from datetime import datetime
-from .commandes_utils import charger_fichier_json
+from .commandes_utils import charger_fichier_commande
 
-def plat_prêt(chemin_fichier, plat_id_complet, affichage_commandes_validées):
+def plat_prêt(chemin_fichier, plat_id_complet, affichage_commandes_validées, context, frame_droite_haut):
     """
     Change le statut d'un plat de "En préparation" à "Prêt" et rafraîchit l'affichage.
 
@@ -15,7 +15,7 @@ def plat_prêt(chemin_fichier, plat_id_complet, affichage_commandes_validées):
     :param plat_id_complet: Identifiant complet du plat (aaaammjj-000-00).
     :param affichage_commandes_validées: Fonction pour rafraîchir l'affichage des commandes validées.
     """
-    commande_data = charger_fichier_json(chemin_fichier)
+    commande_data = charger_fichier_commande(chemin_fichier)
     if not commande_data:
         return
 
@@ -38,9 +38,9 @@ def plat_prêt(chemin_fichier, plat_id_complet, affichage_commandes_validées):
             json.dump(commande_data, fichier, indent=4, ensure_ascii=False)
 
         # Rafraîchir l'affichage
-        affichage_commandes_validées()
+        affichage_commandes_validées(context, frame_droite_haut)
 
-def livrer_plat(chemin_fichier, plat_id_complet, affichage_commandes_validées):
+def livrer_plat(chemin_fichier, plat_id_complet, affichage_commandes_validées, context, frame_droite_haut):
     """
     Change le statut d'un plat de "Prêt" à "Livré", remplit la date de livraison,
     exécute la commande terminer_commande et rafraîchit l'affichage.
@@ -49,7 +49,7 @@ def livrer_plat(chemin_fichier, plat_id_complet, affichage_commandes_validées):
     :param plat_id_complet: Identifiant complet du plat (aaaammjj-000-00).
     :param affichage_commandes_validées: Fonction pour rafraîchir l'affichage des commandes validées.
     """
-    commande_data = charger_fichier_json(chemin_fichier)
+    commande_data = charger_fichier_commande(chemin_fichier)
     if not commande_data:
         return
 
@@ -72,7 +72,7 @@ def livrer_plat(chemin_fichier, plat_id_complet, affichage_commandes_validées):
         terminer_commande(chemin_fichier)
 
         # Rafraîchir l'affichage
-        affichage_commandes_validées()
+        affichage_commandes_validées(context, frame_droite_haut)
 
 def terminer_commande(chemin_fichier):
     """
@@ -80,7 +80,7 @@ def terminer_commande(chemin_fichier):
 
     :param chemin_fichier: Chemin vers le fichier JSON de la commande.
     """
-    commande = charger_fichier_json(chemin_fichier)
+    commande = charger_fichier_commande(chemin_fichier)
     if not commande:
         return
 

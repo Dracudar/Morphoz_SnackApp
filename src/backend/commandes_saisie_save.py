@@ -5,10 +5,10 @@ Fonction permettant de créer ou mettre à jour le fichier JSON de la commande e
 import os
 import json
 from datetime import datetime
-from .commandes_utils import charger_fichier_json, generer_identifiant_commande
+from .commandes_utils import charger_fichier_commande, generer_ID_commande
     
 # === Gestion des fichiers de commandes === #
-def ajouter_ou_mettre_a_jour_commande(commandes_path, logs_path, plat):
+def MAJ_commande(commandes_path, logs_path, plat):
     """
     Ajoute un plat à une commande existante ou crée une nouvelle commande.
 
@@ -16,9 +16,8 @@ def ajouter_ou_mettre_a_jour_commande(commandes_path, logs_path, plat):
     :param logs_path: Chemin vers le dossier des logs.
     :param plat: Dictionnaire contenant les informations du plat à ajouter.
     """
-    date_actuelle = datetime.now().strftime("%Y%m%d")  # aaaammjj
     fichiers_commandes = [
-        f for f in os.listdir(commandes_path) if f.startswith(f"commande_{date_actuelle}")
+        f for f in os.listdir(commandes_path) if f.startswith("commande_")
     ]
 
     if fichiers_commandes:
@@ -27,7 +26,7 @@ def ajouter_ou_mettre_a_jour_commande(commandes_path, logs_path, plat):
         dernier_fichier = fichiers_commandes[-1]
         chemin_fichier = os.path.join(commandes_path, dernier_fichier)
 
-        commande = charger_fichier_json(chemin_fichier)
+        commande = charger_fichier_commande(chemin_fichier)
         if not commande:
             return
 
@@ -53,7 +52,7 @@ def ajouter_ou_mettre_a_jour_commande(commandes_path, logs_path, plat):
 
     else:
         # Créer une nouvelle commande
-        nouvel_id = generer_identifiant_commande(logs_path, commandes_path)
+        nouvel_id = generer_ID_commande(logs_path, commandes_path)
         chemin_fichier = os.path.join(commandes_path, f"commande_{nouvel_id}.json")
 
         nouvelle_commande = {

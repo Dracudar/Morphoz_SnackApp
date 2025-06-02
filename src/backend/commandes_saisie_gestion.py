@@ -5,10 +5,10 @@
 import os
 import json
 from datetime import datetime
-from .commandes_utils import charger_fichier_json
+from .commandes_utils import charger_fichier_commande
 
-def valider_commande(chemin_fichier, affichage_commande_actuelle, affichage_commandes_validées):
-    commande = charger_fichier_json(chemin_fichier)
+def valider_commande(context, chemin_fichier, affichage_commande_actuelle, frame_gauche_bas, affichage_commandes_validées, frame_droite_haut):
+    commande = charger_fichier_commande(chemin_fichier)
     if not commande:
         return
 
@@ -37,12 +37,13 @@ def valider_commande(chemin_fichier, affichage_commande_actuelle, affichage_comm
     os.rename(chemin_fichier, os.path.join(dossier_en_cours, os.path.basename(chemin_fichier)))
 
     # Rafraîchir l'affichage
-    affichage_commande_actuelle()
-    affichage_commandes_validées()
+    affichage_commande_actuelle(context, frame_gauche_bas, frame_droite_haut)
+    affichage_commandes_validées(context, frame_droite_haut)
+
 
 # == Annulation de commande == #
 def annuler_commande(chemin_fichier):
-    commande = charger_fichier_json(chemin_fichier)
+    commande = charger_fichier_commande(chemin_fichier)
     if not commande:
         return
 
@@ -60,11 +61,11 @@ def annuler_commande(chemin_fichier):
         os.makedirs(dossier_annulee, exist_ok=True)
         os.rename(chemin_fichier, os.path.join(dossier_annulee, os.path.basename(chemin_fichier)))
 
-def annuler_plat(commande_file, plat_id, chemin_fichier, affichage_commande_actuelle):
+def annuler_plat(commande_file, plat_id, chemin_fichier, context, affichage_commande_actuelle, frame_gauche_bas):
     """
     Annule un plat dans la commande en cours.
     """
-    commande_data = charger_fichier_json(commande_file)
+    commande_data = charger_fichier_commande(commande_file)
     if not commande_data:
         return
 
@@ -84,4 +85,4 @@ def annuler_plat(commande_file, plat_id, chemin_fichier, affichage_commande_actu
     annuler_commande(chemin_fichier)
 
     # Rafraîchir l'affichage
-    affichage_commande_actuelle()
+    affichage_commande_actuelle(context, frame_gauche_bas)

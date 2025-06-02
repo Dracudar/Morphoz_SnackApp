@@ -8,7 +8,7 @@ import os
 from datetime import datetime
 import json
 
-def generer_identifiant_commande(logs_path, commandes_path):
+def generer_ID_commande(logs_path, commandes_path):
     """
     Génère un identifiant unique pour une commande au format aaaammjj-000.
 
@@ -36,7 +36,7 @@ def generer_identifiant_commande(logs_path, commandes_path):
     # Retourner l'identifiant au format aaaammjj-000
     return f"{date_actuelle}-{nouvel_id:03d}"
 
-def charger_fichier_json(chemin_fichier):
+def charger_fichier_commande(chemin_fichier):
     """
     Charge un fichier JSON avec gestion des erreurs.
 
