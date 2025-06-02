@@ -25,10 +25,6 @@ def render_main_view(context, parent):
     frame_gauche_haut = ttk.Frame(back_frame, style="TFrame", borderwidth=4, relief="solid")
     frame_gauche_haut.place(relx=0, rely=0, relwidth=2/3, relheight=1/4)
 
-    from ...frontend.boutons_menu import affichage_menu
-    affichage_menu(frame_gauche_haut, context, images_references)
-    
-
     # Section gauche bas (x:2/3 y:3/4) : Commande en saisie
     frame_gauche_bas = ttk.Frame(back_frame, style="TFrame", borderwidth=4, relief="solid")
     frame_gauche_bas.place(relx=0, rely=1/4, relwidth=2/3, relheight=3/4)
@@ -41,10 +37,23 @@ def render_main_view(context, parent):
     frame_droite_bas = ttk.Frame(back_frame, style="TFrame", borderwidth=4, relief="solid")
     frame_droite_bas.place(relx=2/3, rely=14/15, relwidth=1/3, relheight=1/15)
 
+    # === Rendu des affichages === #
+    # Boutons menu
+    from ...frontend.boutons_menu import affichage_menu
+    affichage_menu(frame_gauche_haut, context, images_references)
+
+    # Commande en saisie
+    from ...frontend.commandes_saisie import affichage_commande_actuelle
+    affichage_commande_actuelle(context, frame_gauche_bas, frame_droite_haut)
+
+    # Commandes validées
+    from ...frontend.commandes_suivi import affichage_commandes_validées
+    affichage_commandes_validées(context, frame_droite_haut)
+
+    # Boutons support
     from ...frontend.boutons_utilitaires import (
         bouton_exit, 
         bouton_retour
     )
-
     bouton_exit(frame_droite_bas, context)
     bouton_retour(frame_droite_bas, context)
