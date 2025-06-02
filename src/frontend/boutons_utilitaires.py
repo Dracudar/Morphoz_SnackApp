@@ -15,9 +15,9 @@ images_references = [] # Liste globale pour stocker les références des images
 configurer_styles()
 
 
-def bouton_exit(frame_droite_bas, context):
+def bouton_exit(context):
     # Bouton permetant de quitter l'application (détruit 'root')
-    frame_exit = ttk.Frame(frame_droite_bas, style="TFrame")
+    frame_exit = ttk.Frame(context.frames["droite_bas"], style="TFrame")
     frame_exit.place(relx=0.9, rely=0.1, relwidth=0.1, relheight=0.8) # Positionner le bouton de sortie
 
     logo_exit_tk = charger_img("exit.png", taille=(30, 30)) # Charger le logo de sortie
@@ -30,10 +30,10 @@ def bouton_exit(frame_droite_bas, context):
     images_references.append(logo_exit_tk)  # Stocker la référence
     bouton_exit.place(relx=0.5, rely=0.5, anchor="center")  # Centrer le bouton dans la frame
 
-def bouton_retour(frame_droite_bas, context):
+def bouton_retour(context):
     from ..UI.ui_utils import show_view
 
-    frame_retour = ttk.Frame(frame_droite_bas, style="TFrame")
+    frame_retour = ttk.Frame(context.frames["droite_bas"], style="TFrame")
     frame_retour.place(relx=0, rely=0.1, relwidth=0.1, relheight=0.8)  # Positionner le bouton de retour
 
     logo_retour_tk = charger_img("retour.png", taille=(30, 30))  # Charger le logo de retour

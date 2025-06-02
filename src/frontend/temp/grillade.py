@@ -162,6 +162,10 @@ def perso_grillade(context):
             # Ajouter ou mettre à jour la commande
             MAJ_commande(commandes_path, logs_path, plat)
 
+            # Rafraîchir l'affichage de la commande actuelle
+            from ...frontend.commandes_saisie import affichage_commande_actuelle
+            affichage_commande_actuelle(context, context.frames["gauche_bas"], context.frames["droite_haut"])
+
             # Fermer la fenêtre
             fenetre_grillade.destroy()
 

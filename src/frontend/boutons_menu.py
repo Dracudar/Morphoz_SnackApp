@@ -30,10 +30,10 @@ configurer_styles()
 
 # == Prise de commande : Génération des boutons du menu == #
 # Titre de la frame
-def affichage_menu(frame_gauche_haut, context, images_references):
+def affichage_menu(context, images_references):
     # Titre de la section Menu
     ttk.Label(
-        frame_gauche_haut,
+        context.frames["gauche_haut"],
         text="Menu",
         style="TLabel",
         background="#2b2b2b",
@@ -55,7 +55,7 @@ def affichage_menu(frame_gauche_haut, context, images_references):
         return
 
     # Créer un cadre pour centrer les boutons horizontalement
-    frame_boutons = ttk.Frame(frame_gauche_haut, style="TFrame")
+    frame_boutons = ttk.Frame(context.frames["gauche_haut"], style="TFrame")
     frame_boutons.pack(expand=True)
 
     # Ajouter des boutons pour chaque plat

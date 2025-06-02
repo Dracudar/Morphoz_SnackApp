@@ -11,7 +11,7 @@ from ..backend.commandes_saisie_gestion import (
     valider_commande
 )
 
-def affichage_commande_actuelle(context, frame_gauche_bas, frame_droite_haut):
+def affichage_commande_actuelle(context):
     """
     Met à jour dynamiquement la frame_gauche_bas pour afficher les plats en attente
     et les actions associées.
@@ -26,11 +26,11 @@ def affichage_commande_actuelle(context, frame_gauche_bas, frame_droite_haut):
     # Vérifier si aucun fichier de commande n'est présent
     if not fichiers_commandes:
         # Effacer le contenu actuel de la frame
-        for widget in frame_gauche_bas.winfo_children():
+        for widget in context.frames["gauche_bas"].winfo_children():
             widget.destroy()
 
         ttk.Label(
-            frame_gauche_bas,
+            context.frames["gauche_bas"],
             text="Aucune commande en cours...",
             style="TLabel",
             background="#2b2b2b",
@@ -56,12 +56,12 @@ def affichage_commande_actuelle(context, frame_gauche_bas, frame_droite_haut):
         return
 
     # Effacer le contenu actuel de la frame
-    for widget in frame_gauche_bas.winfo_children():
+    for widget in context.frames["gauche_bas"].winfo_children():
         widget.destroy()
 
     # Titre de la frame
     ttk.Label(
-        frame_gauche_bas,
+        context.frames["gauche_bas"],
         text=f"Récapitulatif de la commande {commande_data['Informations']['ID']}",
         style="TLabel",
         background="#2b2b2b",
@@ -72,7 +72,7 @@ def affichage_commande_actuelle(context, frame_gauche_bas, frame_droite_haut):
     # Affichage des plats en attente
     for plat_id, plat in commande_data["Commande"].items():
         if plat["Statut"] == "En attente":
-            frame_plat = ttk.Frame(frame_gauche_bas, style="TFrame")
+            frame_plat = ttk.Frame(context.frames["gauche_bas"], style="TFrame")
             frame_plat.pack(fill="x", padx=10, pady=5)
 
             # Numéro et nom du plat
@@ -88,7 +88,7 @@ def affichage_commande_actuelle(context, frame_gauche_bas, frame_droite_haut):
             ttk.Button(
                 frame_plat,
                 text="Annuler",
-                command=lambda p_id=plat_id: annuler_plat(commande_file, p_id, commande_file, affichage_commande_actuelle, context, frame_gauche_bas)
+                command=lambda p_id=plat_id: annuler_plat(context, commande_file, p_id, commande_file, affichage_commande_actuelle)
             ).pack(side="right", padx=5)
 
             '''
@@ -104,7 +104,7 @@ def affichage_commande_actuelle(context, frame_gauche_bas, frame_droite_haut):
     # Affichage du montant total
     montant_total = commande_data["Informations"]["Montant"]
     ttk.Label(
-        frame_gauche_bas,
+        context.frames["gauche_bas"],
         text=f"Montant total : {montant_total:.2f} €",
         style="TLabel",
         background="#2b2b2b",
@@ -116,8 +116,8 @@ def affichage_commande_actuelle(context, frame_gauche_bas, frame_droite_haut):
 
     from ..frontend.commandes_suivi import affichage_commandes_validées
     ttk.Button(
-        frame_gauche_bas,
+        context.frames["gauche_bas"],
         text="Valider la commande",
-        command=lambda: valider_commande(context, commande_file, affichage_commande_actuelle, frame_gauche_bas, affichage_commandes_validées, frame_droite_haut),
+        command=lambda: valider_commande(context, commande_file, affichage_commande_actuelle, affichage_commandes_validées),
         style="TButton"
-    ).pack(pady=10) # TODO : lorsque l'affichage_commandes_validées sera de nouveau fonctionnel, il faudra l'appeler ici
+    ).pack(pady=10)

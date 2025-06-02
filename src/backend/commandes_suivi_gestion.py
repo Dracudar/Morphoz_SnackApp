@@ -7,7 +7,7 @@ import json
 from datetime import datetime
 from .commandes_utils import charger_fichier_commande
 
-def plat_prêt(chemin_fichier, plat_id_complet, affichage_commandes_validées, context, frame_droite_haut):
+def plat_prêt(context, chemin_fichier, plat_id_complet, affichage_commandes_validées):
     """
     Change le statut d'un plat de "En préparation" à "Prêt" et rafraîchit l'affichage.
 
@@ -38,9 +38,9 @@ def plat_prêt(chemin_fichier, plat_id_complet, affichage_commandes_validées, c
             json.dump(commande_data, fichier, indent=4, ensure_ascii=False)
 
         # Rafraîchir l'affichage
-        affichage_commandes_validées(context, frame_droite_haut)
+        affichage_commandes_validées(context)
 
-def livrer_plat(chemin_fichier, plat_id_complet, affichage_commandes_validées, context, frame_droite_haut):
+def livrer_plat(context, chemin_fichier, plat_id_complet, affichage_commandes_validées):    
     """
     Change le statut d'un plat de "Prêt" à "Livré", remplit la date de livraison,
     exécute la commande terminer_commande et rafraîchit l'affichage.
@@ -72,7 +72,7 @@ def livrer_plat(chemin_fichier, plat_id_complet, affichage_commandes_validées, 
         terminer_commande(chemin_fichier)
 
         # Rafraîchir l'affichage
-        affichage_commandes_validées(context, frame_droite_haut)
+        affichage_commandes_validées(context)
 
 def terminer_commande(chemin_fichier):
     """

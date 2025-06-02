@@ -12,7 +12,7 @@ from ..backend.commandes_suivi_gestion import (
     livrer_plat
 )
 
-def affichage_commandes_validées(context, frame_droite_haut):
+def affichage_commandes_validées(context):
     """
     Met à jour dynamiquement la frame_droite_haut pour afficher les plats en préparation
     et prêts à être livrés, avec tri et gestion des boutons d'action.
@@ -25,13 +25,13 @@ def affichage_commandes_validées(context, frame_droite_haut):
     ]
 
     # Effacer le contenu actuel de la frame
-    for widget in frame_droite_haut.winfo_children():
+    for widget in context.frames["droite_haut"].winfo_children():
         widget.destroy()
 
     # Vérifier s'il n'y a aucun fichier de commande
     if not fichiers_commandes:
         ttk.Label(
-            frame_droite_haut,
+            context.frames["droite_haut"],
             text="Aucun plat en préparation !",
             style="TLabel",
             background="#2b2b2b",
@@ -69,7 +69,7 @@ def affichage_commandes_validées(context, frame_droite_haut):
 
     # Ajouter un titre dynamique avec le nombre de plats affichés
     ttk.Label(
-        frame_droite_haut,
+        context.frames["droite_haut"],
         text=f"Plats en préparations : {len(plats_a_afficher)}",
         style="TLabel",
         background="#2b2b2b",
@@ -78,8 +78,8 @@ def affichage_commandes_validées(context, frame_droite_haut):
     ).pack(padx=10, pady=10)
 
     # Ajouter une barre de défilement si nécessaire
-    canvas = tk.Canvas(frame_droite_haut, bg="#2b2b2b")
-    scrollbar = ttk.Scrollbar(frame_droite_haut, orient="vertical", command=canvas.yview)
+    canvas = tk.Canvas(context.frames["droite_haut"], bg="#2b2b2b")
+    scrollbar = ttk.Scrollbar(context.frames["droite_haut"], orient="vertical", command=canvas.yview)
     scrollable_frame = ttk.Frame(canvas, style="TFrame")
 
     scrollable_frame.bind(
@@ -113,13 +113,13 @@ def affichage_commandes_validées(context, frame_droite_haut):
             ttk.Button(
                 frame_plat,
                 text="Livrer",
-                command=lambda p_id=id_complet, cf=chemin_fichier: livrer_plat(cf, p_id, affichage_commandes_validées, context, frame_droite_haut),
+                command=lambda p_id=id_complet, cf=chemin_fichier: livrer_plat(context, cf, p_id, affichage_commandes_validées),
                 style="TButton"
             ).pack(side="right", padx=5)
         elif plat["Statut"] == "En préparation":
             ttk.Button(
                 frame_plat,
                 text="Prêt",
-                command=lambda p_id=id_complet, cf=chemin_fichier: plat_prêt(cf, p_id, affichage_commandes_validées, context, frame_droite_haut),
+                command=lambda p_id=id_complet, cf=chemin_fichier: plat_prêt(context, cf, p_id, affichage_commandes_validées),
                 style="TButton"
             ).pack(side="right", padx=5)
