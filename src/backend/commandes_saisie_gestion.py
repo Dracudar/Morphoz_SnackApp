@@ -6,6 +6,7 @@ import os
 import json
 from datetime import datetime
 from .commandes_utils import charger_fichier_commande
+from .printer import imprimer_ticket_plat
 
 def valider_commande(context, chemin_fichier, affichage_commande_actuelle, affichage_commandes_validées):
     commande = charger_fichier_commande(chemin_fichier)
@@ -17,6 +18,15 @@ def valider_commande(context, chemin_fichier, affichage_commande_actuelle, affic
     # Mettre à jour la date de validation
     commande["Informations"]["Date de validation"] = [datetime.now().strftime("%d/%m/%Y"), datetime.now().strftime("%H:%M")]
 
+    # Impression des tickets pour chaque plat mis en préparation
+    date_validation = datetime.now().strftime("%d/%m/%Y")
+    id_commande = commande["Informations"]["ID"]
+    for plat_id, plat in commande["Commande"].items():
+        if plat["Statut"] == "En attente":
+            nom = plat["Nom"]
+            composition = plat.get("Composition", "")
+            imprimer_ticket_plat(date_validation, id_commande, nom, composition)
+    
     # Mettre à jour les statuts
     commande["Informations"]["Statut"] = "Validée"
     for plat in commande["Commande"].values():
