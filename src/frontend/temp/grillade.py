@@ -16,9 +16,6 @@ from ...backend.chemins_exploitation import (
 
 # === Définitions des fonctions === #
 def perso_grillade(context):
-    """
-    Interface pour personnaliser une grillade.
-    """
     def creation_fenetre():
         # Charger les données du stock via context
         stock_data = charger_donnees_stock(context.paths)
@@ -146,6 +143,7 @@ def perso_grillade(context):
 
             # Préparer les données du plat
             plat = {
+                "Plat": "Grillade",
                 "Nom": message,
                 "Statut": "En attente",
                 "Prix": prix_grillade,
@@ -164,7 +162,7 @@ def perso_grillade(context):
 
             # Rafraîchir l'affichage de la commande actuelle
             from ...frontend.commandes_saisie import affichage_commande_actuelle
-            affichage_commande_actuelle(context, context.frames["gauche_bas"], context.frames["droite_haut"])
+            affichage_commande_actuelle(context)
 
             # Fermer la fenêtre
             fenetre_grillade.destroy()

@@ -95,6 +95,7 @@ def perso_salade_composee(context):
 
             # Préparer les données du plat
             plat = {
+                "Plat": "Salade composée",
                 "Nom": message,
                 "Statut": "En attente",
                 "Prix": prix_salade,
@@ -109,6 +110,10 @@ def perso_salade_composee(context):
 
             # Ajouter ou mettre à jour la commande
             MAJ_commande(commandes_path, logs_path, plat)
+
+            # Rafraîchir l'affichage de la commande actuelle
+            from ...frontend.commandes_saisie import affichage_commande_actuelle
+            affichage_commande_actuelle(context)
 
             # Fermer la fenêtre
             fenetre_salade.destroy()

@@ -13,15 +13,18 @@ from ..UI.styles import configurer_styles
 # Importation des modules de personnalisation des plats
 from .temp.pizza import pizza_interface_recette
 from .temp.grillade import perso_grillade
-# TODO: from .temp import fish_and_chips
-# TODO: from .temp import perso_frites
+from .temp.fish_and_chips import add_fish_and_chips
+from .temp.frites import add_frites
 from .temp.salade_composée import perso_salade_composee
-# TODO: from .temp import pizza_dessert
+from .temp.pizza_dessert import add_dessert
 
 fenetre_plats = {
-    "pizza": pizza_interface_recette,
-    "grillade": perso_grillade,
-    "salade_composée": perso_salade_composee
+    "Pizza": pizza_interface_recette,
+    "Grillade": perso_grillade,
+    "Fish & Chips": add_fish_and_chips,
+    "Frites": add_frites,
+    "Salade composée": perso_salade_composee,
+    "Pizza dessert": add_dessert
     }
 
 from .temp_gestion import travaux_en_cours as messages_dev
@@ -88,17 +91,13 @@ def affichage_menu(context, images_references):
             logo_tk = charger_img("vide.png", taille=(100, 100))
 
         images_references.append(logo_tk)  # Stocker la référence
-        
-        # Définir l'action en fonction du plat
-        if plat.lower() == "pizza":
-            action = lambda: fenetre_plats["pizza"](context)
-        elif plat.lower() == "grillade":
-            action = lambda: fenetre_plats["grillade"](context)
-        elif plat.lower() == "salade composée":
-            action = lambda: fenetre_plats["salade_composée"](context)
+
+        # Appel direct par correspondance de clé
+        if plat in fenetre_plats:
+            action = lambda p=plat: fenetre_plats[p](context)
         else:
             action = lambda: messages_dev(context.root)
-        
+
         # Créer le bouton avec la fonction dédiée
         structure_boutons_menu(
             parent=frame_boutons,

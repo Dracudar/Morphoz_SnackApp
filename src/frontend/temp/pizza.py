@@ -223,7 +223,7 @@ def pizza_validation(context, base_selectionnee, ingredients_selectionnes, fenet
 
     # Préparer les données du plat
     plat = {
-        "Type": "Pizza",
+        "Plat": "Pizza",
         "Nom": message,  # Utiliser le message comme nom
         "Statut": "En attente",
         "Prix": prix_pizza,  # Utiliser le prix global des pizzas
@@ -237,6 +237,10 @@ def pizza_validation(context, base_selectionnee, ingredients_selectionnes, fenet
     commandes_path = os.path.join(context.paths["archive"], "commandes")
     logs_path = os.path.join(context.paths["archive"], "logs")
     MAJ_commande(commandes_path, logs_path, plat)
+
+    # Rafraîchir l'affichage de la commande actuelle
+    from ...frontend.commandes_saisie import affichage_commande_actuelle
+    affichage_commande_actuelle(context)
 
     # Réinitialiser la recette après l'ajout
     if recette and isinstance(recette, dict):
