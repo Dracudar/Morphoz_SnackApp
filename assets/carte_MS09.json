@@ -35,5 +35,8 @@
     },
     "Salade composée": {
         "Prix": 4.00
+    },
+    "Pizza dessert": {
+        "Prix": 4.00
     }
 }
