@@ -35,8 +35,11 @@ def MAJ_commande(commandes_path, logs_path, plat):
         plat_id = f"{commande['Informations']['ID']}-{numero_plat:02d}"
         commande["Commande"][f"#{numero_plat:02d}"] = {
             "ID": plat_id,
+            "Plat": "",  # Type du plat (Exemple : Pizza, Grillade, etc.)
             "Nom": plat["Nom"],
-            "Statut": "En attente",
+            "Date de mise en livraison": ["", ""],  # Date et heure où le plat a fini d'être préparé et est mis en livraison
+            "Date de livraison": ["", ""],  # Date et heure où le plat a été livré
+            "Statut": "En attente",  # Statut du plat (En attente, En préparation, Prêt, Livré, Annulé)
             "Prix": plat["Prix"],
             "Composition": plat["Composition"]
         }
@@ -58,24 +61,25 @@ def MAJ_commande(commandes_path, logs_path, plat):
         nouvelle_commande = {
             "Informations": {
                 "ID": nouvel_id,  # Identifiant de la commande au format aaaammjj-000
-                "Date de création": [datetime.now().strftime("%d/%m/%Y"), datetime.now().strftime("%H:%M")], # Date et heure de création du fichier
-                "Date de validation": ["", ""], # Date et heure où la commande a été payé et validée
-                "Date de livraison": ["", ""], # Date et heure où la totaliré des plats a été livrée
-                "Statut": "En saisie", # Statut de la commande (En saisie, Validée, Terminée, Annulée)
-                "Montant": plat["Prix"], # Montant total de la commande
-                "Devise": "EUR", # Devise de la commande (EUR, USD, etc.), EUR par défaut
-                "Type de paiement": "", # Type de paiement (CB, espèces ou repas gratuits), défini au moment de la validation
-                "Contact": "" # Numéro de téléphone du client, défini au moment de la validation (utilité à voir si l'on connecte le logiciel à un service de SMS pour prévenir lorsqu'un plat est prêt)
+                "Date de création": [datetime.now().strftime("%d/%m/%Y"), datetime.now().strftime("%H:%M")],  # Date et heure de création du fichier
+                "Date de validation": ["", ""],  # Date et heure où la commande a été payé et validée
+                "Date de livraison": ["", ""],  # Date et heure où la totaliré des plats a été livrée
+                "Statut": "En saisie",  # Statut de la commande (En saisie, Validée, Terminée, Annulée)
+                "Montant": plat["Prix"],  # Montant total de la commande
+                "Devise": "EUR",  # Devise de la commande (EUR, USD, etc.), EUR par défaut
+                "Type de paiement": "",  # Type de paiement (CB, espèces ou repas gratuits), défini au moment de la validation
+                "Contact": ""  # Numéro de téléphone du client, défini au moment de la validation (utilité à voir si l'on connecte le logiciel à un service de SMS pour prévenir lorsqu'un plat est prêt)
             },
             "Commande": {
                 "#01": {
-                    "ID": f"{nouvel_id}-01", # Identifiant du plat au format aaaammjj-000-01 (regroupement du numéro de la commande et du numéro du plat)
-                    "Nom": plat["Nom"], # Nom du plat permtant de l'identifier dans l'affichage
-                    "Date de mise en livraison": ["", ""], # Date et heure où le plat a fini d'être préparé et est mis en livraison
-                    "Date de livraison": ["", ""], # Date et heure où le plat a été livré
-                    "Statut": "En attente", # Statut du plat (En attente, En préparation, Prêt, Livré, Annulé)
-                    "Prix": plat["Prix"], # Prix du plat
-                    "Composition": plat["Composition"] # Composition du plat : base, ingrédients, viande, accompagnement, etc. selon le type de plat
+                    "ID": f"{nouvel_id}-01",  # Identifiant du plat au format aaaammjj-000-01 (regroupement du numéro de la commande et du numéro du plat)
+                    "Plat": "",  # Type du plat (Exemple : Pizza, Grillade, etc.)
+                    "Nom": plat["Nom"],  # Nom du plat permtant de l'identifier dans l'affichage
+                    "Date de mise en livraison": ["", ""],  # Date et heure où le plat a fini d'être préparé et est mis en livraison
+                    "Date de livraison": ["", ""],  # Date et heure où le plat a été livré
+                    "Statut": "En attente",  # Statut du plat (En attente, En préparation, Prêt, Livré, Annulé)
+                    "Prix": plat["Prix"],  # Prix du plat
+                    "Composition": plat["Composition"]  # Composition du plat : base, ingrédients, viande, accompagnement, etc. selon le type de plat
                 }
             }
         }
