@@ -52,7 +52,12 @@ def print_ticket_recap(chemin_fichier):
     infos = commande["Informations"]
     plats = commande["Commande"]
 
-    p = Usb(0x04B8, 0x0E15, 0)
+    try:
+        p = Usb(0x04B8, 0x0E15, 0)
+    except Exception as e:
+        print(f"Imprimante non disponible : {e}")
+        pass  # ou pass, selon le comportement souhaité
+
     # En-tête
     en_tete(p)
     # Informations de la commande
@@ -144,7 +149,11 @@ def print_ticket_cuisine(chemin_fichier):
     infos = commande["Informations"]
     plats = commande["Commande"]
 
-    p = Usb(0x04B8, 0x0E15, 0)
+    try:
+        p = Usb(0x04B8, 0x0E15, 0)
+    except Exception as e:
+        print(f"Imprimante non disponible : {e}")
+        pass
 
     # Parcours des plats de la commande
     for plat_id, plat in plats.items():
