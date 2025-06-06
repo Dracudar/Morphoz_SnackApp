@@ -224,6 +224,7 @@ def pizza_validation(context, base_selectionnee, ingredients_selectionnes, fenet
     # Préparer les données du plat
     plat = {
         "Plat": "Pizza",
+        "Recette": recette_nom,  # Utiliser le nom de la recette si disponible
         "Nom": message,  # Utiliser le message comme nom
         "Statut": "En attente",
         "Prix": prix_pizza,  # Utiliser le prix global des pizzas
