@@ -69,11 +69,14 @@
       "Poulet": {
         "OutOfStock": false
       },
-      "Lardon": {
+      "Lardons": {
         "OutOfStock": false
       },
       "Jambon": {
-        "OutOfStock": true
+        "OutOfStock": false
+      },
+      "Mélange de fruits de mer": {
+        "OutOfStock": false
       }
     },
     "Fromage": {
@@ -112,16 +115,16 @@
     },
     "Sauces": {
       "Ketchup": {
-        "OutOfStock": false
+        "OutOfStock": true
       },
       "Mayonnaise": {
-        "OutOfStock": false
+        "OutOfStock": true
       },
       "Sauce BBQ": {
-        "OutOfStock": false
+        "OutOfStock": true
       },
       "Sauce bernaise": {
-        "OutOfStock": false
+        "OutOfStock": true
       }
     },
     "Herbes": {
