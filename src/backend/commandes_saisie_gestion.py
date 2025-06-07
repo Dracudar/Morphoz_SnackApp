@@ -65,11 +65,11 @@ def annuler_commande(chemin_fichier):
         os.makedirs(dossier_annulee, exist_ok=True)
         os.rename(chemin_fichier, os.path.join(dossier_annulee, os.path.basename(chemin_fichier)))
 
-def annuler_plat(context, commande_file, plat_id, chemin_fichier, affichage_commande_actuelle):
+def annuler_plat(context, chemin_fichier, plat_id, affichage_commande_actuelle):
     """
     Annule un plat dans la commande en cours.
     """
-    commande_data = charger_fichier_commande(commande_file)
+    commande_data = charger_fichier_commande(chemin_fichier)
     if not commande_data:
         return
 
@@ -82,7 +82,7 @@ def annuler_plat(context, commande_file, plat_id, chemin_fichier, affichage_comm
     )
     
     # Sauvegarder les modifications
-    with open(commande_file, "w", encoding="utf-8") as f:
+    with open(chemin_fichier, "w", encoding="utf-8") as f:
         json.dump(commande_data, f, indent=4, ensure_ascii=False)
 
     # Vérifier si tous les plats sont annulés
@@ -90,3 +90,15 @@ def annuler_plat(context, commande_file, plat_id, chemin_fichier, affichage_comm
 
     # Rafraîchir l'affichage
     affichage_commande_actuelle(context)
+
+def annuler_all_plats(context, chemin_fichier, affichage_commande_actuelle):
+    """
+    Annule tous les plats dans la commande en cours.
+    """
+    commande_data = charger_fichier_commande(chemin_fichier)
+    if not commande_data:
+        return
+    # Mettre à jour le statut de tous les plats
+    for plat_id, plat in commande_data["Commande"].items():
+        if plat["Statut"] == "En attente":
+            annuler_plat(context, chemin_fichier, plat_id, affichage_commande_actuelle)
