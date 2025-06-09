@@ -1,5 +1,5 @@
 '''
-
+Fonctions pour l'impression de tickets de commande et de cuisine après validation d'une commande.
 '''
 
 import json
@@ -8,10 +8,11 @@ from PIL import Image
 from escpos.printer import Usb
 from .commandes_utils import charger_fichier_commande
 
-# Paramètres de configuration de l'imprimante thermique
-IMPRIMANTE_USB_VENDOR_ID = 0x04B8
-IMPRIMANTE_USB_PRODUCT_ID = 0x0E15
-IMPRIMANTE_USB_INTERFACE = 0
+from ..config_printer import (
+    IMPRIMANTE_USB_VENDOR_ID as VENDOR_ID, 
+    IMPRIMANTE_USB_PRODUCT_ID as PRODUCT_ID, 
+    IMPRIMANTE_USB_INTERFACE as INTERFACE
+)  # Import des paramètres de configuration de l'imprimante thermique
 
 # Fonction pour charger une image et la redimensionner pour l'impression thermique
 def charger_logo(nom_image, taille=()):
@@ -42,7 +43,7 @@ def print_ticket_recap(chemin_fichier):
     """Imprime un ticket récapitulatif de la commande."""
     # Charger l'imprimante USB
     try:
-        p = Usb(IMPRIMANTE_USB_VENDOR_ID, IMPRIMANTE_USB_PRODUCT_ID, IMPRIMANTE_USB_INTERFACE)
+        p = Usb(VENDOR_ID, PRODUCT_ID, INTERFACE)
 
         # Charger la commande depuis le fichier JSON
         commande = charger_fichier_commande(chemin_fichier)
@@ -141,7 +142,7 @@ def print_ticket_cuisine(chemin_fichier):
     
     # Charger l'imprimante USB
     try:
-        p = Usb(IMPRIMANTE_USB_VENDOR_ID, IMPRIMANTE_USB_PRODUCT_ID, IMPRIMANTE_USB_INTERFACE)
+        p = Usb(VENDOR_ID, PRODUCT_ID, INTERFACE)
 
         # Charger la commande depuis le fichier JSON    
         commande = charger_fichier_commande(chemin_fichier)
