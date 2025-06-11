@@ -17,7 +17,7 @@ configurer_styles()
 
 def bouton_exit(context):
     # Bouton permetant de quitter l'application (détruit 'root')
-    frame_exit = ttk.Frame(context.frames["droite_bas"], style="TFrame")
+    frame_exit = ttk.Frame(context.frames_main["droite_bas"], style="TFrame")
     frame_exit.place(relx=0.9, rely=0.1, relwidth=0.1, relheight=0.8) # Positionner le bouton de sortie
 
     logo_exit_tk = charger_img("exit.png", taille=(30, 30)) # Charger le logo de sortie
@@ -33,7 +33,7 @@ def bouton_exit(context):
 def bouton_retour(context):
     from ..UI.ui_utils import show_view
 
-    frame_retour = ttk.Frame(context.frames["droite_bas"], style="TFrame")
+    frame_retour = ttk.Frame(context.frames_main["droite_bas"], style="TFrame")
     frame_retour.place(relx=0, rely=0.1, relwidth=0.1, relheight=0.8)  # Positionner le bouton de retour
 
     logo_retour_tk = charger_img("retour.png", taille=(30, 30))  # Charger le logo de retour

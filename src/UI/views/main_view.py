@@ -38,7 +38,7 @@ def render_main_view(context, parent):
     frame_droite_bas.place(relx=2/3, rely=14/15, relwidth=1/3, relheight=1/15)
 
     # Ajout des frames dans le context
-    context.frames = {
+    context.frames_main = {
         "gauche_haut": frame_gauche_haut,
         "gauche_bas": frame_gauche_bas,
         "droite_haut": frame_droite_haut,
