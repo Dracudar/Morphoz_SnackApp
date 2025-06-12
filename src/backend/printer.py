@@ -98,7 +98,7 @@ def print_ticket_recap(chemin_fichier):
 
                 elif plat["Plat"] == "Pizza" :
                     p.text(f"{plat_id} - {plat['Plat']}\n")
-                    # p.text(f"{plat['Recette']}\n")  # TODO : voir pour enregistrer la recette de pizza choisie dans le fichier de commande
+                    p.text(f"{plat['Recette']}\n")
                     p.text(f"Prix : {plat['Prix']} €\n")  # Affiche le prix du plat
                     p.text('\n')
                     p.text(f"Base : {plat['Composition']['Base']}\n")
@@ -196,7 +196,7 @@ def print_ticket_cuisine(chemin_fichier):
 
                 elif plat["Plat"] == "Pizza" :
                     p.text(f"{plat['Plat']}\n")
-                    # p.text(f"{plat['Recette']}\n")  # TODO : voir pour enregistrer la recette de pizza choisie dans le fichier de commande
+                    p.text(f"{plat['Recette']}\n")
                     p.text("\n") # Ligne vide
                     p.text(f"Base : {plat['Composition']['Base']}\n")
                     p.text("Composition :\n")

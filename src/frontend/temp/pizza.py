@@ -217,6 +217,11 @@ def pizza_validation(context, base_selectionnee, ingredients_selectionnes, fenet
         if ingredients_supplementaires:
             message += f" (supplément {', '.join(ingredients_supplementaires)})"
 
+     # Préparer les données du plat
+    recette_field = recette_nom
+    if ingredients_non_selectionnes or ingredients_supplementaires:
+        recette_field = f"{recette_nom} - Modifié !"
+
     # Charger le prix des pizzas depuis le fichier menu
     menu_data = charger_donnees_menu(context.paths)
     prix_pizza = menu_data.get("Pizza", {}).get("Prix", 0)
@@ -224,7 +229,7 @@ def pizza_validation(context, base_selectionnee, ingredients_selectionnes, fenet
     # Préparer les données du plat
     plat = {
         "Plat": "Pizza",
-        "Recette": recette_nom,  # Utiliser le nom de la recette si disponible
+        "Recette": recette_field,  # Utiliser le nom de la recette si disponible
         "Nom": message,  # Utiliser le message comme nom
         "Statut": "En attente",
         "Prix": prix_pizza,  # Utiliser le prix global des pizzas
