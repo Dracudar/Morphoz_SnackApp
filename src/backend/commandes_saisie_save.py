@@ -5,9 +5,41 @@ Fonction permettant de créer ou mettre à jour le fichier JSON de la commande e
 import os
 import json
 from datetime import datetime
+from collections import OrderedDict
 from .commandes_utils import charger_fichier_commande, generer_ID_commande
     
 # === Gestion des fichiers de commandes === #
+def creer_dict_plat(plat_id, plat):
+    """
+    Crée un dictionnaire représentant un plat, avec le champ 'Recette' inséré
+    entre 'Plat' et 'Nom' si le plat est une pizza.
+    """
+    base_dict = {
+        "ID": plat_id,
+        "Plat": plat["Plat"],
+        "Nom": plat["Nom"],
+        "Date de mise en livraison": ["", ""],
+        "Date de livraison": ["", ""],
+        "Statut": "En attente",
+        "Prix": plat["Prix"],
+        "Composition": plat["Composition"]
+    }
+    if plat["Plat"].lower() == "pizza":
+        # Réorganiser pour insérer "Recette" entre "Plat" et "Nom"
+        return OrderedDict([
+            ("ID", base_dict["ID"]),
+            ("Plat", base_dict["Plat"]),
+            ("Recette", plat.get("Recette", "")),
+            ("Nom", base_dict["Nom"]),
+            ("Date de mise en livraison", base_dict["Date de mise en livraison"]),
+            ("Date de livraison", base_dict["Date de livraison"]),
+            ("Statut", base_dict["Statut"]),
+            ("Prix", base_dict["Prix"]),
+            ("Composition", base_dict["Composition"]),
+        ])
+    else:
+        return base_dict
+
 def MAJ_commande(commandes_path, logs_path, plat):
     """
     Ajoute un plat à une commande existante ou crée une nouvelle commande.
@@ -33,16 +65,7 @@ def MAJ_commande(commandes_path, logs_path, plat):
         # Ajouter le plat à la commande
         numero_plat = len(commande["Commande"]) + 1
         plat_id = f"{commande['Informations']['ID']}-{numero_plat:02d}"
-        commande["Commande"][f"#{numero_plat:02d}"] = {
-            "ID": plat_id,
-            "Plat": plat["Plat"],  # Type du plat (Exemple : Pizza, Grillade, etc.)
-            "Nom": plat["Nom"],
-            "Date de mise en livraison": ["", ""],  # Date et heure où le plat a fini d'être préparé et est mis en livraison
-            "Date de livraison": ["", ""],  # Date et heure où le plat a été livré
-            "Statut": "En attente",  # Statut du plat (En attente, En préparation, Prêt, Livré, Annulé)
-            "Prix": plat["Prix"],
-            "Composition": plat["Composition"]
-        }
+        commande["Commande"][f"#{numero_plat:02d}"] = creer_dict_plat(plat_id, plat)
 
         # Mettre à jour le montant total
         commande["Informations"]["Montant"] = sum(
@@ -57,7 +80,7 @@ def MAJ_commande(commandes_path, logs_path, plat):
         # Créer une nouvelle commande
         nouvel_id = generer_ID_commande(logs_path, commandes_path)
         chemin_fichier = os.path.join(commandes_path, f"commande_{nouvel_id}.json")
-
+        plat_id = f"{nouvel_id}-01"
         nouvelle_commande = {
             "Informations": {
                 "ID": nouvel_id,  # Identifiant de la commande au format aaaammjj-000
@@ -71,16 +94,7 @@ def MAJ_commande(commandes_path, logs_path, plat):
                 "Contact": ""  # Numéro de téléphone du client, défini au moment de la validation (utilité à voir si l'on connecte le logiciel à un service de SMS pour prévenir lorsqu'un plat est prêt)
             },
             "Commande": {
-                "#01": {
-                    "ID": f"{nouvel_id}-01",  # Identifiant du plat au format aaaammjj-000-01 (regroupement du numéro de la commande et du numéro du plat)
-                    "Plat": plat["Plat"],  # Type du plat (Exemple : Pizza, Grillade, etc.)
-                    "Nom": plat["Nom"],  # Nom du plat permtant de l'identifier dans l'affichage
-                    "Date de mise en livraison": ["", ""],  # Date et heure où le plat a fini d'être préparé et est mis en livraison
-                    "Date de livraison": ["", ""],  # Date et heure où le plat a été livré
-                    "Statut": "En attente",  # Statut du plat (En attente, En préparation, Prêt, Livré, Annulé)
-                    "Prix": plat["Prix"],  # Prix du plat
-                    "Composition": plat["Composition"]  # Composition du plat : base, ingrédients, viande, accompagnement, etc. selon le type de plat
-                }
+                "#01": creer_dict_plat(plat_id, plat)
             }
         }
 
