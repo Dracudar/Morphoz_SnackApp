@@ -58,6 +58,11 @@ def imprimer_ticket(p, logo, nom, cat,  date_début, date_fin):
 
 def ticket_repas_gratuit():
     p = Usb(VENDOR_ID, PRODUCT_ID, INTERFACE)
+    print("Connexion à l'imprimante thermique réussie.")
+    p.text("\n" * 3)
+    p.text("Initialisation de l'imprimante...")
+    p.text("\n" * 3)
+    p.cut()
 
     logo = charger_logo("En-tete ticket V1.png", taille=(500, 107))  # Respecte le ratio 7:1.5
 
@@ -87,7 +92,7 @@ def ticket_repas_gratuit():
     for index, row in df.iterrows():
         nom = row["Nom"]
         cat = str(row["Catégorie"]).strip().lower()
-        qtt = int(row["Quantité"])
+        qtt = int(row["Quantité"]) if not pd.isna(row["Quantité"]) else 1
 
         if cat.startswith("artiste"):
             for i, date in enumerate(jours):
