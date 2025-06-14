@@ -6,6 +6,7 @@ import os
 from PIL import Image
 from escpos.printer import Usb
 import pandas as pd
+from datetime import datetime, timedelta
 
 from config_printer import (
     IMPRIMANTE_USB_VENDOR_ID as VENDOR_ID, 
@@ -40,40 +41,68 @@ def charger_logo(nom_image, taille=()):
         raise RuntimeError(f"Erreur lors du chargement de l'image '{nom_image}': {e}")
 
 
+def imprimer_ticket(p, logo, nom, cat,  date_début, date_fin):
+    p.set(align='center')
+    p.image(logo)
+    p.text("\n")
+    p.set(width=8, height=8)
+    p.text("TICKET REPAS GRATUIT\n")
+    p.text("\n")
+    p.text(f"{nom} ({cat})\n")
+    p.text("\n")
+    p.set(bold=True)
+    p.text(f"Valable du {date_début} au {date_fin}\n")
+    p.set(bold=False)
+    p.text("\n" * 5)
+    p.cut()
+
 def ticket_repas_gratuit():
     p = Usb(VENDOR_ID, PRODUCT_ID, INTERFACE)
 
     logo = charger_logo("En-tete ticket V1.png", taille=(500, 107))  # Respecte le ratio 7:1.5
 
+    # Informations
+    date_début = "20/06/2025"
+    date_fin = "21/06/2025"
+    fichier_liste = "tickets_repas_MS09.xlsx"
+
     # Lecture du fichier Excel
-    nom_fichier = "ticket_repas_MS09.xlsx"
-    chemin = os.path.abspath(os.path.join(BASE_DIR, '..', 'assets', nom_fichier))
+    chemin = os.path.abspath(os.path.join(BASE_DIR, '..', 'assets', fichier_liste))
     df = pd.read_excel(chemin)
 
-    # Génération des tickets
+    # Vérification des colonnes nécessaires
+    colonnes_requises = ["Nom", "Catégorie", "Quantité"]
+    for col in colonnes_requises:
+        if col not in df.columns:
+            raise ValueError(f"La colonne '{col}' est manquante dans le fichier Excel.")
+
+    # Génération de la liste des jours de l'événement
+    d1 = datetime.strptime(date_début, "%d/%m/%Y")
+    d2 = datetime.strptime(date_fin, "%d/%m/%Y")
+    nb_jours = (d2 - d1).days + 1
+    jours = [(d1 + timedelta(days=i)).strftime("%d/%m/%Y") for i in range(nb_jours)]
+    print(f"Jours de l'événement : {jours}")
+
+    print("Génération des tickets de repas...")
     for index, row in df.iterrows():
         nom = row["Nom"]
-        cat = row["Catégorie"]
-        for date in ["20/06/2025", "21/06/2025"]:
-            nb_tickets = row[date]
-            if pd.notna(nb_tickets) and int(nb_tickets) > 0:
-                for _ in range(int(nb_tickets)):
+        cat = str(row["Catégorie"]).strip().lower()
+        qtt = int(row["Quantité"])
 
-                    # Construction du ticket
-                    p.set(align='center')
-                    p.image(logo)
-                    p.text("\n")
-                    p.set(width=8, height=8)
-                    p.text("TICKET REPAS GRATUIT\n")
-                    p.text("\n")
-                    p.text(f"{nom} ({cat})\n")
-                    p.text("\n")
-                    p.text("Valable le ")
-                    p.set(bold=True)
-                    p.text(date)
-                    p.set(bold=False)
-                    p.text("\n" * 5)  # Ajoute des lignes vides en fin de ticket
-            
-                    p.cut()  # Couper le papier
+        if cat.startswith("artiste"):
+            for i, date in enumerate(jours):
+                # Premier jour : 1 repas, autres jours : 2 repas
+                nb_repas = 1 if i == 0 else 2
+                for _ in range(nb_repas * qtt):
+                    imprimer_ticket(p, logo, nom, row["Catégorie"], date_début, date_fin)
+        elif cat.startswith("bénévole"):
+            for date in jours:
+                imprimer_ticket(p, logo, nom, row["Catégorie"], date_début, date_fin)
+        else:
+            print(f"Catégorie inconnue pour {nom} : {row['Catégorie']}")
+
+    print("Tickets de repas générés avec succès.")
+    p.close()  # Fermer la connexion à l'imprimante
+    print("Imprimante déconnectée.")
 
 ticket_repas_gratuit()
