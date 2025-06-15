@@ -86,7 +86,9 @@ def affichage_commandes_validées(context):
             background="#393e46", 
             troughcolor="#222831", 
             bordercolor="#222831", 
-            arrowcolor="white"
+            arrowcolor="white",
+            relief="flat",
+            width=25
         )
 
         canvas = tk.Canvas(parent, bg=bg, highlightthickness=0, bd=0)
