@@ -34,6 +34,10 @@ configurer_styles()
 # == Prise de commande : Génération des boutons du menu == #
 # Titre de la frame
 def affichage_menu(context, images_references):
+    # Nettoyer la frame avant de réafficher les boutons
+    for widget in context.frames_main["gauche_haut"].winfo_children():
+        widget.destroy()
+
     # Titre de la section Menu
     ttk.Label(
         context.frames_main["gauche_haut"],
@@ -71,6 +75,32 @@ def affichage_menu(context, images_references):
         cadre_bouton.pack_propagate(False)  # Empêcher le conteneur de s'adapter à son contenu
         cadre_bouton.pack(side="left", padx=10, pady=10)
 
+        # === Blocage selon le stock ===
+        state = "normal"
+        style = "TButton"
+        # 1. Pizza & Pizza dessert
+        if plat in ("Pizza", "Pizza dessert"):
+            if hasattr(context, "stock_cache") and context.stock_cache.is_out_of_stock(["Plats", "Pizza", "Pâte à pizza"]):
+                state = "disabled"
+                style = "Disabled.TButton"
+        # 2. Grillade : désactiver si toutes les viandes sont hors stock
+        elif plat == "Grillade":
+            if hasattr(context, "stock_cache"):
+                viandes = context.stock_cache._stock_cache["Plats"]["Grillades"]
+                if all(v.get("OutOfStock", False) for v in viandes.values()):
+                    state = "disabled"
+                    style = "Disabled.TButton"
+        # 3. Frites
+        elif plat == "Frites":
+            if hasattr(context, "stock_cache") and context.stock_cache.is_out_of_stock(["Accompagnement", "Frites"]):
+                state = "disabled"
+                style = "Disabled.TButton"
+        # 4. Salade composée
+        elif plat == "Salade composée":
+            if hasattr(context, "stock_cache") and context.stock_cache.is_out_of_stock(["Plats", "Salade composée"]):
+                state = "disabled"
+                style = "Disabled.TButton"
+
         # Ajouter le bouton dans le conteneur
         bouton = ttk.Button(
             cadre_bouton,
@@ -78,7 +108,8 @@ def affichage_menu(context, images_references):
             image=logo_tk,
             command=action,  # Appeler l'action associée au bouton
             compound="top",  # Affiche le texte en dessous de l'image
-            style="TButton"
+            style=style,
+            state=state
         )
         bouton.image = logo_tk  # Préserver la référence
         bouton.pack(expand=True, fill="both")  # Remplir tout l'espace du conteneur

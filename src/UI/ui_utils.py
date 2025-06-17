@@ -56,3 +56,8 @@ def show_view(context: AppContext, view_name: str):
         render_main_view(context, context.frames["main"])
         context.current_view = "main"
 
+def refresh_main_view(context):
+    from .views.main_view import render_main_view
+    # Détruit et recrée la vue principale (frames, boutons, etc.)
+    render_main_view(context, context.frames["main"])
+

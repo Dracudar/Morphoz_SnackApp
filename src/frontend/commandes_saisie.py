@@ -14,14 +14,9 @@ from ..frontend.commandes_saisie_boutons import (
     bouton_annuler_commande,
     boutons_paiement
     )
+from ..backend.gestion_stock import StockCache
 
-def affichage_commande_actuelle(context):
-    """
-    Met à jour dynamiquement la frame_gauche_bas pour afficher les plats en attente
-    et les actions associées, en réutilisant les frames pour optimiser l'affichage.
-    """
-    import os
-
+def affichage_commande_actuelle(context):                        
     commandes_path = os.path.join(context.paths["archive"], "commandes")
     fichiers_commandes = [
         f for f in os.listdir(commandes_path)

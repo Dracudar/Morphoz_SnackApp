@@ -32,9 +32,13 @@ def valider_commande(context, chemin_fichier, affichage_commande_actuelle, affic
     # 1 ticket par plat mis en préparation avec l'ID complet, le nom du plat et la composition
     # 1 ticket récapitulatif avec l'ID de la commande, le montant total, le type de paiement et la date de validation, la liste des plats mis en préparation (numéro de plat et nom du plat)
 
-    # Sauvegarder les modifications
+    # Sauvegarder les modifications de la commande
     with open(chemin_fichier, "w", encoding="utf-8") as fichier:
         json.dump(commande, fichier, indent=4, ensure_ascii=False)
+
+    # Sauvegarder le stock modifié
+    if hasattr(context, "stock_cache"):
+        context.stock_cache.save()
 
     # Déplacer le fichier
     dossier_en_cours = os.path.join(os.path.dirname(chemin_fichier), "en_cours")
@@ -75,6 +79,46 @@ def annuler_plat(context, chemin_fichier, plat_id, affichage_commande_actuelle):
 
     # Mettre à jour le statut du plat
     commande_data["Commande"][plat_id]["Statut"] = "Annulé"
+
+    # Récupérer le plat annulé
+    plat_annule = commande_data["Commande"][plat_id]
+    # Ré-incrémenter le stock selon le type de plat
+    if hasattr(context, "stock_cache"):
+        refresh_needed = False
+        # Pizza ou pizza dessert
+        if plat_annule["Plat"] == "Pizza" or plat_annule["Plat"] == "Pizza dessert":
+            was_out = context.stock_cache.is_out_of_stock(["Plats", "Pizza", "Pâte à pizza"])
+            context.stock_cache.incrementer(["Plats", "Pizza", "Pâte à pizza"])
+            is_out = context.stock_cache.is_out_of_stock(["Plats", "Pizza", "Pâte à pizza"])
+            if was_out != is_out:
+                refresh_needed = True
+        # Grillade
+        elif plat_annule["Plat"] == "Grillade":
+            viandes = plat_annule["Composition"]["Viandes"]
+            was = {v: context.stock_cache.is_out_of_stock(["Plats", "Grillades", v]) for v in viandes}
+            for viande, quantite in viandes.items():
+                context.stock_cache.incrementer(["Plats", "Grillades", viande], n=quantite)
+            changed = any(was[v] != context.stock_cache.is_out_of_stock(["Plats", "Grillades", v]) for v in viandes)
+            if changed:
+                refresh_needed = True
+        # Frites
+        elif plat_annule["Plat"] == "Frites":
+            was_out = context.stock_cache.is_out_of_stock(["Accompagnement", "Frites"])
+            context.stock_cache.incrementer(["Accompagnement", "Frites"])
+            is_out = context.stock_cache.is_out_of_stock(["Accompagnement", "Frites"])
+            if was_out != is_out:
+                refresh_needed = True
+        # Salade composée
+        elif plat_annule["Plat"] == "Salade composée":
+            was_out = context.stock_cache.is_out_of_stock(["Plats", "Salade composée"])
+            context.stock_cache.incrementer(["Plats", "Salade composée"])
+            is_out = context.stock_cache.is_out_of_stock(["Plats", "Salade composée"])
+            if was_out != is_out:
+                refresh_needed = True
+
+        if refresh_needed:
+            from ..frontend.boutons_menu import affichage_menu
+            affichage_menu(context, context.images_references if hasattr(context, "images_references") else [])
 
     # Recalculer le montant total
     commande_data["Informations"]["Montant"] = sum(

@@ -182,6 +182,15 @@ def pizza_interface_personnalisation(context, fenetre_pizza_1, recette, stock_da
     ouvrir_fenetre_unique("Pizza", creation_fenetre, fermer_autres=True)
 
 # Validation de la personnalisation
+def refresh_menu_if_stock_changed_pizza(context):
+    was_out = context.stock_cache.is_out_of_stock(["Plats", "Pizza", "Pâte à pizza"])
+    # On décrémente juste après l'ajout du plat (voir plus bas)
+    context.stock_cache.decrementer(["Plats", "Pizza", "Pâte à pizza"])
+    is_out = context.stock_cache.is_out_of_stock(["Plats", "Pizza", "Pâte à pizza"])
+    if was_out != is_out:
+        from ...frontend.boutons_menu import affichage_menu
+        affichage_menu(context, context.images_references if hasattr(context, "images_references") else [])
+
 def pizza_validation(context, base_selectionnee, ingredients_selectionnes, fenetre_pizza_2, recette=None):
     """
     Valide la personnalisation de la pizza, affiche les choix sélectionnés et ajoute la pizza au fichier de commande.
@@ -254,3 +263,7 @@ def pizza_validation(context, base_selectionnee, ingredients_selectionnes, fenet
 
     # Fermer la fenêtre de personnalisation
     fenetre_pizza_2.destroy()
+
+    # Décrémenter la pâte à pizza dans le cache et rafraîchir le menu si besoin
+    if hasattr(context, "stock_cache"):
+        refresh_menu_if_stock_changed_pizza(context)

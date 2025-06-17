@@ -1,5 +1,6 @@
 from tkinter import ttk
 from ..styles import configurer_styles
+from ...backend.gestion_stock import StockCache
 
 images_references = []  # Liste pour stocker les références des images
 
@@ -15,6 +16,30 @@ def render_main_view(context, parent):
     - La fermeture de l'application
     """
     configurer_styles()
+
+    # === Initialisation du cache de stock === #
+    if not hasattr(context, "stock_cache"):
+        context.stock_cache = StockCache(context.paths["stock"])
+        # Synchroniser le cache avec les plats déjà en attente
+        from ...backend.commandes_utils import charger_fichier_commande
+        import os
+        commandes_path = os.path.join(context.paths["archive"], "commandes")
+        fichiers_commandes = [
+            f for f in os.listdir(commandes_path)
+            if f.endswith(".json") and os.path.isfile(os.path.join(commandes_path, f))
+        ]
+        if fichiers_commandes:
+            chemin_fichier = os.path.join(commandes_path, fichiers_commandes[0])
+            commande_data = charger_fichier_commande(chemin_fichier)
+            if commande_data:
+                for plat in commande_data["Commande"].values():
+                    if plat["Statut"] == "En attente":
+                        if plat["Plat"] == "Pizza" or plat["Plat"] == "Pizza dessert":
+                            context.stock_cache.decrementer(["Plats", "Pizza", "Pâte à pizza"])
+                        elif plat["Plat"] == "Grillade":
+                            for viande, quantite in plat["Composition"]["Viandes"].items():
+                                context.stock_cache.decrementer(["Plats", "Grillades", viande], n=quantite)
+                        # Ajoute ici les autres plats à gérer si besoin
 
     # === Frames === #
     # Affichage de fond

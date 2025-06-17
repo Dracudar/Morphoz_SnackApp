@@ -35,6 +35,8 @@ def perso_grillade(context):
         # Variable pour l'accompagnement sélectionné
         accompagnement_selectionne = tk.StringVar(value="Frites")
 
+        btns_plus = {}
+
         # Fonction pour ajuster les quantités
         def ajuster_quantite(viande, delta):
             """
@@ -43,19 +45,23 @@ def perso_grillade(context):
             """
             # Récupère la valeur de la viande depuis le dictionnaire
             valeur_viande = viandes_disponibles.get(viande, {}).get("Valeur", 0)
-            
+            quantite_stock = context.stock_cache.get_quantite(["Plats", "Grillades", viande]) or 0
             # Calcule le total actuel en fonction des quantités et des valeurs des viandes
             total_actuel = sum(
                 quantites_viandes[v].get() * viandes_disponibles.get(v, {}).get("Valeur", 0)
                 for v in quantites_viandes
             )
-
             # Calcule la nouvelle valeur
             nouvelle_valeur = quantites_viandes[viande].get() + delta
 
-            # Vérifie que la nouvelle valeur est positive et que le total ne dépasse pas 2 portions
-            if 0 <= nouvelle_valeur <= 2 and 0 <= nouvelle_valeur * valeur_viande + total_actuel - quantites_viandes[viande].get() * valeur_viande <= 2:
+            # Empêche de dépasser le stock réel
+            if nouvelle_valeur < 0 or nouvelle_valeur > quantite_stock:
+                return
+            # Empêche de dépasser 2 portions au total
+            if 0 <= nouvelle_valeur * valeur_viande + total_actuel - quantites_viandes[viande].get() * valeur_viande <= 2:
                 quantites_viandes[viande].set(nouvelle_valeur)
+                # Met à jour l'état du bouton "+"
+                btns_plus[viande].config(state=get_btn_plus_state(viande))
 
         # Affichage des viandes
         ttk.Label(
@@ -67,6 +73,9 @@ def perso_grillade(context):
         ).pack(pady=10)
 
         for viande in viandes_disponibles:
+            out_of_stock = context.stock_cache.is_out_of_stock(["Plats", "Grillades", viande])
+            quantite_stock = context.stock_cache.get_quantite(["Plats", "Grillades", viande]) or 0
+
             frame_viande = ttk.Frame(fenetre_grillade)
             frame_viande.pack(fill="x", padx=20, pady=5)
 
@@ -77,12 +86,16 @@ def perso_grillade(context):
                 width=20
             ).pack(side="left")
 
-            ttk.Button(
+            # Bouton "-"
+            btn_moins = ttk.Button(
                 frame_viande,
                 text="-",
-                command=lambda v=viande: ajuster_quantite(v, -1)
-            ).pack(side="left", padx=5)
+                command=lambda v=viande: ajuster_quantite(v, -1),
+                state="disabled" if out_of_stock else "normal"
+            )
+            btn_moins.pack(side="left", padx=5)
 
+            # Quantité sélectionnée
             ttk.Label(
                 frame_viande,
                 textvariable=quantites_viandes[viande],
@@ -90,11 +103,50 @@ def perso_grillade(context):
                 anchor="center"
             ).pack(side="left")
 
-            ttk.Button(
+            # Bouton "+"
+            def get_btn_plus_state(viande=viande):
+                qte_sel = quantites_viandes[viande].get()
+                quantite_stock = context.stock_cache.get_quantite(["Plats", "Grillades", viande]) or 0
+                if out_of_stock or quantite_stock == 0:
+                    return "disabled"
+                if qte_sel >= quantite_stock:
+                    return "disabled"
+                # Empêche de dépasser 2 portions au total
+                total_actuel = sum(
+                    quantites_viandes[v].get() * viandes_disponibles.get(v, {}).get("Valeur", 0)
+                    for v in quantites_viandes
+                )
+                valeur_viande = viandes_disponibles.get(viande, {}).get("Valeur", 0)
+                if total_actuel + valeur_viande > 2:
+                    return "disabled"
+                return "normal"
+
+            btn_plus = ttk.Button(
                 frame_viande,
                 text="+",
-                command=lambda v=viande: ajuster_quantite(v, 1)
-            ).pack(side="left", padx=5)
+                command=lambda v=viande: ajuster_quantite(v, 1),
+                state=get_btn_plus_state(viande)
+            )
+            btn_plus.pack(side="left", padx=5)
+            btns_plus[viande] = btn_plus
+
+            # Indicateur visuel si stock = 1
+            if quantite_stock == 1 and not out_of_stock:
+                ttk.Label(
+                    frame_viande,
+                    text="Dernier !",
+                    foreground="orange",
+                    font=("Cambria", 10, "bold")
+                ).pack(side="left", padx=5)
+
+            # Si hors stock, afficher un label "Out of Stock"
+            if out_of_stock:
+                ttk.Label(
+                    frame_viande,
+                    text="Out of Stock",
+                    foreground="red",
+                    font=("Cambria", 10, "bold")
+                ).pack(side="left", padx=5)
 
         # Affichage des accompagnements
         ttk.Label(
@@ -160,6 +212,10 @@ def perso_grillade(context):
             # Ajouter ou mettre à jour la commande
             MAJ_commande(commandes_path, logs_path, plat)
 
+            # Décrémenter les viandes sélectionnées dans le cache et rafraîchir le menu si besoin
+            if hasattr(context, "stock_cache"):
+                refresh_menu_if_stock_changed_grillade(context, viandes_choisies)
+
             # Rafraîchir l'affichage de la commande actuelle
             from ...frontend.commandes_saisie import affichage_commande_actuelle
             affichage_commande_actuelle(context)
@@ -182,3 +238,13 @@ def perso_grillade(context):
 
     # Utiliser la fonction pour ouvrir une fenêtre unique
     ouvrir_fenetre_unique("Grillade", creation_fenetre, fermer_autres=True)
+
+def refresh_menu_if_stock_changed_grillade(context, viandes_choisies):
+    was = {v: context.stock_cache.is_out_of_stock(["Plats", "Grillades", v]) for v in viandes_choisies}
+    # On décrémente juste après l'ajout du plat (voir plus bas)
+    for viande, quantite in viandes_choisies.items():
+        context.stock_cache.decrementer(["Plats", "Grillades", viande], n=quantite)
+    changed = any(was[v] != context.stock_cache.is_out_of_stock(["Plats", "Grillades", v]) for v in viandes_choisies)
+    if changed:
+        from ...frontend.boutons_menu import affichage_menu
+        affichage_menu(context, context.images_references if hasattr(context, "images_references") else [])

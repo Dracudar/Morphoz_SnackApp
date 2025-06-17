@@ -39,6 +39,15 @@ def add_dessert(context):
     # Ajouter ou mettre à jour la commande
     MAJ_commande(commandes_path, logs_path, plat)
 
+    # Décrémenter la pâte à pizza dans le cache
+    if hasattr(context, "stock_cache"):
+        was_out = context.stock_cache.is_out_of_stock(["Plats", "Pizza", "Pâte à pizza"])
+        context.stock_cache.decrementer(["Plats", "Pizza", "Pâte à pizza"])
+        is_out = context.stock_cache.is_out_of_stock(["Plats", "Pizza", "Pâte à pizza"])
+        if was_out != is_out:
+            from ...frontend.boutons_menu import affichage_menu
+            affichage_menu(context, context.images_references if hasattr(context, "images_references") else [])
+    
     # Rafraîchir l'affichage de la commande actuelle
     from ..commandes_saisie import affichage_commande_actuelle
     affichage_commande_actuelle(context)
