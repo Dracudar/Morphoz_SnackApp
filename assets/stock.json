@@ -37,16 +37,15 @@
       }
     },
     "Fish & Chips": {
-      "Poisson": {
-        "Quantité": 200,
-        "OutOfStock": false
+      "Poisson panné": {
+        "Quantité": 0,
+        "OutOfStock": true
       }
     },
     "Salade composée": {
       "OutOfStock": false
     }
   },
-
   "Accompagnement": {
     "Frites": {
       "OutOfStock": false
@@ -55,7 +54,6 @@
       "OutOfStock": false
     }
   },
-
   "Ingrédients": {
     "Pâtes": {
       "Farfalle": {
@@ -88,6 +86,12 @@
       },
       "Emmental": {
         "OutOfStock": true
+      },
+      "Bleu": {
+        "OutOfStock": true
+      },
+      "Mélange de fromages": {
+        "OutOfStock": false
       }
     },
     "Légumes": {
