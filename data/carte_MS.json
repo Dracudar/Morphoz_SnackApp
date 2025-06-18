@@ -1,0 +1,88 @@
+{
+    "Pizza": {
+        "Etat": "Disponible",
+        "Recettes": {
+            "Personnalisable": {
+                "Prix": 6.00,
+                "Etat": "Disponible",
+                "Base": [], 
+                "Ingrédients": []
+            },
+            "Meat BBQ (poulet)": {
+                "Prix": 6.00,
+                "Etat": "Retiré",
+                "Base": [], 
+                "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Poulet", "Sauce BBQ"]
+            },
+            "Meat BBQ (lardon)": {
+                "Prix": 6.00,
+                "Etat": "Retiré",
+                "Base": [], 
+                "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Lardon", "Sauce BBQ"]
+            },
+            "Aïe Caramba (poulet)": {
+                "Prix": 6.00,
+                "Etat": "Retiré",
+                "Base": [], 
+                "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Haricots rouges", "Maïs","Poulet"]
+            },
+            "Aïe Caramba (lardon)": {
+                "Prix": 6.00,
+                "Etat": "Retiré",
+                "Base": [], 
+                "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Haricots rouges", "Maïs","Lardon"]
+            },
+            "Barbe Noir (Poulet)": {
+                "Prix": 6.00,
+                "Etat": "Disponible",
+                "Base": [], 
+                "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Champignons", "Origan", "Roquette", "Poulet"]
+            },
+            "Barbe Noir (Lardons)": {
+                "Prix": 6.00,
+                "Etat": "Disponible",
+                "Base": [], 
+                "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Champignons", "Origan", "Roquette", "Lardons"]
+            },
+            "Barbossa": {
+                "Prix": 6.00,
+                "Etat": "Disponible",
+                "Base": [], 
+                "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Champignons", "Olives noires", "Origan", "Roquette", "Mélange de fruits de mer"]
+            },
+            "4 fromagio": {
+                "Prix": 6.00,
+                "Etat": "Disponible",
+                "Base": [], 
+                "Ingrédients": ["Mélange de fromages"]
+            },
+            "Végé": {
+                "Prix": 6.00,
+                "Etat": "Disponible",
+                "Base": [], 
+                "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Champignons", "Olives noires", "Origan", "Roquette"]
+            },
+            "Choco-Banane": {
+                "Prix": 4.00,
+                "Etat": "Disponible",
+                "Ingrédients": ["Chocolat", "Bananes"]
+            }
+        }
+    },
+    "Grillade": {
+        "Prix": 5.00,
+        "Etat": "Disponible"
+    },
+    "Fish & Chips": {
+        "Prix": 5.00,
+        "Etat": "Retiré"
+    },
+    "Frites": {
+        "Prix": 2.50,
+        "Etat": "Disponible"
+    },
+    "Salade composée": {
+        "Prix": 4.00,
+        "Etat": "Disponible"
+    }
+}
