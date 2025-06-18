@@ -49,5 +49,5 @@ def add_dessert(context):
             affichage_menu(context, context.images_references if hasattr(context, "images_references") else [])
     
     # Rafraîchir l'affichage de la commande actuelle
-    from ..commandes_saisie import affichage_commande_actuelle
+    from ...frontend.commandes_saisie import affichage_commande_actuelle
     affichage_commande_actuelle(context)

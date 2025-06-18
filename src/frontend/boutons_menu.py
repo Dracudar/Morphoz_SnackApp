@@ -11,12 +11,12 @@ from ..backend.img_import import charger_img
 from ..UI.styles import configurer_styles
 
 # Importation des modules de personnalisation des plats
-from .temp.pizza import pizza_interface_recette
-from .temp.grillade import perso_grillade
+from ..plats.pizza.pizza import pizza_interface_recette
+from ..plats.grillade.grillade import perso_grillade
 from .temp.fish_and_chips import add_fish_and_chips
-from .temp.frites import add_frites
-from .temp.salade_composée import perso_salade_composee
-from .temp.pizza_dessert import add_dessert
+from ..plats.frites.frites import add_frites
+from ..plats.salade_composée.salade_composée import perso_salade_composee
+from ..plats.pizza.pizza_dessert import add_dessert
 
 fenetre_plats = {
     "Pizza": pizza_interface_recette,

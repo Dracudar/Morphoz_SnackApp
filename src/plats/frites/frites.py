@@ -40,5 +40,5 @@ def add_frites(context):
     MAJ_commande(commandes_path, logs_path, plat)
 
     # Rafraîchir l'affichage de la commande actuelle
-    from ..commandes_saisie import affichage_commande_actuelle
+    from ...frontend.commandes_saisie import affichage_commande_actuelle
     affichage_commande_actuelle(context)

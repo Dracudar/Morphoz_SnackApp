@@ -1,0 +1,14 @@
+{
+  "Pâte à pizza": {
+    "Quantité": 200,
+    "OutOfStock": false
+  },
+  "Bases": {
+    "Tomate": {
+      "OutOfStock": false
+    },
+    "Crème": {
+      "OutOfStock": false
+    }
+  }
+}
