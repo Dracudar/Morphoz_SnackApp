@@ -1,0 +1,10 @@
+{
+  "Pâtes": {
+    "Farfalle": {
+      "OutOfStock": true
+    },
+    "Penne": {
+      "OutOfStock": false
+    }
+  }
+}

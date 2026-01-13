@@ -1,0 +1,22 @@
+{
+  "Poitrine": {
+    "Valeur": 1,
+    "Quantité": 200,
+    "OutOfStock": false
+  },
+  "Chipolatta": {
+    "Valeur": 1,
+    "Quantité": 200,
+    "OutOfStock": false
+  },
+  "Merguez": {
+    "Valeur": 1,
+    "Quantité": 200,
+    "OutOfStock": false
+  },
+  "Steak vegé": {
+    "Valeur": 2,
+    "Quantité": 100,
+    "OutOfStock": false
+  }
+}
