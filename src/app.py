@@ -2,7 +2,7 @@
 Porte d'entrée de l'application SnackApp Morphoz
 '''
 
-from .ui_utils import AppContext, create_main_window, show_view
+from .UI.ui_utils import AppContext, create_main_window, show_view
 
 def main():
     root = create_main_window()

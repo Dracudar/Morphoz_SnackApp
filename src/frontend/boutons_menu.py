@@ -13,7 +13,7 @@ from ..UI.styles import configurer_styles
 # Importation des modules de personnalisation des plats
 from ..plats.pizza.pizza import pizza_interface_recette
 from ..plats.grillade.grillade import perso_grillade
-from .temp.fish_and_chips import add_fish_and_chips
+from ...archive.src.frontend.temp import add_fish_and_chips
 from ..plats.frites.frites import add_frites
 from ..plats.salade_composée.salade_composée import perso_salade_composee
 from ..plats.pizza.pizza_dessert import add_dessert

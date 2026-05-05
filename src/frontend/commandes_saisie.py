@@ -9,8 +9,8 @@ import platform
 
 from ..backend.commandes_utils import charger_fichier_commande
 from ..backend.commandes_saisie_gestion import annuler_plat
-from ..frontend.commandes_suivi import affichage_commandes_validées
-from ..frontend.commandes_saisie_boutons import (
+from .commandes_suivi import affichage_commandes_validées
+from .commandes_saisie_boutons import (
     bouton_annuler_commande,
     boutons_paiement
     )

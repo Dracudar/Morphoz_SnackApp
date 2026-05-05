@@ -8,7 +8,7 @@ from escpos.printer import Usb
 import pandas as pd
 from datetime import datetime, timedelta
 
-from config_printer import (
+from src.utils.config_printer import (
     IMPRIMANTE_USB_VENDOR_ID as VENDOR_ID, 
     IMPRIMANTE_USB_PRODUCT_ID as PRODUCT_ID, 
     IMPRIMANTE_USB_INTERFACE as INTERFACE
