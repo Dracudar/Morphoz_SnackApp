@@ -3,7 +3,7 @@
         "Etat": "Disponible",
         "Recettes": {
             "Personnalisable": {
-                "Prix": 6.00,
+                "Prix": 7.50,
                 "Etat": "Disponible",
                 "Base": [], 
                 "Ingrédients": []
@@ -34,19 +34,19 @@
             },
             "Barbe Noir (Poulet)": {
                 "Prix": 6.00,
-                "Etat": "Disponible",
+                "Etat": "Retiré",
                 "Base": [], 
                 "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Champignons", "Origan", "Roquette", "Poulet"]
             },
             "Barbe Noir (Lardons)": {
                 "Prix": 6.00,
-                "Etat": "Disponible",
+                "Etat": "Retiré",
                 "Base": [], 
                 "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Champignons", "Origan", "Roquette", "Lardons"]
             },
             "Barbossa": {
                 "Prix": 6.00,
-                "Etat": "Disponible",
+                "Etat": "Retiré",
                 "Base": [], 
                 "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Champignons", "Olives noires", "Origan", "Roquette", "Mélange de fruits de mer"]
             },
@@ -58,12 +58,12 @@
             },
             "Végé": {
                 "Prix": 6.00,
-                "Etat": "Disponible",
+                "Etat": "Retiré",
                 "Base": [], 
                 "Ingrédients": ["Mozzarella", "Oignons", "Poivrons", "Champignons", "Olives noires", "Origan", "Roquette"]
             },
             "Choco-Banane": {
-                "Prix": 4.00,
+                "Prix": 5.00,
                 "Etat": "Disponible",
                 "Ingrédients": ["Chocolat", "Bananes"]
             }
