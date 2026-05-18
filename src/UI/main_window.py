@@ -27,7 +27,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QMainWindow
 
-from src.UI.widgets.interface_principale import InterfacePrincipaleWidget
+from src.UI.view.interface_principale import InterfacePrincipaleWidget
 
 class MainWindow(QMainWindow):
     def __init__(self):
