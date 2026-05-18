@@ -12,55 +12,63 @@ Application de gestion de snack pour événements (ex : MégaSouye), développé
 - **Impression de tickets** (pour chaque plat et pour la commande globale)
 - **Archivage automatique** des commandes terminées
 
-## Installation
+## Utilisation
+
+Au lancement, l'application propose de sélectionner les fichiers de stock et de menu, puis permet la prise de commandes, la personnalisation des plats, la validation et le suivi en temps réel.
+
+Les tickets sont imprimés automatiquement à chaque validation de commande.
+
+## Développement & maintenance
+### Installation
 
 1. **Cloner le dépôt**  
    ```bash
-   git clone <url_du_repo>
+   git clone https://github.com/Dracudar/Morphoz_SnackApp
    cd Morphoz_SnackApp
    ```
 
 2. **Installer les dépendances**  
-   Python 3.10+ recommandé.  
+   Utilisation de Python 3.14.5 ou suppérieur recommandé.
+
+   Créer un environement virtuel pour travailler dans de bonnes condition :
+   ```bash
+   cd <chemin_du_projet>
+   python -m venv .venv
+   ```
+   Activer l'environnement virtuelle créé :
+   ```bash
+   .\.venv\Scripts\activate
+   ```
+   Installer les dépendances dans l'environnement vituel du projet.
    ```bash
    pip install -r requirements.txt
    ```
-   Les dépendances principales sont :
-   - `tkinter`
-   - `Pillow`
-   - `python-escpos` (pour l'impression de tickets)
-   - `pytest` (pour les tests)
+   
+   Liste des dépendances :
+   - **PySide6** : Question de l'interface Qt
 
 3. **Lancer l'application**  
+   Il est possible de lancer l'interface sans compiler avec la commande suivante : 
    ```bash
-   python -m src.UI.app
+   python -m src.core.app
    ```
 
-## Structure détaillée du projet
+### Structure détaillée du projet
 
 ```
 Morphoz_SnackApp/
 │
+├── asset/
+│
 ├── src/
-│   ├── UI/
-│   │   ├── app.py                      # Point d'entrée de l'interface graphique
-│   │   ├── styles.py                   # Définition des styles graphiques (Tkinter)
-│   │   ├── ui_utils                    # Gestion de systèmes d'affichages
-│   │   └── views/
-│   │       └── init_view.py            # Vue d'initialisation (sélection fichiers, etc.)
-│   │       └── main_view.py            # Vue principale (prise et suivi des commandes)
+│   ├── core/
+│   │   └── app.py
 │   │
-│   ├── frontend/
-│   │   ├── boutons_utilitaires.py      # Boutons utilitaires (retour, exit, gestion stock, etc.)
-│   │   ├── commandes_saisie.py         # Affichage et gestion de la commande en cours
-│   │   ├── commandes_suivi.py          # Suivi des commandes validées et en préparation
-│   │   ├── explorateurs_fichiers.py    # Sélection des fichiers/dossiers via dialogues
-│   │   └── temp/
-│   │       ├── frites.py               # UI pour ajout de frites à la commande
-│   │       ├── fish_and_chips.py       # UI pour ajout de fish & chips
-│   │       ├── grillade.py             # UI pour personnalisation des grillades
-│   │       ├── salade_composée.py      # UI pour personnalisation des salades composées
-│   │       └── stock.py                # UI de gestion des stocks (onglets, quantités, ruptures)
+│   ├── UI/
+│   │   ├── widget/
+│   │   |   ├── init_view.py            # Vue d'initialisation (sélection fichiers, etc.)
+│   │   |   └── main_view.py            # Vue principale (prise et suivi des commandes)
+│   │   └── main_window.py
 │   │
 │   ├── backend/
 │   │   ├── chemins_exploitation.py     # Chargement des fichiers JSON, initialisation des dossiers
@@ -73,20 +81,10 @@ Morphoz_SnackApp/
 │   │
 │   └── utils/                          # (optionnel) Fonctions utilitaires partagées
 │
-├── tests/
-│   ├── printer.py                      # Tests d'impression de tickets
-│   └── ...                             # Autres tests unitaires
-│
 ├── requirements.txt                    # Dépendances Python du projet
 ├── README.md                           # Documentation du projet
 └── .gitignore                          # Fichiers à ignorer par git
 ```
-
-## Utilisation
-
-Au lancement, l'application propose de sélectionner les fichiers de stock et de menu, puis permet la prise de commandes, la personnalisation des plats, la validation et le suivi en temps réel.
-
-Les tickets sont imprimés automatiquement à chaque validation de commande.
 
 ## Développement
 
@@ -95,11 +93,31 @@ Les tickets sont imprimés automatiquement à chaque validation de commande.
 
 ## Auteurs
 
-- Projet développé par Dracudar pour l'association Morphoz.
+- Dracudar
 
 ## Licence
 
 Projet open-source sous licence MIT.
+
+## Historique version
+
+<table>
+  <tr>
+    <th>Version</th>
+    <th>Date de sortie</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>2.2.0</td>
+    <td>17/06/2025</td>
+    <td>Première version de production</td>
+  </tr>
+  <tr>
+    <td>3.0.0</td>
+    <td></td>
+    <td>Première version Qt</td>
+  </tr>
+</table>
 
 ---
 
