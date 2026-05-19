@@ -5,6 +5,18 @@ interface_principale.py - Vue principale de l'interface
 
 Description:
     Assemble la saisie dynamique et le suivi des commandes dans la fenetre principale.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.18
+
+Date de modification:
+    2026.05.18
 """
 
 from PySide6.QtCore import Qt

@@ -5,6 +5,18 @@ suivi_commandes.py - Module de suivi des commandes
 
 Description:
     Bloc lateral de suivi des commandes en cours de preparation.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.18
+
+Date de modification:
+    2026.05.18
 """
 
 from PySide6.QtWidgets import QFrame, QVBoxLayout

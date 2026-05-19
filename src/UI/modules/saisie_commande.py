@@ -6,6 +6,18 @@ saisie_commande.py - Module de saisie des commandes
 Description:
     Bloc principal de gauche avec boutons de carte dynamiques,
     detail de commande et actions de validation.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.18
+
+Date de modification:
+    2026.05.18
 """
 
 from __future__ import annotations

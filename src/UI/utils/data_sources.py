@@ -5,6 +5,18 @@ data_sources.py - Sources de donnees UI
 
 Description:
     Fonctions utilitaires pour charger la carte et les commandes en cours.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.18
+
+Date de modification:
+    2026.05.18
 """
 
 from __future__ import annotations

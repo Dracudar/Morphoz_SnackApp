@@ -10,16 +10,13 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    2.0
 
 Date de création :
     2026.05.12
 
 Date de modification:
-    
-
-License :
-    MIT
+    2026.05.18
 """
 
 # Importation des modules nécessaires

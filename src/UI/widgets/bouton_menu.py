@@ -5,6 +5,18 @@ bouton_menu.py - Widget bouton menu
 
 Description:
 	Définition d'un bouton de menu réutilisable pour la zone de saisie.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.18
+
+Date de modification:
+    2026.05.18
 """
 
 from PySide6.QtCore import QSize

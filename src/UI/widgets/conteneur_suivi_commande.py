@@ -5,6 +5,18 @@ conteneur_suivi_commande.py - Widget suivi commandes
 
 Description:
 	Conteneur de suivi des commandes en préparation pour la colonne droite.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.18
+
+Date de modification:
+    2026.05.18
 """
 
 from __future__ import annotations
