@@ -1,0 +1,5 @@
+__pycache__/
+assets/config.json
+tests/data/
+.env
+proto/
