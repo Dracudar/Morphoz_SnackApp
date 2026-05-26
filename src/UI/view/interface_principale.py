@@ -22,8 +22,12 @@ Date de modification:
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QStackedWidget, QVBoxLayout, QWidget
 
-from src.UI.modules.saisie_commande import SaisieCommandeModule
-from src.UI.modules.suivi_commandes import SuiviCommandesModule
+from src.UI.modules.carte import CarteModule
+from src.UI.modules.commande_saisie import SaisieCommandeModule
+from src.UI.modules.commandes_historique import CommandesHistoriqueModule
+from src.UI.modules.commandes_suivi import SuiviCommandesModule
+from src.UI.modules.parametres import ParametresModule
+from src.UI.modules.stock import StockModule
 
 
 class PlaceholderPage(QFrame):
@@ -68,25 +72,21 @@ class InterfacePrincipaleWidget(QWidget):
 
         self.left_stack = QStackedWidget()
         self.page_saisie = SaisieCommandeModule()
-        self.page_stock = PlaceholderPage(
-            "Module Stock",
-            "Cette page accueillera le module de gestion du stock."
-        )
-        self.page_carte = PlaceholderPage(
-            "Module Carte",
-            "Cette page pourra servir a un second affichage pour dispatcher les commandes par type de plat."
-        )
-        self.page_parametres = PlaceholderPage(
-            "Module Parametres",
-            "Cette page accueillera les options de configuration."
-        )
+        self.page_stock = StockModule()
+        self.page_carte = CarteModule()
+        self.page_historique = CommandesHistoriqueModule()
+        self.page_parametres = ParametresModule()
 
         self.left_stack.addWidget(self.page_saisie)
         self.left_stack.addWidget(self.page_stock)
         self.left_stack.addWidget(self.page_carte)
+        self.left_stack.addWidget(self.page_historique)
         self.left_stack.addWidget(self.page_parametres)
 
         self.suivi_module = SuiviCommandesModule()
+
+        self.page_parametres.config_changed.connect(self.refresh_all_pages)
+        self.page_saisie.command_changed.connect(self.refresh_all_pages)
 
         root_layout.addWidget(self.left_stack, 2)
         root_layout.addWidget(self.suivi_module, 1)
@@ -96,8 +96,25 @@ class InterfacePrincipaleWidget(QWidget):
             "saisie": self.page_saisie,
             "stock": self.page_stock,
             "carte": self.page_carte,
+            "historique": self.page_historique,
             "parametres": self.page_parametres,
         }
         widget = pages.get(page_name)
         if widget is not None:
             self.left_stack.setCurrentWidget(widget)
+            self._refresh_page(widget)
+
+    def refresh_all_pages(self):
+        self.page_saisie.refresh()
+        self.page_stock.reload_from_disk()
+        self.page_carte.reload_from_disk()
+        self.page_historique.refresh_orders()
+        self.suivi_module.tracker.refresh_orders()
+
+    def _refresh_page(self, widget):
+        if hasattr(widget, "refresh"):
+            widget.refresh()
+        elif hasattr(widget, "reload_from_disk"):
+            widget.reload_from_disk()
+        elif hasattr(widget, "refresh_orders"):
+            widget.refresh_orders()

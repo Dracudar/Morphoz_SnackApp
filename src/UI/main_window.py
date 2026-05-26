@@ -89,6 +89,9 @@ class MainWindow(QMainWindow):
         self.carte_action = QAction("Fenetre Carte", self)
         self.carte_action.triggered.connect(lambda: self.interface_widget.set_left_page("carte"))
 
+        self.historique_action = QAction("Historique", self)
+        self.historique_action.triggered.connect(lambda: self.interface_widget.set_left_page("historique"))
+
         self.parametres_action = QAction("Parametres", self)
         self.parametres_action.triggered.connect(
             lambda: self.interface_widget.set_left_page("parametres")
@@ -96,8 +99,10 @@ class MainWindow(QMainWindow):
 
         view_menu.addAction(self.saisie_action)
         view_menu.addSeparator()
-        view_menu.addAction(self.stock_action)
         view_menu.addAction(self.carte_action)
+        view_menu.addAction(self.stock_action)
+        view_menu.addAction(self.historique_action)
+        view_menu.addSeparator()
         view_menu.addAction(self.parametres_action)
         
     
