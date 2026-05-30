@@ -1,0 +1,41 @@
+{
+    "Pizza": {
+        "Etat": "Disponible",
+        "Recettes": {
+            "Personnalisable": {
+                "Prix": 7.5,
+                "Etat": "Disponible",
+                "Base": [],
+                "Ingrédients": []
+            },
+            "4 fromagio": {
+                "Prix": 6.0,
+                "Etat": "Disponible",
+                "Base": [],
+                "Ingrédients": [
+                    "Mélange de fromages"
+                ]
+            },
+            "Choco-Banane": {
+                "Prix": 5.0,
+                "Etat": "Disponible",
+                "Ingrédients": [
+                    "Chocolat",
+                    "Bananes"
+                ]
+            }
+        }
+    },
+    "Grillade": {
+        "Prix": 5.0,
+        "Etat": "Disponible"
+    },
+    "Frites": {
+        "Prix": 2.5,
+        "Etat": "Disponible"
+    },
+    "Salade composée": {
+        "Prix": 4.0,
+        "Etat": "Hors stock"
+    }
+}

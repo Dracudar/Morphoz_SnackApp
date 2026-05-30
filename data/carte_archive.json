@@ -2,12 +2,6 @@
     "Pizza": {
         "Etat": "Disponible",
         "Recettes": {
-            "Personnalisable": {
-                "Prix": 7.5,
-                "Etat": "Disponible",
-                "Base": [],
-                "Ingrédients": []
-            },
             "Meat BBQ (poulet)": {
                 "Prix": 6.0,
                 "Etat": "Retiré",
@@ -101,14 +95,6 @@
                     "Mélange de fruits de mer"
                 ]
             },
-            "4 fromagio": {
-                "Prix": 6.0,
-                "Etat": "Disponible",
-                "Base": [],
-                "Ingrédients": [
-                    "Mélange de fromages"
-                ]
-            },
             "Végé": {
                 "Prix": 6.0,
                 "Etat": "Retiré",
@@ -122,31 +108,11 @@
                     "Origan",
                     "Roquette"
                 ]
-            },
-            "Choco-Banane": {
-                "Prix": 5.0,
-                "Etat": "Disponible",
-                "Ingrédients": [
-                    "Chocolat",
-                    "Bananes"
-                ]
             }
         }
-    },
-    "Grillade": {
-        "Prix": 5.0,
-        "Etat": "Disponible"
     },
     "Fish & Chips": {
         "Prix": 5.0,
         "Etat": "Retiré"
-    },
-    "Frites": {
-        "Prix": 2.5,
-        "Etat": "Disponible"
-    },
-    "Salade composée": {
-        "Prix": 4.0,
-        "Etat": "Hors stock"
     }
 }
