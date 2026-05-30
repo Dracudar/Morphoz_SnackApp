@@ -4,7 +4,7 @@ Permet de lancer la validation de la commande après paiement et d'imprimer les 
 """
 
 import json  # Pour manipuler les données JSON
-from .commandes_utils import charger_fichier_commande  # Pour charger le fichier de commande JSON
+from ....backend.commandes_utils import charger_fichier_commande  # Pour charger le fichier de commande JSON
 from .commandes_saisie_gestion import valider_commande  # Pour valider la commande après paiement et imprimer les tickets
 
     

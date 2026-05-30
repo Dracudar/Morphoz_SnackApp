@@ -38,7 +38,7 @@ from PySide6.QtWidgets import (
 
 from src.UI.utils.data_sources import get_live_orders, get_menu_categories
 from src.UI.utils.module_registry import discover_module_registry
-from src.UI.widgets.bouton_menu import BoutonMenu
+from modules.commandes_saisie.UI.widgets.bouton_menu import BoutonMenu
 
 
 class SaisieCommandeModule(QFrame):

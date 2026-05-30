@@ -22,12 +22,12 @@ Date de modification:
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QStackedWidget, QVBoxLayout, QWidget
 
-from src.UI.modules.carte import CarteModule
-from src.UI.modules.commande_saisie import SaisieCommandeModule
-from src.UI.modules.commandes_historique import CommandesHistoriqueModule
-from src.UI.modules.commandes_suivi import SuiviCommandesModule
-from src.UI.modules.parametres import ParametresModule
-from src.UI.modules.stock import StockModule
+from modules.carte.carte import CarteModule
+from modules.commandes_saisie.UI.commande_saisie import SaisieCommandeModule
+from modules.commandes_historique.UI.commandes_historique import CommandesHistoriqueModule
+from modules.commandes_suivi.UI.commandes_suivi import SuiviCommandesModule
+from modules.parametres.UI.parametres import ParametresModule
+from modules.stock.UI.stock import StockModule
 
 
 class PlaceholderPage(QFrame):

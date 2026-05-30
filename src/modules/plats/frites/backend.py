@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.backend.commandes_saisie_save import ajouter_portion_frites
+from modules.commandes_saisie.backend.commandes_saisie_save import ajouter_portion_frites
 
 
 LABEL = "Frites"

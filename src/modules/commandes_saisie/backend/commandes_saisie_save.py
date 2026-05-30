@@ -6,7 +6,7 @@ import os
 import json
 from datetime import datetime
 from collections import OrderedDict
-from .commandes_utils import charger_fichier_commande, generer_ID_commande
+from ....backend.commandes_utils import charger_fichier_commande, generer_ID_commande
     
 # === Gestion des fichiers de commandes === #
 def creer_dict_plat(plat_id, plat):

@@ -5,7 +5,7 @@ Gestion des changements de statut des plats dans une commande validée.
 import os
 import json
 from datetime import datetime
-from .commandes_utils import charger_fichier_commande
+from ....backend.commandes_utils import charger_fichier_commande
 
 def plat_prêt(context, chemin_fichier, plat_id_complet, affichage_commandes_validées):
     """

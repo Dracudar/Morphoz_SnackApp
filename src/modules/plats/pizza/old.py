@@ -8,7 +8,7 @@ from ...backend.chemins_exploitation import (
     charger_donnees_menu, 
     charger_donnees_stock,
     )
-from src.backend.commandes_saisie_save import MAJ_commande
+from modules.commandes_saisie.backend.commandes_saisie_save import MAJ_commande
 
 import os
 import tkinter as tk

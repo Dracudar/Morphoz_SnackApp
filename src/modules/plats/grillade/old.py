@@ -7,7 +7,7 @@ import os  # Pour manipuler les chemins de fichiers
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from src.backend.commandes_saisie_save import MAJ_commande
+from modules.commandes_saisie.backend.commandes_saisie_save import MAJ_commande
 from src.frontend.temp_gestion import ouvrir_fenetre_unique 
 from ...backend.chemins_exploitation import (
     charger_donnees_menu, 

@@ -5,7 +5,7 @@ Code UI pour ajouter une portion de frites à la commande
 # === Importer les modules nécessaires === #
 import os  # Pour manipuler les chemins de fichiers
 
-from src.backend.commandes_saisie_save import MAJ_commande
+from modules.commandes_saisie.backend.commandes_saisie_save import MAJ_commande
 from src.backend.chemins_exploitation import (
     charger_donnees_menu, 
     charger_donnees_stock,

@@ -5,8 +5,8 @@
 import os
 import json
 from datetime import datetime
-from .commandes_utils import charger_fichier_commande
-from .printer import print_ticket_recap, print_ticket_cuisine
+from ....backend.commandes_utils import charger_fichier_commande
+from ....backend.printer import print_ticket_recap, print_ticket_cuisine
 
 def valider_commande(context, chemin_fichier, affichage_commande_actuelle, affichage_commandes_validées):
     commande = charger_fichier_commande(chemin_fichier)
@@ -117,7 +117,7 @@ def annuler_plat(context, chemin_fichier, plat_id, affichage_commande_actuelle):
                 refresh_needed = True
 
         if refresh_needed:
-            from ..frontend.boutons_menu import affichage_menu
+            from ....frontend.boutons_menu import affichage_menu
             affichage_menu(context, context.images_references if hasattr(context, "images_references") else [])
 
     # Recalculer le montant total
