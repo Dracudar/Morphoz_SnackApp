@@ -1,5 +1,23 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+ID_generator.py
 
+Description:
+    Génère un identifiant unique pour une commande au format aaaammjj-000.
+    
+Author :
+    Dracudar
 
+Version: 
+    1.0
+
+Date de création : 
+    2025.06.02
+
+Date de modification: 
+    2026.05.30
+"""
 
 import os
 from datetime import datetime

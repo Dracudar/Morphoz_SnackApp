@@ -1,6 +1,27 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+interface_principale.py - Vue principale de l'interface
+
+Description:
+    Assemble la saisie dynamique et le suivi des commandes dans la fenetre principale.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.20
+
+Date de modification:
+    2026.05.30
+"""
+
 from __future__ import annotations
 
-from modules.commandes_saisie.backend.commandes_saisie_save import ajouter_portion_frites
+from src.modules.commandes_saisie.backend.commandes_saisie_save import ajouter_portion_frites
 
 
 LABEL = "Frites"

@@ -17,7 +17,7 @@ Date de création :
     2026.05.18
 
 Date de modification:
-    2026.05.18
+    2026.05.30
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ from PySide6.QtWidgets import (
 
 from src.UI.utils.data_sources import get_live_orders, get_menu_categories
 from src.UI.utils.module_registry import discover_module_registry
-from modules.commandes_saisie.UI.widgets.bouton_menu import BoutonMenu
+from src.modules.commandes_saisie.UI.widgets.bouton_menu import BoutonMenu
 
 
 class SaisieCommandeModule(QFrame):

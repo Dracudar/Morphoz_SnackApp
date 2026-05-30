@@ -16,12 +16,12 @@ Date de création :
     2026.05.18
 
 Date de modification:
-    2026.05.18
+    2026.05.30
 """
 
 from PySide6.QtWidgets import QFrame, QVBoxLayout
 
-from src.UI.widgets.conteneur_suivi_commande import ConteneurSuiviCommande
+from src.modules.commandes_suivi.UI.widgets.conteneur_suivi_commande import ConteneurSuiviCommande
 
 
 class SuiviCommandesModule(QFrame):

@@ -16,18 +16,18 @@ Date de création :
     2026.05.18
 
 Date de modification:
-    2026.05.18
+    2026.05.30
 """
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QStackedWidget, QVBoxLayout, QWidget
 
-from modules.carte.carte import CarteModule
-from modules.commandes_saisie.UI.commande_saisie import SaisieCommandeModule
-from modules.commandes_historique.UI.commandes_historique import CommandesHistoriqueModule
-from modules.commandes_suivi.UI.commandes_suivi import SuiviCommandesModule
-from modules.parametres.UI.parametres import ParametresModule
-from modules.stock.UI.stock import StockModule
+from src.modules.carte.UI import CarteModule
+from src.modules.commandes_saisie.UI.commande_saisie import SaisieCommandeModule
+from src.modules.commandes_historique.UI.commandes_historique import CommandesHistoriqueModule
+from src.modules.commandes_suivi.UI.commandes_suivi import SuiviCommandesModule
+from src.modules.parametres.UI.parametres import ParametresModule
+from src.modules.stock.UI.stock import StockModule
 
 
 class PlaceholderPage(QFrame):
