@@ -108,12 +108,12 @@ Projet open-source sous licence MIT.
     <th>Description</th>
   </tr>
   <tr>
-    <td>2.2.0</td>
+    <td>1.2.2</td>
     <td>17/06/2025</td>
     <td>Première version de production</td>
   </tr>
   <tr>
-    <td>3.0.0</td>
+    <td>2.0.0</td>
     <td></td>
     <td>Première version Qt</td>
   </tr>
