@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
-from src.UI.utils.data_sources import get_stock_data, save_stock_data
+from src.backend.data_sources import get_stock_data, save_stock_data
 
 
 class StockModule(QFrame):

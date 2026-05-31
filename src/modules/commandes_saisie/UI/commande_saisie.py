@@ -36,7 +36,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from src.UI.utils.data_sources import get_live_orders, get_menu_categories
+from src.backend.data_sources import get_live_orders, get_menu_categories
 from src.UI.utils.module_registry import discover_module_registry
 from src.modules.commandes_saisie.UI.widgets.bouton_menu import BoutonMenu
 

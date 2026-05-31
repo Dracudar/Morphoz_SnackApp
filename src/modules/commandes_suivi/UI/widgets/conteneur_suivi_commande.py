@@ -32,7 +32,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
-from src.UI.utils.data_sources import get_live_orders
+from src.backend.data_sources import get_live_orders
 
 
 class ConteneurSuiviCommande(QFrame):

@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
-from src.UI.utils.data_sources import get_completed_orders
+from src.backend.data_sources import get_completed_orders
 
 
 class CommandesHistoriqueModule(QFrame):

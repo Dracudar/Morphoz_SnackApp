@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 	QVBoxLayout,
 )
 
-from src.UI.utils.data_sources import get_app_paths, get_default_app_paths, save_app_paths
+from src.backend.app_config import get_app_paths, get_default_app_paths, save_app_paths
 
 
 class ParametresModule(QFrame):

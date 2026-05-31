@@ -1,175 +1,112 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-data_sources.py - Sources de donnees UI
+data_sources.py - Sources de données métier
 
 Description:
-    Fonctions utilitaires pour charger la carte et les commandes en cours.
+    Chargement et sauvegarde des données de la carte, du stock et des commandes.
+    Fournit également les catégories enrichies (icône, état, recettes) utilisées
+    par les vues de saisie de commande.
 
 Author :
     Dracudar
 
 Version:
-    1.0
+    2.0
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.05.18
+    2026.05.31
 """
 
 from __future__ import annotations
 
-import json
 import re
 import unicodedata
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-CONFIG_FILE = PROJECT_ROOT / "assets" / "config.json"
-DEFAULT_CARD_FILE = PROJECT_ROOT / "data" / "carte_snack.json"
-DEFAULT_STOCK_FILE = PROJECT_ROOT / "data" / "stock.json"
-MODULES_ROOT = PROJECT_ROOT / "src" / "modules"
-COMMAND_ROOT_CANDIDATES = [
-    PROJECT_ROOT / "data" / "commandes",
-    PROJECT_ROOT / "tests" / "data" / "commandes",
-]
-
-
-def _load_json_file(file_path: Path) -> Dict[str, Any]:
-    if not file_path.exists():
-        return {}
-
-    try:
-        with file_path.open("r", encoding="utf-8") as file_handle:
-            data = json.load(file_handle)
-    except (OSError, json.JSONDecodeError):
-        return {}
-
-    if isinstance(data, dict):
-        return data
-    return {}
+from src.backend.app_config import (
+    MODULES_ROOT,
+    _load_json_file,
+    _write_json_file,
+    get_archive_folder_path,
+    get_command_root,
+    get_menu_file_path,
+    get_stock_file_path,
+)
 
 
-def _write_json_file(file_path: Path, payload: Dict[str, Any]) -> bool:
-    try:
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        with file_path.open("w", encoding="utf-8") as file_handle:
-            json.dump(payload, file_handle, ensure_ascii=False, indent=4)
-    except OSError:
-        return False
-    return True
-
-
-def _load_app_config() -> Dict[str, Any]:
-    config = _load_json_file(CONFIG_FILE)
-    if not config:
-        return {}
-    return config
-
-
-def get_app_paths() -> Dict[str, str]:
-    config = _load_app_config()
-    return {
-        "stock_file": str(Path(config.get("stock_file", DEFAULT_STOCK_FILE))),
-        "menu_file": str(Path(config.get("menu_file", DEFAULT_CARD_FILE))),
-        "archive_folder": str(Path(config.get("archive_folder", PROJECT_ROOT / "data"))),
-    }
-
-
-def get_default_app_paths() -> Dict[str, str]:
-    return {
-        "stock_file": str(DEFAULT_STOCK_FILE),
-        "menu_file": str(DEFAULT_CARD_FILE),
-        "archive_folder": str(PROJECT_ROOT / "data"),
-    }
-
-
-def save_app_paths(stock_file: str, menu_file: str, archive_folder: str) -> bool:
-    return _write_json_file(
-        CONFIG_FILE,
-        {
-            "stock_file": stock_file,
-            "menu_file": menu_file,
-            "archive_folder": archive_folder,
-        },
-    )
-
-
-def get_stock_file_path() -> Path:
-    return Path(get_app_paths()["stock_file"])
-
-
-def get_menu_file_path() -> Path:
-    return Path(get_app_paths()["menu_file"])
-
-
-def get_archive_folder_path() -> Path:
-    return Path(get_app_paths()["archive_folder"])
-
+# ── Carte / menu ──────────────────────────────────────────────────────────────
 
 def get_card_data() -> Dict[str, Any]:
-    """Charge la carte snack depuis le fichier JSON principal."""
+    """Charge la carte snack depuis le fichier JSON configuré."""
     return _load_json_file(get_menu_file_path())
 
 
 def save_card_data(payload: Dict[str, Any]) -> bool:
+    """Sauvegarde la carte snack dans le fichier JSON configuré. Retourne True si succès."""
     return _write_json_file(get_menu_file_path(), payload)
 
 
+# ── Stock ─────────────────────────────────────────────────────────────────────
+
 def get_stock_data() -> Dict[str, Any]:
+    """Charge le stock depuis le fichier JSON configuré."""
     return _load_json_file(get_stock_file_path())
 
 
 def save_stock_data(payload: Dict[str, Any]) -> bool:
+    """Sauvegarde le stock dans le fichier JSON configuré. Retourne True si succès."""
     return _write_json_file(get_stock_file_path(), payload)
 
 
+# ── Catégories et icônes ──────────────────────────────────────────────────────
+
 def _normalize_text(value: str) -> str:
+    """Convertit une chaîne en identifiant normalisé ASCII bas de casse sans ponctuation."""
     ascii_text = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
     return re.sub(r"[^a-z0-9]+", "", ascii_text.lower())
 
 
 def _normalized_state(state: str) -> str:
+    """Normalise un état de catégorie pour comparaison insensible à la casse et aux accents."""
     return _normalize_text(state.strip())
 
 
 def _find_category_folder(category_name: str) -> Optional[Path]:
+    """Recherche le dossier de module correspondant à une catégorie par nom normalisé."""
     if not MODULES_ROOT.exists():
         return None
-
     target = _normalize_text(category_name)
     for child in MODULES_ROOT.iterdir():
-        if not child.is_dir():
-            continue
-        if _normalize_text(child.name) == target:
+        if child.is_dir() and _normalize_text(child.name) == target:
             return child
-
     return None
 
 
 def _resolve_category_icon(category_name: str, out_of_stock: bool) -> Optional[str]:
+    """Retourne le chemin de l'icône SVG/PNG la plus appropriée pour une catégorie.
+
+    Préfère icon_HS.* si la catégorie est en rupture de stock, sinon icon.svg.
+    """
     folder = _find_category_folder(category_name)
     if folder is None:
         return None
-
-    preferred_files = ["icon.svg", "icon.png", "icon_HS.svg", "icon_HS.png"]
+    preferred_files = ["icon.svg"]
     if out_of_stock:
         preferred_files = ["icon_HS.svg", "icon_HS.png", "icon.svg", "icon.png"]
-
     for icon_name in preferred_files:
         icon_path = folder / icon_name
         if icon_path.exists():
             return str(icon_path)
-
     return None
 
 
 def get_menu_categories() -> List[Dict[str, Any]]:
-    """Retourne les categories de la carte sous forme normalisee."""
+    """Retourne les catégories de la carte sous forme normalisée, avec état, icône et comptage de recettes."""
     card_data = get_card_data()
     categories: List[Dict[str, Any]] = []
 
@@ -202,22 +139,22 @@ def get_menu_categories() -> List[Dict[str, Any]]:
     return categories
 
 
-def get_command_root() -> Optional[Path]:
-    """Retourne le dossier racine des commandes si disponible."""
-    archive_root = get_archive_folder_path()
-    candidates = [archive_root / "commandes", archive_root]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
+# ── Commandes ─────────────────────────────────────────────────────────────────
 
-    for candidate in COMMAND_ROOT_CANDIDATES:
-        if candidate.exists():
-            return candidate
-    return None
+def _parse_order_file(order_file: Path) -> Dict[str, Any]:
+    """Charge et structure le contenu d'un fichier de commande JSON."""
+    payload = _load_json_file(order_file)
+    infos = payload.get("Informations", {})
+    if not isinstance(infos, dict):
+        infos = {}
+    command_lines = payload.get("Commande", {})
+    if not isinstance(command_lines, dict):
+        command_lines = {}
+    return infos, command_lines
 
 
 def get_live_orders() -> List[Dict[str, Any]]:
-    """Charge les commandes depuis le sous-dossier `en_cours`."""
+    """Charge les commandes en cours depuis le sous-dossier `en_cours` du dossier de commandes."""
     root_folder = get_command_root()
     if root_folder is None:
         return []
@@ -234,11 +171,7 @@ def get_live_orders() -> List[Dict[str, Any]]:
 
     orders: List[Dict[str, Any]] = []
     for order_file in sorted(live_folder.glob("commande_*.json")):
-        payload = _load_json_file(order_file)
-        infos = payload.get("Informations", {}) if isinstance(payload.get("Informations", {}), dict) else {}
-        command_lines = payload.get("Commande", {})
-        if not isinstance(command_lines, dict):
-            command_lines = {}
+        infos, command_lines = _parse_order_file(order_file)
 
         items: List[Dict[str, Any]] = []
         delivered_count = 0
@@ -291,7 +224,7 @@ def get_live_orders() -> List[Dict[str, Any]]:
 
 
 def get_completed_orders() -> List[Dict[str, Any]]:
-    """Charge les commandes terminees depuis le dossier d'archive configure."""
+    """Charge les commandes terminées depuis le sous-dossier d'archive configuré."""
     root_folder = get_command_root()
     if root_folder is None:
         return []
@@ -308,18 +241,13 @@ def get_completed_orders() -> List[Dict[str, Any]]:
 
     orders: List[Dict[str, Any]] = []
     for order_file in sorted(done_folder.glob("commande_*.json")):
-        payload = _load_json_file(order_file)
-        infos = payload.get("Informations", {}) if isinstance(payload.get("Informations", {}), dict) else {}
-        command_lines = payload.get("Commande", {})
-        if not isinstance(command_lines, dict):
-            command_lines = {}
+        infos, command_lines = _parse_order_file(order_file)
 
         items: List[Dict[str, Any]] = []
         for line_key in sorted(command_lines.keys()):
             line_data = command_lines.get(line_key, {})
             if not isinstance(line_data, dict):
                 continue
-
             items.append(
                 {
                     "id": line_data.get("ID", line_key),
