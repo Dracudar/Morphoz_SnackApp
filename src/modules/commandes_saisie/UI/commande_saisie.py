@@ -1,30 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-saisie_commande.py - Module de saisie des commandes
+"""Commande Saisie Module - Qt/PySide6 Order entry interface.
 
-Description:
-    Bloc principal de gauche avec boutons de carte dynamiques,
-    detail de commande et actions de validation.
-
-Author :
-    Dracudar
-
-Version:
-    1.0
-
-Date de création :
-    2026.05.18
-
-Date de modification:
-    2026.05.30
+Main module for taking orders:
+- Menu with plat categories (square buttons with SVG icons)
+- Current order display with items list
+- Order total amount
+- Action buttons: Cancel & Validate (with payment dialog)
+- Auto-refresh every 2 seconds
 """
 
 from __future__ import annotations
 
 import unicodedata
+from pathlib import Path
+from typing import Dict, Optional
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -37,49 +29,74 @@ from PySide6.QtWidgets import (
 )
 
 from src.backend.data_sources import get_live_orders, get_menu_categories
-from src.UI.utils.module_registry import discover_module_registry
 from src.modules.commandes_saisie.UI.widgets.bouton_menu import BoutonMenu
+from src.modules.commandes_saisie.UI.widgets.item_row import ItemRow
+from src.modules.commandes_saisie.UI.dialogs.payment_dialog import PaymentDialog
+from src.modules.commandes_saisie.utils.plats_router import route_plat_selection
+from src.modules.commandes_saisie.backend.commandes_saisie_gestion import (
+    annuler_plat,
+    annuler_commande,
+    valider_commande,
+)
+from src.modules.commandes_saisie.backend.paiements import (
+    paiement_carte,
+    paiement_especes,
+    gratuit,
+)
 
 
 class SaisieCommandeModule(QFrame):
-    """Bloc de saisie dynamique de la commande en cours."""
+    """Order entry module with menu, item list, and actions."""
 
     command_changed = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("saisieCommandeModule")
-        self.selected_category = None
-        self._cancel_handler = None
-        self._validate_handler = None
-        self._pay_handler = None
-        self._module_registry = {}
+        self.refresh_timer = None
         self._build_ui()
+        self._setup_refresh_timer()
         self.refresh()
 
     def _build_ui(self):
+        """Build main UI layout."""
         self.setFrameShape(QFrame.Shape.StyledPanel)
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
 
+        # ========== Menu Frame (35% height) ==========
+        self._build_menu_frame(main_layout)
+
+        # ========== Command Detail Frame (65% height) ==========
+        self._build_command_detail_frame(main_layout)
+
+        # Stylesheet
+        self._apply_stylesheets()
+
+    def _build_menu_frame(self, parent_layout):
+        """Build menu frame with category buttons."""
         self.menu_frame = QFrame()
         self.menu_frame.setObjectName("menuFrame")
         menu_layout = QVBoxLayout(self.menu_frame)
         menu_layout.setContentsMargins(10, 10, 10, 10)
         menu_layout.setSpacing(10)
 
+        # Title
         menu_title = QLabel("Menu")
         menu_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         menu_title.setObjectName("sectionTitle")
         menu_layout.addWidget(menu_title)
 
+        # Scrollable menu grid
         self.menu_scroll = QScrollArea()
         self.menu_scroll.setWidgetResizable(True)
         self.menu_scroll.setFrameShape(QFrame.Shape.NoFrame)
         self.menu_scroll.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.menu_scroll.setStyleSheet("QScrollArea, QScrollArea > QWidget > QWidget { background-color: #2f3136; }")
+        self.menu_scroll.setStyleSheet(
+            "QScrollArea, QScrollArea > QWidget > QWidget { background-color: #2f3136; }"
+        )
 
         self.menu_container = QWidget()
         self.menu_grid = QGridLayout(self.menu_container)
@@ -89,62 +106,83 @@ class SaisieCommandeModule(QFrame):
         self.menu_scroll.setWidget(self.menu_container)
         menu_layout.addWidget(self.menu_scroll)
 
-        self.command_summary = QLabel("Commandes actives : 0 | Plats en attente : 0")
-        self.command_summary.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.command_summary.setObjectName("summaryLabel")
-        self.command_summary.setWordWrap(True)
-        menu_layout.addWidget(self.command_summary)
+        parent_layout.addWidget(self.menu_frame, 0)
 
-        main_layout.addWidget(self.menu_frame, 0)
-
+    def _build_command_detail_frame(self, parent_layout):
+        """Build command detail frame with 4 sections: title, items, amount, actions."""
         detail_frame = QFrame()
         detail_frame.setObjectName("detailFrame")
         detail_layout = QVBoxLayout(detail_frame)
         detail_layout.setContentsMargins(10, 10, 10, 10)
         detail_layout.setSpacing(10)
 
-        self.detail_title = QLabel("Aucune commande en cours...")
-        self.detail_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.detail_title.setObjectName("sectionTitle")
-        detail_layout.addWidget(self.detail_title)
+        # Section 1: Title (4%)
+        self.title_label = QLabel("Aucune commande en cours")
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title_label.setObjectName("sectionTitle")
+        detail_layout.addWidget(self.title_label)
 
-        self.detail_summary = QLabel(
-            "Selectionne un type de plat pour afficher ses informations.\n"
-            "Cette zone accueillera ensuite le module de personnalisation correspondant."
-        )
-        self.detail_summary.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.detail_summary.setWordWrap(True)
-        self.detail_summary.setStyleSheet("color: #d6d6d6; font-size: 14px;")
-        detail_layout.addWidget(self.detail_summary)
+        # Section 2: Items List (34%)
+        self._build_items_section(detail_layout)
 
+        # Section 3: Amount Display (3%)
+        self.amount_label = QLabel("Total: 0.00 €")
+        self.amount_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.amount_label.setObjectName("amountLabel")
+        detail_layout.addWidget(self.amount_label)
+
+        # Section 4: Action Buttons (4%)
+        self._build_actions_section(detail_layout)
+
+        # Status message label (feedback)
         self.status_label = QLabel("")
         self.status_label.setWordWrap(True)
         self.status_label.setStyleSheet("color: #a8d08d; font-size: 13px; font-weight: 600;")
         detail_layout.addWidget(self.status_label)
 
-        detail_layout.addStretch()
+        parent_layout.addWidget(detail_frame, 1)
 
+    def _build_items_section(self, parent_layout):
+        """Build items scrollable area."""
+        items_scroll = QScrollArea()
+        items_scroll.setWidgetResizable(True)
+        items_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        items_scroll.setStyleSheet(
+            "QScrollArea, QScrollArea > QWidget > QWidget { background-color: #2f3136; }"
+        )
+
+        self.items_container = QWidget()
+        self.items_layout = QVBoxLayout(self.items_container)
+        self.items_layout.setContentsMargins(0, 0, 0, 0)
+        self.items_layout.setSpacing(6)
+        self.items_layout.addStretch()
+
+        items_scroll.setWidget(self.items_container)
+        parent_layout.addWidget(items_scroll, 1)
+
+    def _build_actions_section(self, parent_layout):
+        """Build action buttons section."""
         actions_layout = QHBoxLayout()
         actions_layout.setSpacing(10)
 
-        self.cancel_button = QPushButton("Annuler")
-        self.cancel_button.setObjectName("actionButton")
-        self.validate_button = QPushButton("Valider")
-        self.validate_button.setObjectName("actionButton")
-        self.pay_button = QPushButton("Paiement")
-        self.pay_button.setObjectName("actionButton")
+        self.button_cancel = QPushButton("Annuler commande")
+        self.button_cancel.setObjectName("actionButton")
+        self.button_cancel.setEnabled(False)
 
-        self.cancel_button.clicked.connect(self._trigger_cancel)
-        self.validate_button.clicked.connect(self._trigger_validate)
-        self.pay_button.clicked.connect(self._trigger_pay)
+        self.button_validate = QPushButton("Valider")
+        self.button_validate.setObjectName("actionButton")
+        self.button_validate.setEnabled(False)
 
-        actions_layout.addWidget(self.cancel_button)
-        actions_layout.addWidget(self.validate_button)
-        actions_layout.addWidget(self.pay_button)
-        detail_layout.addLayout(actions_layout)
+        self.button_cancel.clicked.connect(self._handle_cancel_command)
+        self.button_validate.clicked.connect(self._handle_validate_command)
 
-        main_layout.addWidget(detail_frame, 1)
+        actions_layout.addWidget(self.button_cancel)
+        actions_layout.addWidget(self.button_validate, 1)
 
+        parent_layout.addLayout(actions_layout)
+
+    def _apply_stylesheets(self):
+        """Apply stylesheet to module."""
         self.setStyleSheet(
             """
             QFrame#saisieCommandeModule {
@@ -155,17 +193,19 @@ class SaisieCommandeModule(QFrame):
                 background-color: #2f3136;
                 border: 1px solid #7f7f7f;
             }
-            QLabel#summaryLabel {
-                color: #d6d6d6;
-                font-size: 13px;
-                font-weight: 600;
-                padding: 2px 6px;
-            }
             QLabel#sectionTitle {
                 color: #f5f5f5;
                 font-size: 22px;
                 font-weight: 700;
                 padding: 4px;
+            }
+            QLabel#amountLabel {
+                color: #f5f5f5;
+                font-size: 16px;
+                font-weight: 700;
+                padding: 8px;
+                background-color: #3a3d43;
+                border-radius: 4px;
             }
             QPushButton#actionButton {
                 background-color: #4f545e;
@@ -188,24 +228,147 @@ class SaisieCommandeModule(QFrame):
             """
         )
 
+    # ==================== Data Retrieval Methods ====================
+
+    def _get_current_order(self) -> Optional[Dict]:
+        """Get first active order or None."""
+        orders = get_live_orders()
+        return orders[0] if orders else None
+
+    def _get_current_order_path(self) -> Optional[Path]:
+        """Get path to current order file."""
+        order = self._get_current_order()
+        return order["file"] if order else None
+
+    # ==================== State Display Methods ====================
+
+    def _display_no_order_state(self):
+        """Show 'no order' state."""
+        self.title_label.setText("Aucune commande en cours")
+        while self.items_layout.count():
+            item = self.items_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        self.items_layout.addStretch()
+        self.amount_label.setText("Total: 0.00 €")
+        self.button_cancel.setEnabled(False)
+        self.button_validate.setEnabled(False)
+
+    def _display_order_state(self, order: Dict):
+        """Show active order state."""
+        self.title_label.setText(f"Commande {order['id']}")
+        self._refresh_items_display(order)
+        self._update_total_display(order)
+        self.button_cancel.setEnabled(True)
+        # Update validate button with amount
+        amount = order.get("amount", 0)
+        self.button_validate.setText(f"Valider ({amount:.2f} €)")
+        self.button_validate.setEnabled(True)
+
+    def _refresh_items_display(self, order: Dict):
+        """Rebuild items list from current order."""
+        # Clear existing items
+        while self.items_layout.count():
+            item = self.items_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+        # Add ItemRow for each item
+        for item_data in order.get("items", []):
+            row = ItemRow(item_data["id"], item_data)
+            row.item_cancelled.connect(self._handle_item_cancel)
+            self.items_layout.insertWidget(self.items_layout.count() - 1, row)
+
+    def _update_total_display(self, order: Dict):
+        """Update total amount label."""
+        amount = order.get("amount", 0)
+        self.amount_label.setText(f"Total: {amount:.2f} €")
+
+    # ==================== Event Handlers ====================
+
+    def _handle_item_cancel(self, item_id: str):
+        """Cancel single item from order."""
+        order_path = self._get_current_order_path()
+        if not order_path:
+            self.status_label.setText("Erreur: Aucune commande")
+            return
+
+        try:
+            annuler_plat(None, str(order_path), item_id, None)
+            self.status_label.setText(f"Item {item_id} annulé")
+            self.refresh()
+            self.command_changed.emit()
+        except Exception as e:
+            self.status_label.setText(f"Erreur annulation: {str(e)}")
+
+    def _handle_cancel_command(self):
+        """Cancel entire order."""
+        order_path = self._get_current_order_path()
+        if not order_path:
+            self.status_label.setText("Erreur: Aucune commande")
+            return
+
+        try:
+            annuler_commande(str(order_path))
+            self.status_label.setText("Commande annulée")
+            self.refresh()
+            self.command_changed.emit()
+        except Exception as e:
+            self.status_label.setText(f"Erreur annulation: {str(e)}")
+
+    def _handle_validate_command(self):
+        """Open payment dialog to validate order."""
+        order = self._get_current_order()
+        if not order:
+            self.status_label.setText("Erreur: Aucune commande")
+            return
+
+        # Show payment dialog
+        dialog = PaymentDialog(order.get("amount", 0), parent=self)
+        dialog.payment_selected.connect(self._process_payment)
+        dialog.exec()
+
+    def _process_payment(self, payment_type: str):
+        """Process selected payment type."""
+        order_path = self._get_current_order_path()
+        if not order_path:
+            return
+
+        try:
+            if payment_type == "Carte":
+                paiement_carte(None, str(order_path), None, None)
+                msg = "Paiement carte effectué ✓"
+            elif payment_type == "Espèces":
+                paiement_especes(None, str(order_path), None, None)
+                msg = "Paiement espèces effectué ✓"
+            elif payment_type == "Gratuit":
+                gratuit(None, str(order_path), None, None)
+                msg = "Repas gratuit enregistré ✓"
+            else:
+                msg = "Mode de paiement inconnu"
+
+            self.status_label.setText(msg)
+            self.refresh()
+            self.command_changed.emit()
+        except Exception as e:
+            self.status_label.setText(f"Erreur paiement: {str(e)}")
+
+    # ==================== Menu Building & Refresh ====================
+
     def refresh(self):
-        self._module_registry = discover_module_registry()
+        """Main refresh - called by timer or external."""
         self.refresh_menu()
-        self.refresh_live_summary()
-
-    def set_action_handlers(self, cancel_handler=None, validate_handler=None, pay_handler=None):
-        self._cancel_handler = cancel_handler
-        self._validate_handler = validate_handler
-        self._pay_handler = pay_handler
-        self._update_action_state()
-
-    def _update_action_state(self):
-        self.cancel_button.setEnabled(callable(self._cancel_handler))
-        self.validate_button.setEnabled(callable(self._validate_handler))
-        self.pay_button.setEnabled(callable(self._pay_handler))
+        order = self._get_current_order()
+        if order:
+            self._display_order_state(order)
+        else:
+            self._display_no_order_state()
 
     def refresh_menu(self):
-        """Reconstruit les boutons depuis la carte JSON."""
+        """Rebuild menu buttons from carte JSON."""
+        # Clear existing buttons
         while self.menu_grid.count():
             item = self.menu_grid.takeAt(0)
             widget = item.widget()
@@ -213,102 +376,69 @@ class SaisieCommandeModule(QFrame):
                 widget.deleteLater()
 
         categories = get_menu_categories()
-        visible_categories = [category for category in categories if not category.get("hidden", False)]
+        visible_categories = [cat for cat in categories if not cat.get("hidden", False)]
 
         if not visible_categories:
-            placeholder = QLabel("Aucune categorie trouvee dans la carte.")
+            placeholder = QLabel("Aucune categorie trouvee.")
             placeholder.setStyleSheet("color: #d6d6d6; font-size: 14px;")
             self.menu_grid.addWidget(placeholder, 0, 0)
             self.menu_scroll.setFixedHeight(118)
-            self.selected_category = None
-            self._update_action_state()
             return
 
         columns = 5
         for index, category in enumerate(visible_categories):
             label = category["name"]
-            module_entry = self._module_registry.get(self._normalized_key(label))
-            icon_path = module_entry.get("icon_path") if module_entry else category.get("icon_path")
-            button = BoutonMenu(label, icon_path=icon_path)
+            icon_path = category.get("icon_path")
+            button = BoutonMenu(label, svg_path=icon_path)
 
-            if module_entry and not module_entry.get("enabled", True):
+            # Disable if not enabled
+            if not category.get("enabled", True):
                 button.setEnabled(False)
-                tooltip = module_entry.get("tooltip") or "Module desactive"
-                button.setToolTip(str(tooltip))
-            elif not category.get("enabled", True):
-                button.setEnabled(False)
-                if category.get("hidden", False):
-                    button.setToolTip("Categorie retiree de la carte")
-                else:
-                    button.setToolTip("Categorie temporairement indisponible")
+                button.setToolTip("Categorie indisponible")
             else:
-                if module_entry and callable(module_entry.get("action")):
-                    button.clicked.connect(
-                        lambda _checked=False, entry=module_entry, data=category: self._execute_module_action(entry, data)
-                    )
-                else:
-                    button.clicked.connect(lambda _checked=False, data=category: self.select_category(data))
+                button.clicked.connect(
+                    lambda _checked=False, cat=category: self._on_category_button_clicked(cat["name"])
+                )
+
             row = index // columns
             column = index % columns
             self.menu_grid.addWidget(button, row, column)
 
+        # Adjust scroll height
         row_count = ((len(visible_categories) - 1) // columns) + 1
-        scroll_height = min(240, max(118, 24 + (row_count * 104)))
+        scroll_height = min(240, max(118, 24 + (row_count * 128)))
         self.menu_scroll.setFixedHeight(scroll_height)
 
-    def refresh_live_summary(self):
-        orders = get_live_orders()
-        total_orders = len(orders)
-        total_pending_items = sum(order.get("pending_count", 0) for order in orders)
-        self.command_summary.setText(
-            f"Commandes actives : {total_orders} | Plats en attente : {total_pending_items}"
+    def _on_category_button_clicked(self, category_name: str):
+        """Handle plat category button click."""
+        order_path = self._get_current_order_path()
+
+        # Route to plat handler (opens UI or adds directly)
+        result = route_plat_selection(
+            category_name,
+            context=None,
+            command_path=str(order_path) if order_path else "",
         )
 
-    def select_category(self, category):
-        self.selected_category = category
-        self.detail_title.setText(category["name"])
+        if result:
+            # TODO: Add result to order using commandes_saisie_save.MAJ_commande()
+            self.refresh()
+            self.command_changed.emit()
 
-        price = category.get("price")
-        recipe_count = category.get("recipe_count", 0)
-        state = category.get("state", "")
-        availability = "Disponible" if category.get("enabled", True) else "Indisponible"
-        details = [f"Etat: {state}"]
-        details.append(f"Disponibilite: {availability}")
-        if price is not None:
-            details.append(f"Prix: {price:.2f} EUR")
-        if recipe_count:
-            details.append(f"Recettes: {recipe_count}")
+    # ==================== Auto-Refresh Timer ====================
 
-        self.detail_summary.setText("\n".join(details))
-        self._update_action_state()
+    def _setup_refresh_timer(self):
+        """Start 2-second auto-refresh timer."""
+        self.refresh_timer = QTimer(self)
+        self.refresh_timer.setInterval(2000)
+        self.refresh_timer.timeout.connect(self._on_timer_tick)
+        self.refresh_timer.start()
 
-    def _normalized_key(self, value: str) -> str:
-        ascii_text = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
-        return "".join(character for character in ascii_text.lower() if character.isalnum())
-
-    def _execute_module_action(self, module_entry, category):
-        action = module_entry.get("action")
-        if not callable(action):
-            self.status_label.setText("Aucune action disponible pour ce module.")
-            return
-
-        result = action(self)
-        if isinstance(result, dict):
-            self.status_label.setText(result.get("message", "Action executee."))
+    def _on_timer_tick(self):
+        """Called every 2 seconds to check for updates."""
+        order = self._get_current_order()
+        if order:
+            self._refresh_items_display(order)
+            self._update_total_display(order)
         else:
-            self.status_label.setText("Action executee.")
-
-        self.refresh_live_summary()
-        self.command_changed.emit()
-
-    def _trigger_cancel(self):
-        if callable(self._cancel_handler):
-            self._cancel_handler(self.selected_category)
-
-    def _trigger_validate(self):
-        if callable(self._validate_handler):
-            self._validate_handler(self.selected_category)
-
-    def _trigger_pay(self):
-        if callable(self._pay_handler):
-            self._pay_handler(self.selected_category)
+            self._display_no_order_state()
