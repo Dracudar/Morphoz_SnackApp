@@ -26,7 +26,7 @@ from src.modules.carte.UI import CarteModule
 from src.modules.commandes_saisie.UI.commande_saisie import SaisieCommandeModule
 from src.modules.commandes_historique.UI.commandes_historique import CommandesHistoriqueModule
 from src.modules.commandes_suivi.UI.commandes_suivi import SuiviCommandesModule
-from src.modules.parametres.UI.parametres import ParametresModule
+from modules.parametres.UI import ParametresModule
 from src.modules.stock.UI.stock import StockModule
 
 
