@@ -10,7 +10,7 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.05.31
@@ -23,6 +23,8 @@ from typing import Dict
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
 
+
+ROW_HEIGHT = 48
 
 # Stylesheets
 CANCEL_BUTTON_STYLE = """
@@ -45,18 +47,33 @@ ITEM_ROW_STYLE = """
         border-radius: 4px;
         padding: 2px;
     }
-    QFrame:hover { background-color: #454b52; }
 """
 
 ITEM_LABEL_STYLE = """
     color: #f5f5f5;
     font-size: 13px;
-    padding: 4px;
+    padding: 0 4px;
+"""
+
+SEQ_LABEL_STYLE = """
+    color: #a0a4ab;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0 4px;
 """
 
 
+def extract_seq(item_id: str) -> int:
+    """Extrait le numéro de séquence depuis un ID de plat (ex: '20260603-001-02' → 2)."""
+    part = item_id.split("-")[-1] if "-" in item_id else item_id.lstrip("#")
+    try:
+        return int(part)
+    except ValueError:
+        return 0
+
+
 class ItemRow(QFrame):
-    """Ligne d'article : [Annuler ✕] [ID - Nom] [Statut] [Prix]"""
+    """Ligne d'article : [Annuler ✕] [#N] [Nom du plat] [Prix]"""
 
     item_cancelled = Signal(str)  # Emits item_id
 
@@ -67,47 +84,40 @@ class ItemRow(QFrame):
         self._build_ui()
 
     def _build_ui(self):
-        """Construit la ligne : [Annuler] [Détails] [Statut] [Prix]"""
+        """Construit la ligne : [Annuler] [#N] [Plat] [Prix]"""
+        self.setFixedHeight(ROW_HEIGHT)
+
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(6, 4, 6, 4)
+        layout.setContentsMargins(6, 0, 6, 0)
         layout.setSpacing(8)
 
         # Cancel button (left)
         cancel_btn = QPushButton("✕")
-        cancel_btn.setMaximumWidth(50)
+        cancel_btn.setFixedWidth(36)
         cancel_btn.setStyleSheet(CANCEL_BUTTON_STYLE)
         cancel_btn.clicked.connect(lambda: self.item_cancelled.emit(self.item_id))
         layout.addWidget(cancel_btn)
 
-        # Item details: ID - Name (stretch)
-        details = QLabel(f"{self.item_data['id']} - {self.item_data['nom']}")
+        # Sequence number (#N)
+        seq = extract_seq(self.item_data.get("id", ""))
+        seq_label = QLabel(f"#{seq}")
+        seq_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignCenter)
+        seq_label.setFixedWidth(28)
+        seq_label.setStyleSheet(SEQ_LABEL_STYLE)
+        layout.addWidget(seq_label)
+
+        # Dish name (stretch)
+        name = self.item_data.get("plat") or self.item_data.get("nom", "")
+        details = QLabel(name)
+        details.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         details.setStyleSheet(ITEM_LABEL_STYLE)
         layout.addWidget(details, 1)
 
-        # Status (color-coded, fixed width)
-        status_label = QLabel(self.item_data['status'])
-        status_color = self._get_status_color(self.item_data['status'])
-        status_label.setStyleSheet(f"color: {status_color}; font-weight: 600;")
-        status_label.setMaximumWidth(120)
-        layout.addWidget(status_label)
-
         # Price (right-aligned)
         price_label = QLabel(f"{self.item_data['price']:.2f} €")
-        price_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        price_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        price_label.setStyleSheet(ITEM_LABEL_STYLE)
         layout.addWidget(price_label)
 
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setStyleSheet(ITEM_ROW_STYLE)
-
-    def _get_status_color(self, status: str) -> str:
-        """Retourne la couleur CSS correspondant au statut d'un article."""
-        status_lower = status.lower()
-        if "attente" in status_lower:
-            return "#ffd700"      # Yellow - waiting
-        elif "préparation" in status_lower:
-            return "#00bfff"      # Blue - in prep
-        elif "livré" in status_lower:
-            return "#90ee90"      # Green - delivered
-        elif "annulé" in status_lower:
-            return "#ff6b6b"      # Red - cancelled
-        return "#d6d6d6"          # Default - gray
