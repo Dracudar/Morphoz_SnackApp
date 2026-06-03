@@ -141,6 +141,55 @@ def get_menu_categories() -> List[Dict[str, Any]]:
 
 # ── Commandes ─────────────────────────────────────────────────────────────────
 
+def get_draft_orders() -> List[Dict[str, Any]]:
+    """Load draft orders (being typed) from root commandes folder. Max 1 active draft at a time."""
+    root_folder = get_command_root()
+    if root_folder is None:
+        return []
+
+    if not root_folder.exists():
+        return []
+
+    orders: List[Dict[str, Any]] = []
+    for order_file in sorted(root_folder.glob("commande_*.json")):
+        infos, command_lines = _parse_order_file(order_file)
+
+        items: List[Dict[str, Any]] = []
+        for line_key in sorted(command_lines.keys()):
+            line_data = command_lines.get(line_key, {})
+            if not isinstance(line_data, dict):
+                continue
+
+            status = str(line_data.get("Statut", "")).strip() or "Inconnu"
+            if status.lower() == "annulé":
+                status = "Annulé"
+
+            items.append(
+                {
+                    "id": line_data.get("ID", line_key),
+                    "plat": line_data.get("Plat", ""),
+                    "nom": line_data.get("Nom", ""),
+                    "status": status,
+                    "price": line_data.get("Prix"),
+                }
+            )
+
+        active_items = [item for item in items if item["status"].lower() != "annulé"]
+
+        orders.append(
+            {
+                "file": order_file,
+                "id": infos.get("ID", order_file.stem.replace("commande_", "")),
+                "status": infos.get("Statut", ""),
+                "created_at": infos.get("Date de création", ["", ""]),
+                "items": active_items,
+                "amount": infos.get("Montant", 0),
+            }
+        )
+
+    return orders
+
+
 def _parse_order_file(order_file: Path) -> Dict[str, Any]:
     """Charge et structure le contenu d'un fichier de commande JSON."""
     payload = _load_json_file(order_file)
