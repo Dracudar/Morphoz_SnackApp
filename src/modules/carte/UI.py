@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-interface_principale.py - Vue principale de l'interface
+UI.py
 
 Description:
-    Assemble la saisie dynamique et le suivi des commandes dans la fenetre principale.
+    Interface Qt/PySide6 du module carte : consultation et gestion de la carte des plats.
 
 Author :
     Dracudar
@@ -13,10 +13,10 @@ Version:
     1.0
 
 Date de création :
-    2026.05.18
+    2025.05.29
 
 Date de modification:
-    2026.05.30
+    2026.05.31
 """
 
 from __future__ import annotations

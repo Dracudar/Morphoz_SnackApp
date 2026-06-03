@@ -16,7 +16,7 @@ Date de création :
     2026.06.02
 
 Date de modification:
-    2026.06.02
+    2026.06.03
 """
 
 import os
@@ -114,16 +114,16 @@ def MAJ_commande(commandes_path, logs_path, plat):
     # Initialiser les dossiers si nécessaire
     initialiser_dossiers_commandes(commandes_path, logs_path)
 
-    en_cours_path = os.path.join(commandes_path, "en_cours")
+    # Search for existing draft orders in the root commandes folder
     fichiers_commandes = [
-        f for f in os.listdir(en_cours_path) if f.startswith("commande_")
+        f for f in os.listdir(commandes_path) if f.startswith("commande_") and f.endswith(".json")
     ]
 
     if fichiers_commandes:
         # Charger le dernier fichier de commande existant
         fichiers_commandes.sort()  # Trier pour obtenir le dernier fichier
         dernier_fichier = fichiers_commandes[-1]
-        chemin_fichier = os.path.join(en_cours_path, dernier_fichier)
+        chemin_fichier = os.path.join(commandes_path, dernier_fichier)
 
         commande = charger_fichier_commande(chemin_fichier)
         if not commande:
@@ -146,7 +146,7 @@ def MAJ_commande(commandes_path, logs_path, plat):
     else:
         # Créer une nouvelle commande
         nouvel_id = ID_generator(logs_path, commandes_path)
-        chemin_fichier = os.path.join(en_cours_path, f"commande_{nouvel_id}.json")
+        chemin_fichier = os.path.join(commandes_path, f"commande_{nouvel_id}.json")
         plat_id = f"{nouvel_id}-01"
         nouvelle_commande = {
             "Informations": {

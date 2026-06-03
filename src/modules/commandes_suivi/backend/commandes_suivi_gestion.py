@@ -1,11 +1,28 @@
-'''
-Gestion des changements de statut des plats dans une commande validée.
-'''
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+commandes_suivi_gestion.py
+
+Description:
+    Gestion des changements de statut des plats dans les commandes validées.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2025.05.31
+
+Date de modification:
+    2026.05.30
+"""
 
 import os
 import json
 from datetime import datetime
-from ....backend.commandes_utils import charger_fichier_commande
+from src.backend.commandes_utils import charger_fichier_commande
 
 def plat_prêt(context, chemin_fichier, plat_id_complet, affichage_commandes_validées):
     """

@@ -1,13 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Commande Saisie Module - Qt/PySide6 Order entry interface.
+"""
+commande_saisie.py
 
-Main module for taking orders:
-- Menu with plat categories (square buttons with SVG icons)
-- Current order display with items list
-- Order total amount
-- Action buttons: Cancel & Validate (with payment dialog)
-- Auto-refresh every 2 seconds
+Description:
+    Interface Qt/PySide6 de saisie des commandes : menu par catégories de plats, liste de la commande en cours, total et actions (annuler/valider avec dialogue de paiement).
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.18
+
+Date de modification:
+    2026.06.03
 """
 
 from __future__ import annotations
@@ -28,12 +37,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from src.backend.data_sources import get_live_orders, get_menu_categories
+from src.backend.data_sources import get_draft_orders, get_menu_categories
+from src.backend.app_config import get_archive_folder_path
 from src.modules.commandes_saisie.UI.widgets.bouton_menu import BoutonMenu
 from src.modules.commandes_saisie.UI.widgets.item_row import ItemRow
-from src.modules.commandes_saisie.UI.dialogs.payment_dialog import PaymentDialog
+from src.modules.commandes_saisie.UI.payment_dialog import PaymentDialog
 from src.modules.commandes_saisie.utils.plats_router import route_plat_selection
-from src.modules.commandes_saisie.backend.commandes_saisie_gestion import (
+from src.modules.commandes_saisie.backend.saver import MAJ_commande
+from src.modules.commandes_saisie.backend.gestion import (
     annuler_plat,
     annuler_commande,
     valider_commande,
@@ -232,7 +243,7 @@ class SaisieCommandeModule(QFrame):
 
     def _get_current_order(self) -> Optional[Dict]:
         """Get first active order or None."""
-        orders = get_live_orders()
+        orders = get_draft_orders()
         return orders[0] if orders else None
 
     def _get_current_order_path(self) -> Optional[Path]:
@@ -421,7 +432,13 @@ class SaisieCommandeModule(QFrame):
         )
 
         if result:
-            # TODO: Add result to order using commandes_saisie_save.MAJ_commande()
+            # Get archive paths for saving
+            archive_path = get_archive_folder_path()
+            commandes_path = str(archive_path / "commandes")
+            logs_path = str(archive_path / "logs")
+
+            # Add result to order using MAJ_commande()
+            MAJ_commande(commandes_path, logs_path, result)
             self.refresh()
             self.command_changed.emit()
 
