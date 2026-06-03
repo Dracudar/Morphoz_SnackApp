@@ -57,7 +57,7 @@ from src.modules.commandes_saisie.backend.paiements import (
 
 
 class SaisieCommandeModule(QFrame):
-    """Order entry module with menu, item list, and actions."""
+    """Module de saisie des commandes : menu par catégories, liste des articles et actions."""
 
     command_changed = Signal()
 
@@ -70,7 +70,7 @@ class SaisieCommandeModule(QFrame):
         self.refresh()
 
     def _build_ui(self):
-        """Build main UI layout."""
+        """Construit la mise en page principale : cadre menu (35 %) et cadre détail commande (65 %)."""
         self.setFrameShape(QFrame.Shape.StyledPanel)
 
         main_layout = QVBoxLayout(self)
@@ -87,7 +87,7 @@ class SaisieCommandeModule(QFrame):
         self._apply_stylesheets()
 
     def _build_menu_frame(self, parent_layout):
-        """Build menu frame with category buttons."""
+        """Construit le cadre menu avec sa grille de boutons de catégories."""
         self.menu_frame = QFrame()
         self.menu_frame.setObjectName("menuFrame")
         menu_layout = QVBoxLayout(self.menu_frame)
@@ -120,7 +120,7 @@ class SaisieCommandeModule(QFrame):
         parent_layout.addWidget(self.menu_frame, 0)
 
     def _build_command_detail_frame(self, parent_layout):
-        """Build command detail frame with 4 sections: title, items, amount, actions."""
+        """Construit le cadre détail commande en 4 sections : titre, liste articles, montant, actions."""
         detail_frame = QFrame()
         detail_frame.setObjectName("detailFrame")
         detail_layout = QVBoxLayout(detail_frame)
@@ -154,7 +154,7 @@ class SaisieCommandeModule(QFrame):
         parent_layout.addWidget(detail_frame, 1)
 
     def _build_items_section(self, parent_layout):
-        """Build items scrollable area."""
+        """Construit la zone scrollable qui contient les lignes d'articles."""
         items_scroll = QScrollArea()
         items_scroll.setWidgetResizable(True)
         items_scroll.setFrameShape(QFrame.Shape.NoFrame)
@@ -172,7 +172,7 @@ class SaisieCommandeModule(QFrame):
         parent_layout.addWidget(items_scroll, 1)
 
     def _build_actions_section(self, parent_layout):
-        """Build action buttons section."""
+        """Construit la section des boutons d'action (Annuler commande / Valider)."""
         actions_layout = QHBoxLayout()
         actions_layout.setSpacing(10)
 
@@ -193,7 +193,7 @@ class SaisieCommandeModule(QFrame):
         parent_layout.addLayout(actions_layout)
 
     def _apply_stylesheets(self):
-        """Apply stylesheet to module."""
+        """Applique les feuilles de style du module."""
         self.setStyleSheet(
             """
             QFrame#saisieCommandeModule {
@@ -242,19 +242,19 @@ class SaisieCommandeModule(QFrame):
     # ==================== Data Retrieval Methods ====================
 
     def _get_current_order(self) -> Optional[Dict]:
-        """Get first active order or None."""
+        """Retourne la première commande en brouillon active, ou None s'il n'y en a pas."""
         orders = get_draft_orders()
         return orders[0] if orders else None
 
     def _get_current_order_path(self) -> Optional[Path]:
-        """Get path to current order file."""
+        """Retourne le chemin du fichier JSON de la commande en cours, ou None."""
         order = self._get_current_order()
         return order["file"] if order else None
 
     # ==================== State Display Methods ====================
 
     def _display_no_order_state(self):
-        """Show 'no order' state."""
+        """Affiche l'état « aucune commande en cours » : titre vide, liste vide, boutons désactivés."""
         self.title_label.setText("Aucune commande en cours")
         while self.items_layout.count():
             item = self.items_layout.takeAt(0)
@@ -267,7 +267,7 @@ class SaisieCommandeModule(QFrame):
         self.button_validate.setEnabled(False)
 
     def _display_order_state(self, order: Dict):
-        """Show active order state."""
+        """Affiche l'état d'une commande active : titre, articles, montant et boutons activés."""
         self.title_label.setText(f"Commande {order['id']}")
         self._refresh_items_display(order)
         self._update_total_display(order)
@@ -278,7 +278,7 @@ class SaisieCommandeModule(QFrame):
         self.button_validate.setEnabled(True)
 
     def _refresh_items_display(self, order: Dict):
-        """Rebuild items list from current order."""
+        """Reconstruit la liste des articles à partir de la commande active."""
         # Clear existing items
         while self.items_layout.count():
             item = self.items_layout.takeAt(0)
@@ -293,14 +293,14 @@ class SaisieCommandeModule(QFrame):
             self.items_layout.insertWidget(self.items_layout.count() - 1, row)
 
     def _update_total_display(self, order: Dict):
-        """Update total amount label."""
+        """Met à jour l'étiquette du montant total."""
         amount = order.get("amount", 0)
         self.amount_label.setText(f"Total: {amount:.2f} €")
 
     # ==================== Event Handlers ====================
 
     def _handle_item_cancel(self, item_id: str):
-        """Cancel single item from order."""
+        """Annule un article de la commande en cours et rafraîchit l'affichage."""
         order_path = self._get_current_order_path()
         if not order_path:
             self.status_label.setText("Erreur: Aucune commande")
@@ -315,7 +315,7 @@ class SaisieCommandeModule(QFrame):
             self.status_label.setText(f"Erreur annulation: {str(e)}")
 
     def _handle_cancel_command(self):
-        """Cancel entire order."""
+        """Annule l'intégralité de la commande en cours et rafraîchit l'affichage."""
         order_path = self._get_current_order_path()
         if not order_path:
             self.status_label.setText("Erreur: Aucune commande")
@@ -330,7 +330,7 @@ class SaisieCommandeModule(QFrame):
             self.status_label.setText(f"Erreur annulation: {str(e)}")
 
     def _handle_validate_command(self):
-        """Open payment dialog to validate order."""
+        """Ouvre le dialogue de paiement pour valider la commande en cours."""
         order = self._get_current_order()
         if not order:
             self.status_label.setText("Erreur: Aucune commande")
@@ -342,7 +342,7 @@ class SaisieCommandeModule(QFrame):
         dialog.exec()
 
     def _process_payment(self, payment_type: str):
-        """Process selected payment type."""
+        """Traite le mode de paiement sélectionné et déclenche la validation de la commande."""
         order_path = self._get_current_order_path()
         if not order_path:
             return
@@ -369,7 +369,7 @@ class SaisieCommandeModule(QFrame):
     # ==================== Menu Building & Refresh ====================
 
     def refresh(self):
-        """Main refresh - called by timer or external."""
+        """Rafraîchit le menu et l'état de la commande — appelé par le timer ou en externe."""
         self.refresh_menu()
         order = self._get_current_order()
         if order:
@@ -378,7 +378,7 @@ class SaisieCommandeModule(QFrame):
             self._display_no_order_state()
 
     def refresh_menu(self):
-        """Rebuild menu buttons from carte JSON."""
+        """Reconstruit les boutons du menu à partir de la carte JSON."""
         # Clear existing buttons
         while self.menu_grid.count():
             item = self.menu_grid.takeAt(0)
@@ -421,7 +421,7 @@ class SaisieCommandeModule(QFrame):
         self.menu_scroll.setFixedHeight(scroll_height)
 
     def _on_category_button_clicked(self, category_name: str):
-        """Handle plat category button click."""
+        """Gère le clic sur un bouton de catégorie : route vers le handler du plat correspondant."""
         order_path = self._get_current_order_path()
 
         # Route to plat handler (opens UI or adds directly)
@@ -445,14 +445,14 @@ class SaisieCommandeModule(QFrame):
     # ==================== Auto-Refresh Timer ====================
 
     def _setup_refresh_timer(self):
-        """Start 2-second auto-refresh timer."""
+        """Démarre le timer de rafraîchissement automatique (intervalle : 2 secondes)."""
         self.refresh_timer = QTimer(self)
         self.refresh_timer.setInterval(2000)
         self.refresh_timer.timeout.connect(self._on_timer_tick)
         self.refresh_timer.start()
 
     def _on_timer_tick(self):
-        """Called every 2 seconds to check for updates."""
+        """Appelé toutes les 2 secondes : met à jour la liste et le montant si une commande est active."""
         order = self._get_current_order()
         if order:
             self._refresh_items_display(order)

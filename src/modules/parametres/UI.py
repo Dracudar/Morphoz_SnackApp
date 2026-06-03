@@ -16,7 +16,7 @@ Date de création :
     2025.05.29
 
 Date de modification:
-    2026.05.31
+    2026.06.03
 """
 
 from __future__ import annotations
@@ -38,6 +38,8 @@ from src.backend.app_config import get_app_paths, get_default_app_paths, save_ap
 
 
 class ParametresModule(QFrame):
+	"""Module de configuration des chemins de fichiers (stock, carte, archive)."""
+
 	config_changed = Signal()
 
 	def __init__(self, parent=None):
@@ -47,6 +49,7 @@ class ParametresModule(QFrame):
 		self.load_config()
 
 	def _build_ui(self):
+		"""Construit l'interface : formulaire de chemins avec boutons Parcourir et actions."""
 		self.setFrameShape(QFrame.Shape.StyledPanel)
 
 		main_layout = QVBoxLayout(self)
@@ -141,6 +144,7 @@ class ParametresModule(QFrame):
 		)
 
 	def _path_row(self, field: QLineEdit, callback):
+		"""Crée une ligne de formulaire composée d'un champ texte et d'un bouton Parcourir."""
 		row = QHBoxLayout()
 		row.setSpacing(8)
 		row.addWidget(field, 1)
@@ -153,21 +157,25 @@ class ParametresModule(QFrame):
 		return container
 
 	def _browse_stock(self):
+		"""Ouvre un sélecteur de fichier JSON pour le fichier stock."""
 		path, _ = QFileDialog.getOpenFileName(self, "Choisir le fichier stock", self.stock_field.text(), "JSON (*.json)")
 		if path:
 			self.stock_field.setText(path)
 
 	def _browse_menu(self):
+		"""Ouvre un sélecteur de fichier JSON pour le fichier carte."""
 		path, _ = QFileDialog.getOpenFileName(self, "Choisir le fichier carte", self.menu_field.text(), "JSON (*.json)")
 		if path:
 			self.menu_field.setText(path)
 
 	def _browse_archive(self):
+		"""Ouvre un sélecteur de dossier pour le répertoire d'archive."""
 		path = QFileDialog.getExistingDirectory(self, "Choisir le dossier archive", self.archive_field.text())
 		if path:
 			self.archive_field.setText(path)
 
 	def load_config(self):
+		"""Charge la configuration actuelle depuis app_config et remplit les champs."""
 		paths = get_app_paths()
 		self.stock_field.setText(paths["stock_file"])
 		self.menu_field.setText(paths["menu_file"])
@@ -175,6 +183,7 @@ class ParametresModule(QFrame):
 		self.status_label.setText("Configuration chargee.")
 
 	def reset_defaults(self):
+		"""Restaure les valeurs par défaut dans les champs sans sauvegarder."""
 		paths = get_default_app_paths()
 		self.stock_field.setText(paths["stock_file"])
 		self.menu_field.setText(paths["menu_file"])
@@ -182,6 +191,7 @@ class ParametresModule(QFrame):
 		self.status_label.setText("Valeurs par defaut restaurees.")
 
 	def save_config(self):
+		"""Valide les chemins, sauvegarde la configuration et émet config_changed."""
 		stock_path = self.stock_field.text().strip()
 		menu_path = self.menu_field.text().strip()
 		archive_path = self.archive_field.text().strip()

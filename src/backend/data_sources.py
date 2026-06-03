@@ -18,7 +18,7 @@ Date de création :
     2026.05.18
 
 Date de modification:
-    2026.05.31
+    2026.06.03
 """
 
 from __future__ import annotations
@@ -141,7 +141,7 @@ def get_menu_categories() -> List[Dict[str, Any]]:
 # ── Commandes ─────────────────────────────────────────────────────────────────
 
 def get_draft_orders() -> List[Dict[str, Any]]:
-    """Load draft orders (being typed) from root commandes folder. Max 1 active draft at a time."""
+    """Charge les commandes en brouillon (en cours de saisie) depuis le dossier racine des commandes. Maximum 1 brouillon actif à la fois."""
     root_folder = get_command_root()
     if root_folder is None:
         return []

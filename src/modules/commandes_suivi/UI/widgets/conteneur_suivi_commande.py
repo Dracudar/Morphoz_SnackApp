@@ -16,7 +16,7 @@ Date de création :
     2026.05.18
 
 Date de modification:
-    2026.05.31
+    2026.06.03
 """
 
 from __future__ import annotations
@@ -46,6 +46,7 @@ class ConteneurSuiviCommande(QFrame):
 		self.refresh_orders()
 
 	def _build_ui(self):
+		"""Construit l'interface : titre compteur, zone scrollable et style."""
 		self.setFrameShape(QFrame.Shape.StyledPanel)
 
 		main_layout = QVBoxLayout(self)
@@ -85,12 +86,14 @@ class ConteneurSuiviCommande(QFrame):
 		)
 
 	def _build_timer(self):
+		"""Démarre un timer de rafraîchissement automatique toutes les 2 secondes."""
 		self.refresh_timer = QTimer(self)
 		self.refresh_timer.setInterval(2000)
 		self.refresh_timer.timeout.connect(self.refresh_orders)
 		self.refresh_timer.start()
 
 	def clear_orders(self):
+		"""Supprime toutes les cartes de commande affichées dans la liste."""
 		while self.list_layout.count() > 1:
 			item = self.list_layout.takeAt(0)
 			widget = item.widget()
@@ -98,6 +101,7 @@ class ConteneurSuiviCommande(QFrame):
 				widget.deleteLater()
 
 	def refresh_orders(self):
+		"""Recharge les commandes en cours, met à jour le compteur et reconstruit la liste."""
 		orders = get_live_orders()
 		self.clear_orders()
 
@@ -111,6 +115,7 @@ class ConteneurSuiviCommande(QFrame):
 			self._add_order_card(order)
 
 	def _add_order_card(self, order):
+		"""Crée et insère une carte QFrame pour une commande en préparation."""
 		card = QFrame()
 		card.setFrameShape(QFrame.Shape.StyledPanel)
 		card.setStyleSheet(
@@ -162,6 +167,7 @@ class ConteneurSuiviCommande(QFrame):
 		self.list_layout.insertWidget(self.list_layout.count() - 1, card)
 
 	def _build_order_summary(self, order):
+		"""Construit le résumé textuel des plats d'une commande (nom + statut)."""
 		items = order.get("items", [])
 		lines = []
 

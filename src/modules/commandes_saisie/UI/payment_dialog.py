@@ -16,7 +16,7 @@ Date de création :
     2026.05.31
 
 Date de modification:
-    2026.05.31
+    2026.06.03
 """
 
 from PySide6.QtCore import Qt, Signal
@@ -43,7 +43,7 @@ PAYMENT_BUTTON_STYLE = """
 
 
 class PaymentDialog(QDialog):
-    """Modal dialog for selecting payment method."""
+    """Dialogue modal de sélection du mode de paiement."""
 
     payment_selected = Signal(str)  # Emits: "Gratuit", "Carte", or "Espèces"
 
@@ -56,7 +56,7 @@ class PaymentDialog(QDialog):
         self._build_ui()
 
     def _build_ui(self):
-        """Build dialog layout."""
+        """Construit la mise en page du dialogue : titre, boutons de paiement et montant total."""
         layout = QVBoxLayout(self)
         layout.setSpacing(15)
         layout.setContentsMargins(20, 20, 20, 20)
@@ -95,7 +95,7 @@ class PaymentDialog(QDialog):
     def _create_payment_button(
         self, label: str, icon_path: str, payment_type: str
     ) -> QPushButton:
-        """Create individual payment button with icon above text."""
+        """Crée un bouton de paiement avec une icône SVG au-dessus du libellé."""
         btn = QPushButton()
 
         # Layout: icon above text
@@ -121,7 +121,7 @@ class PaymentDialog(QDialog):
         return btn
 
     def _load_svg_icon(self, svg_path: str, size: int = 50) -> QPixmap:
-        """Load SVG icon and render to QPixmap."""
+        """Charge et rastérise un fichier SVG en QPixmap de la taille donnée."""
         try:
             engine = QSvgRenderer(svg_path)
             pixmap = QPixmap(size, size)
@@ -136,6 +136,6 @@ class PaymentDialog(QDialog):
             return pixmap
 
     def _on_payment_selected(self, payment_type: str):
-        """Emit selected payment type and close dialog."""
+        """Émet le signal avec le mode de paiement sélectionné et ferme le dialogue."""
         self.payment_selected.emit(payment_type)
         self.accept()

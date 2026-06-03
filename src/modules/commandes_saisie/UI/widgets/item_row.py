@@ -16,7 +16,7 @@ Date de création :
     2026.05.31
 
 Date de modification:
-    2026.05.31
+    2026.06.03
 """
 
 from typing import Dict
@@ -56,7 +56,7 @@ ITEM_LABEL_STYLE = """
 
 
 class ItemRow(QFrame):
-    """Single item row: [Cancel X] [ID - Name] [Status] [Price]"""
+    """Ligne d'article : [Annuler ✕] [ID - Nom] [Statut] [Prix]"""
 
     item_cancelled = Signal(str)  # Emits item_id
 
@@ -67,7 +67,7 @@ class ItemRow(QFrame):
         self._build_ui()
 
     def _build_ui(self):
-        """Build layout: [Cancel] [Details] [Status] [Price]"""
+        """Construit la ligne : [Annuler] [Détails] [Statut] [Prix]"""
         layout = QHBoxLayout(self)
         layout.setContentsMargins(6, 4, 6, 4)
         layout.setSpacing(8)
@@ -100,7 +100,7 @@ class ItemRow(QFrame):
         self.setStyleSheet(ITEM_ROW_STYLE)
 
     def _get_status_color(self, status: str) -> str:
-        """Return color based on item status."""
+        """Retourne la couleur CSS correspondant au statut d'un article."""
         status_lower = status.lower()
         if "attente" in status_lower:
             return "#ffd700"      # Yellow - waiting

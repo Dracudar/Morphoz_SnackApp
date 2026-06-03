@@ -16,7 +16,7 @@ Date de création :
     2026.06.02
 
 Date de modification:
-    2026.06.02
+    2026.06.03
 """
 
 import os
@@ -26,6 +26,14 @@ from ....backend.commandes_utils import charger_fichier_commande
 from ....backend.printer import print_ticket_recap, print_ticket_cuisine
 
 def valider_commande(context, chemin_fichier, affichage_commande_actuelle, affichage_commandes_validées):
+    """
+    Valide la commande : enregistre la date, imprime les tickets, passe les plats en préparation et déplace le fichier.
+
+    :param context: Contexte applicatif (accès au stock_cache).
+    :param chemin_fichier: Chemin vers le fichier JSON de la commande.
+    :param affichage_commande_actuelle: Callback de rafraîchissement de la vue saisie.
+    :param affichage_commandes_validées: Callback de rafraîchissement du suivi des commandes.
+    """
     commande = charger_fichier_commande(chemin_fichier)
     if not commande:
         return
@@ -64,6 +72,11 @@ def valider_commande(context, chemin_fichier, affichage_commande_actuelle, affic
 
 # == Annulation de commande == #
 def annuler_commande(chemin_fichier):
+    """
+    Annule définitivement la commande si tous ses plats sont à l'état « Annulé » et déplace le fichier.
+
+    :param chemin_fichier: Chemin vers le fichier JSON de la commande.
+    """
     commande = charger_fichier_commande(chemin_fichier)
     if not commande:
         return

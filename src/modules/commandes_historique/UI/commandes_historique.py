@@ -16,7 +16,7 @@ Date de création :
     2026.05.26
 
 Date de modification:
-    2026.05.31
+    2026.06.03
 """
 
 from __future__ import annotations
@@ -39,6 +39,8 @@ from src.backend.data_sources import get_completed_orders
 
 
 class CommandesHistoriqueModule(QFrame):
+	"""Module de consultation de l'historique des commandes terminées."""
+
 	def __init__(self, parent=None):
 		super().__init__(parent)
 		self.setObjectName("historiqueModule")
@@ -47,6 +49,7 @@ class CommandesHistoriqueModule(QFrame):
 		self.refresh_orders()
 
 	def _build_ui(self):
+		"""Construit l'interface : champ de recherche, compteur et liste scrollable des commandes."""
 		self.setFrameShape(QFrame.Shape.StyledPanel)
 
 		main_layout = QVBoxLayout(self)
@@ -121,12 +124,14 @@ class CommandesHistoriqueModule(QFrame):
 		)
 
 	def _build_timer(self):
+		"""Démarre un timer de rafraîchissement automatique toutes les 5 secondes."""
 		self.refresh_timer = QTimer(self)
 		self.refresh_timer.setInterval(5000)
 		self.refresh_timer.timeout.connect(self.refresh_orders)
 		self.refresh_timer.start()
 
 	def clear_cards(self):
+		"""Supprime toutes les cartes de commande affichées dans la liste."""
 		while self.list_layout.count() > 1:
 			item = self.list_layout.takeAt(0)
 			widget = item.widget()
@@ -134,6 +139,7 @@ class CommandesHistoriqueModule(QFrame):
 				widget.deleteLater()
 
 	def refresh_orders(self):
+		"""Recharge les commandes terminées, applique le filtre de recherche et reconstruit la liste."""
 		orders = get_completed_orders()
 		query = self.search_field.text().strip().lower()
 
@@ -154,6 +160,7 @@ class CommandesHistoriqueModule(QFrame):
 			self._add_order_card(order)
 
 	def _matches(self, order: Dict[str, Any], query: str) -> bool:
+		"""Retourne True si la requête correspond à l'ID, statut, montant ou un plat de la commande."""
 		haystack = [
 			str(order.get("id", "")),
 			str(order.get("status", "")),
@@ -169,6 +176,7 @@ class CommandesHistoriqueModule(QFrame):
 		return any(query in value.lower() for value in haystack if value)
 
 	def _add_order_card(self, order: Dict[str, Any]):
+		"""Crée et insère une carte QFrame résumant une commande dans la liste."""
 		card = QFrame()
 		card.setFrameShape(QFrame.Shape.StyledPanel)
 		card.setStyleSheet(
@@ -206,11 +214,13 @@ class CommandesHistoriqueModule(QFrame):
 		self.list_layout.insertWidget(self.list_layout.count() - 1, card)
 
 	def _format_amount(self, value: Any) -> str:
+		"""Formate un montant numérique en chaîne « X.XX € », ou « - » si la valeur est absente."""
 		if isinstance(value, (int, float)):
 			return f"{value:.2f} €"
 		return "-"
 
 	def _format_date(self, value: Any) -> str:
+		"""Formate une date stockée sous forme [date, heure] ou chaîne en texte lisible."""
 		if isinstance(value, list) and len(value) >= 2:
 			return f"{value[0]} {value[1]}".strip()
 		if isinstance(value, str):
@@ -218,6 +228,7 @@ class CommandesHistoriqueModule(QFrame):
 		return "-"
 
 	def _format_items(self, items: List[Dict[str, Any]]) -> str:
+		"""Construit le résumé textuel de la liste des plats d'une commande (nom + statut)."""
 		if not items:
 			return "Aucun detail disponible."
 		lines = []

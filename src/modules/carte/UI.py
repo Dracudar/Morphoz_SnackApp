@@ -16,7 +16,7 @@ Date de création :
     2025.05.29
 
 Date de modification:
-    2026.05.31
+    2026.06.03
 """
 
 from __future__ import annotations
@@ -46,6 +46,8 @@ from src.backend.data_sources import get_card_data, save_card_data
 
 
 class CarteModule(QFrame):
+	"""Module de gestion de la carte : consultation et édition des catégories et recettes."""
+
 	def __init__(self, parent=None):
 		super().__init__(parent)
 		self.setObjectName("carteModule")
@@ -55,6 +57,7 @@ class CarteModule(QFrame):
 		self.reload_from_disk()
 
 	def _build_ui(self):
+		"""Construit l'interface : arbre de la carte à gauche, formulaire d'édition à droite."""
 		self.setFrameShape(QFrame.Shape.StyledPanel)
 
 		main_layout = QVBoxLayout(self)
@@ -178,12 +181,14 @@ class CarteModule(QFrame):
 		)
 
 	def reload_from_disk(self):
+		"""Recharge la carte depuis le fichier JSON et réinitialise l'arbre et le formulaire."""
 		self.card_data = get_card_data()
 		self._populate_tree()
 		self.clear_form()
 		self.status_label.setText("Carte rechargee.")
 
 	def _populate_tree(self):
+		"""Remplit l'arbre Qt avec les catégories et leurs recettes."""
 		self.tree.blockSignals(True)
 		self.tree.clear()
 
@@ -220,6 +225,7 @@ class CarteModule(QFrame):
 		self.tree.blockSignals(False)
 
 	def _sync_selection(self):
+		"""Met à jour le formulaire d'édition selon l'élément sélectionné dans l'arbre."""
 		items = self.tree.selectedItems()
 		if not items:
 			return
@@ -241,6 +247,7 @@ class CarteModule(QFrame):
 			self.ingredients_field.setPlainText(self._join_list(node_data.get("Ingrédients", [])))
 
 	def _resolve_node_data(self, category_name: str, recipe_name: Optional[str]):
+		"""Retourne les données brutes du nœud (catégorie ou recette) depuis card_data."""
 		category = self.card_data.get(category_name, {})
 		if recipe_name and isinstance(category, dict):
 			recipes = category.get("Recettes", {})
@@ -249,6 +256,7 @@ class CarteModule(QFrame):
 		return category if isinstance(category, dict) else {}
 
 	def clear_form(self):
+		"""Vide tous les champs du formulaire et désélectionne l'arbre."""
 		self.current_selection = None
 		self.category_field.clear()
 		self.recipe_field.clear()
@@ -259,6 +267,7 @@ class CarteModule(QFrame):
 		self.tree.clearSelection()
 
 	def save_entry(self):
+		"""Enregistre la catégorie ou la recette en cours d'édition dans card_data et sur disque."""
 		category_name = self.category_field.text().strip()
 		recipe_name = self.recipe_field.text().strip()
 
@@ -301,6 +310,7 @@ class CarteModule(QFrame):
 		self.reload_from_disk()
 
 	def delete_entry(self):
+		"""Supprime la catégorie ou la recette sélectionnée de card_data et du fichier JSON."""
 		category_name = self.category_field.text().strip()
 		recipe_name = self.recipe_field.text().strip()
 
@@ -334,9 +344,11 @@ class CarteModule(QFrame):
 		self.reload_from_disk()
 
 	def _join_list(self, values: Any) -> str:
+		"""Convertit une liste en chaîne CSV (séparateur « , »)."""
 		if isinstance(values, list):
 			return ", ".join(str(value) for value in values)
 		return ""
 
 	def _split_list(self, text: str) -> List[str]:
+		"""Découpe une chaîne CSV en liste de valeurs nettoyées."""
 		return [part.strip() for part in text.split(",") if part.strip()]

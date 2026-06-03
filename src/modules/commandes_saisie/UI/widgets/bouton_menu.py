@@ -16,7 +16,7 @@ Date de création :
     2026.05.18
 
 Date de modification:
-    2026.05.31
+    2026.06.03
 """
 
 from pathlib import Path
@@ -46,7 +46,7 @@ BOUTON_MENU_STYLE = """
 
 
 class BoutonMenu(QPushButton):
-    """Square menu button with SVG icon and category name below."""
+    """Bouton carré de menu avec icône SVG et libellé de catégorie en dessous."""
 
     def __init__(
         self, category_name: str, svg_path: Optional[str] = None, parent=None
@@ -59,7 +59,7 @@ class BoutonMenu(QPushButton):
         self._build_ui()
 
     def _build_ui(self):
-        """Build layout: SVG icon + category name."""
+        """Construit la mise en page : icône SVG centrée + libellé de catégorie."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(5)
@@ -83,7 +83,7 @@ class BoutonMenu(QPushButton):
         self.setStyleSheet(BOUTON_MENU_STYLE)
 
     def _get_default_svg(self) -> str:
-        """Find SVG in plat folder or use void icon."""
+        """Recherche l'icône SVG dans le dossier du plat, ou retourne l'icône vide par défaut."""
         # Format: "Pizza" -> "pizza" or "Salade composée" -> "salade_composee"
         plat_name_lower = self.category_name.lower().replace(" ", "_")
         category_folder = Path(f"src/modules/plats/{plat_name_lower}/")
@@ -94,7 +94,7 @@ class BoutonMenu(QPushButton):
         return "assets/icons/void.svg"
 
     def _load_svg_icon(self, svg_path: str, size: int = 80) -> QPixmap:
-        """Load SVG and render to QPixmap."""
+        """Charge et rastérise un fichier SVG en QPixmap de la taille donnée."""
         try:
             engine = QSvgRenderer(svg_path)
             pixmap = QPixmap(size, size)

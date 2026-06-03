@@ -16,7 +16,7 @@ Date de création :
     2026.05.18
 
 Date de modification:
-    2026.05.30
+    2026.06.03
 """
 
 from PySide6.QtCore import Qt
@@ -26,11 +26,13 @@ from src.modules.carte.UI import CarteModule
 from src.modules.commandes_saisie.UI.commande_saisie import SaisieCommandeModule
 from src.modules.commandes_historique.UI.commandes_historique import CommandesHistoriqueModule
 from src.modules.commandes_suivi.UI.commandes_suivi import SuiviCommandesModule
-from modules.parametres.UI import ParametresModule
+from src.modules.parametres.UI import ParametresModule
 from src.modules.stock.UI.stock import StockModule
 
 
 class PlaceholderPage(QFrame):
+    """Page générique affichant un titre et un message de substitution."""
+
     def __init__(self, title: str, message: str, parent=None):
         super().__init__(parent)
         self.setObjectName("placeholderPage")
@@ -66,6 +68,7 @@ class InterfacePrincipaleWidget(QWidget):
         self._build_ui()
 
     def _build_ui(self):
+        """Assemble le stack gauche (saisie, stock, carte, historique, paramètres) et le suivi à droite."""
         root_layout = QHBoxLayout(self)
         root_layout.setContentsMargins(8, 8, 8, 8)
         root_layout.setSpacing(8)
@@ -92,6 +95,10 @@ class InterfacePrincipaleWidget(QWidget):
         root_layout.addWidget(self.suivi_module, 1)
 
     def set_left_page(self, page_name: str):
+        """Affiche la page demandée dans le stack gauche et la rafraîchit.
+
+        :param page_name: Identifiant de la page (« saisie », « stock », « carte », « historique », « parametres »).
+        """
         pages = {
             "saisie": self.page_saisie,
             "stock": self.page_stock,
@@ -105,6 +112,7 @@ class InterfacePrincipaleWidget(QWidget):
             self._refresh_page(widget)
 
     def refresh_all_pages(self):
+        """Rafraîchit toutes les pages et le suivi (appelé sur changement de config ou de commande)."""
         self.page_saisie.refresh()
         self.page_stock.reload_from_disk()
         self.page_carte.reload_from_disk()
@@ -112,6 +120,7 @@ class InterfacePrincipaleWidget(QWidget):
         self.suivi_module.tracker.refresh_orders()
 
     def _refresh_page(self, widget):
+        """Appelle la méthode de rafraîchissement disponible sur le widget (refresh, reload_from_disk ou refresh_orders)."""
         if hasattr(widget, "refresh"):
             widget.refresh()
         elif hasattr(widget, "reload_from_disk"):

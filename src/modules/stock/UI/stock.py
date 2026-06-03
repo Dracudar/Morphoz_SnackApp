@@ -16,7 +16,7 @@ Date de création :
     2025.05.29
 
 Date de modification:
-    2026.05.31
+    2026.06.03
 """
 
 from __future__ import annotations
@@ -44,6 +44,8 @@ from src.backend.data_sources import get_stock_data, save_stock_data
 
 
 class StockModule(QFrame):
+	"""Module de gestion du stock : consultation et édition des quantités et états."""
+
 	def __init__(self, parent=None):
 		super().__init__(parent)
 		self.setObjectName("stockModule")
@@ -53,6 +55,7 @@ class StockModule(QFrame):
 		self.reload_from_disk()
 
 	def _build_ui(self):
+		"""Construit l'interface : arbre du stock à gauche, formulaire d'édition à droite."""
 		self.setFrameShape(QFrame.Shape.StyledPanel)
 
 		main_layout = QVBoxLayout(self)
@@ -156,12 +159,14 @@ class StockModule(QFrame):
 		)
 
 	def reload_from_disk(self):
+		"""Recharge le stock depuis le fichier JSON et réinitialise l'arbre et le formulaire."""
 		self.stock_data = get_stock_data()
 		self._populate_tree()
 		self.clear_form()
 		self.status_label.setText("Stock recharge.")
 
 	def _populate_tree(self):
+		"""Remplit l'arbre Qt avec la hiérarchie complète du stock."""
 		self.tree.blockSignals(True)
 		self.tree.clear()
 		self._add_branch([], self.stock_data, self.tree.invisibleRootItem())
@@ -169,6 +174,7 @@ class StockModule(QFrame):
 		self.tree.blockSignals(False)
 
 	def _add_branch(self, path: List[str], node: Any, parent_item):
+		"""Ajoute récursivement les nœuds du dictionnaire stock dans l'arbre Qt."""
 		if not isinstance(node, dict):
 			return
 
@@ -186,12 +192,14 @@ class StockModule(QFrame):
 				self._add_branch(path + [key], value, item)
 
 	def _is_stock_leaf(self, node: Dict[str, Any]) -> bool:
+		"""Retourne True si le nœud est une feuille de stock (contient Quantité ou OutOfStock)."""
 		return any(key in node for key in ("Quantité", "OutOfStock", "Valeur")) and not any(
 			isinstance(value, dict) and not self._is_stock_leaf(value)
 			for value in node.values()
 		)
 
 	def _sync_selection(self):
+		"""Met à jour le formulaire selon l'élément sélectionné dans l'arbre."""
 		items = self.tree.selectedItems()
 		if not items:
 			return
@@ -208,6 +216,7 @@ class StockModule(QFrame):
 			self.out_of_stock_field.setChecked(bool(node.get("OutOfStock", False)))
 
 	def _resolve_path(self, path: List[str]):
+		"""Retourne le nœud du stock correspondant au chemin de clés donné."""
 		node: Any = self.stock_data
 		for key in path:
 			if not isinstance(node, dict):
@@ -216,6 +225,7 @@ class StockModule(QFrame):
 		return node
 
 	def clear_form(self):
+		"""Vide le formulaire et désélectionne l'élément actif dans l'arbre."""
 		self.current_path = []
 		self.path_label.setText("Aucun element selectionne")
 		self.quantity_field.setValue(0)
@@ -223,6 +233,7 @@ class StockModule(QFrame):
 		self.tree.clearSelection()
 
 	def save_entry(self):
+		"""Enregistre les modifications de quantité et d'état dans stock_data et sur disque."""
 		if not self.current_path:
 			QMessageBox.warning(self, "Stock", "Selectionne un element du stock a modifier.")
 			return
