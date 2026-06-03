@@ -38,8 +38,8 @@ cover/
 
 # Dossiers spécifiques au projet
 assets/config.json
-tests/data/
-proto/
+data/commandes
+data/logs
 
 # Jupyter Notebook
 .ipynb_checkpoints
