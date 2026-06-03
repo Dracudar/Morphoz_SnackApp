@@ -23,6 +23,7 @@ Date de modification:
 
 from __future__ import annotations
 
+import os
 import re
 import unicodedata
 from pathlib import Path
@@ -88,7 +89,7 @@ def _find_category_folder(category_name: str) -> Optional[Path]:
 
 
 def _resolve_category_icon(category_name: str, out_of_stock: bool) -> Optional[str]:
-    """Retourne le chemin de l'icône SVG/PNG la plus appropriée pour une catégorie.
+    """Retourne le chemin de l'icône SVG la plus appropriée pour une catégorie.
 
     Préfère icon_HS.* si la catégorie est en rupture de stock, sinon icon.svg.
     """
@@ -96,8 +97,6 @@ def _resolve_category_icon(category_name: str, out_of_stock: bool) -> Optional[s
     if folder is None:
         return None
     preferred_files = ["icon.svg"]
-    if out_of_stock:
-        preferred_files = ["icon_HS.svg", "icon_HS.png", "icon.svg", "icon.png"]
     for icon_name in preferred_files:
         icon_path = folder / icon_name
         if icon_path.exists():
@@ -151,7 +150,10 @@ def get_draft_orders() -> List[Dict[str, Any]]:
         return []
 
     orders: List[Dict[str, Any]] = []
-    for order_file in sorted(root_folder.glob("commande_*.json")):
+    # Only search in root folder, not in subdirectories
+    files = [root_folder / f for f in os.listdir(str(root_folder)) if f.startswith("commande_") and f.endswith(".json")]
+
+    for order_file in sorted(files):
         infos, command_lines = _parse_order_file(order_file)
 
         items: List[Dict[str, Any]] = []
