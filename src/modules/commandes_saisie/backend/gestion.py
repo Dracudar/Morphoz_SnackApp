@@ -1,6 +1,23 @@
-'''
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+gestion.py
 
-'''
+Description:
+    Validation des commandes et impression des tickets récapitulatif et cuisine.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.06.02
+
+Date de modification:
+    2026.06.02
+"""
 
 import os
 import json
@@ -44,10 +61,6 @@ def valider_commande(context, chemin_fichier, affichage_commande_actuelle, affic
     dossier_en_cours = os.path.join(os.path.dirname(chemin_fichier), "en_cours")
     os.makedirs(dossier_en_cours, exist_ok=True)
     os.rename(chemin_fichier, os.path.join(dossier_en_cours, os.path.basename(chemin_fichier)))
-
-    # Rafraîchir l'affichage
-    affichage_commande_actuelle(context)
-    affichage_commandes_validées(context)
 
 # == Annulation de commande == #
 def annuler_commande(chemin_fichier):

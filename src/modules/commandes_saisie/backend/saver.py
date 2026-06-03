@@ -1,13 +1,76 @@
-'''
-Fonction permettant de créer ou mettre à jour le fichier JSON de la commande en cours de saisie.
-'''
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+saver.py
+
+Description:
+    Création et mise à jour du fichier JSON de la commande en cours de saisie.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.06.02
+
+Date de modification:
+    2026.06.02
+"""
 
 import os
 import json
 from datetime import datetime
 from collections import OrderedDict
-from ....backend.commandes_utils import charger_fichier_commande, generer_ID_commande
-    
+from src.backend.commandes_utils import charger_fichier_commande
+
+
+def initialiser_dossiers_commandes(commandes_path, logs_path):
+    """
+    Crée la structure de dossiers nécessaire pour l'enregistrement des commandes.
+    Appelée avant chaque sauvegarde pour garantir l'existence des dossiers.
+
+    :param commandes_path: Chemin vers le dossier des commandes
+    :param logs_path: Chemin vers le dossier des logs
+    """
+    os.makedirs(logs_path, exist_ok=True)
+    os.makedirs(commandes_path, exist_ok=True)
+    os.makedirs(os.path.join(commandes_path, "en_cours"), exist_ok=True)
+    os.makedirs(os.path.join(commandes_path, "terminee"), exist_ok=True)
+    os.makedirs(os.path.join(commandes_path, "annulee"), exist_ok=True)
+    os.makedirs(os.path.join(commandes_path, "corrompu"), exist_ok=True)
+
+
+def ID_generator(logs_path, commandes_path):
+    """
+    Génère un identifiant unique pour une commande au format aaaammjj-000.
+
+    :param logs_path: Chemin vers le dossier des logs.
+    :param commandes_path: Chemin vers le dossier des commandes.
+    :return: Identifiant unique de la commande.
+    """
+    date_actuelle = datetime.now().strftime("%Y%m%d")  # aaaammjj
+    log_file = os.path.join(logs_path, "dernier_id.json")
+
+    # Vérifier si le fichier de log existe
+    if os.path.exists(log_file):
+        with open(log_file, "r", encoding="utf-8") as fichier:
+            dernier_id = json.load(fichier).get(date_actuelle, 0)
+    else:
+        dernier_id = 0
+
+    # Incrémenter l'identifiant
+    nouvel_id = dernier_id + 1
+
+    # Mettre à jour le fichier de log
+    with open(log_file, "w", encoding="utf-8") as fichier:
+        json.dump({date_actuelle: nouvel_id}, fichier, indent=4)
+
+    # Retourner l'identifiant au format aaaammjj-000
+    return f"{date_actuelle}-{nouvel_id:03d}"
+
+
 # === Gestion des fichiers de commandes === #
 def creer_dict_plat(plat_id, plat):
     """
@@ -48,15 +111,19 @@ def MAJ_commande(commandes_path, logs_path, plat):
     :param logs_path: Chemin vers le dossier des logs.
     :param plat: Dictionnaire contenant les informations du plat à ajouter.
     """
+    # Initialiser les dossiers si nécessaire
+    initialiser_dossiers_commandes(commandes_path, logs_path)
+
+    en_cours_path = os.path.join(commandes_path, "en_cours")
     fichiers_commandes = [
-        f for f in os.listdir(commandes_path) if f.startswith("commande_")
+        f for f in os.listdir(en_cours_path) if f.startswith("commande_")
     ]
 
     if fichiers_commandes:
         # Charger le dernier fichier de commande existant
         fichiers_commandes.sort()  # Trier pour obtenir le dernier fichier
         dernier_fichier = fichiers_commandes[-1]
-        chemin_fichier = os.path.join(commandes_path, dernier_fichier)
+        chemin_fichier = os.path.join(en_cours_path, dernier_fichier)
 
         commande = charger_fichier_commande(chemin_fichier)
         if not commande:
@@ -78,8 +145,8 @@ def MAJ_commande(commandes_path, logs_path, plat):
 
     else:
         # Créer une nouvelle commande
-        nouvel_id = generer_ID_commande(logs_path, commandes_path)
-        chemin_fichier = os.path.join(commandes_path, f"commande_{nouvel_id}.json")
+        nouvel_id = ID_generator(logs_path, commandes_path)
+        chemin_fichier = os.path.join(en_cours_path, f"commande_{nouvel_id}.json")
         plat_id = f"{nouvel_id}-01"
         nouvelle_commande = {
             "Informations": {
