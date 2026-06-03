@@ -1,6 +1,26 @@
-"""Grillade plat handler - opens UI with meat quantity limits."""
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+rooting.py
+
+Description:
+    Handler du plat grillade : ouvre l'interface de sélection avec limites de quantité de viande.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.31
+
+Date de modification:
+    2026.05.31
+"""
 
 from typing import Dict, Optional
+from src.backend.data_sources import get_card_data
 
 
 def route_selection(context, command_path: str) -> Optional[Dict]:
@@ -16,14 +36,17 @@ def route_selection(context, command_path: str) -> Optional[Dict]:
         command_path: Path to current order file
 
     Returns:
-        Item data dict with plat, nom, composition, prix, or None if cancelled
+        Item data dict with Plat, Nom, Composition, Prix (uppercase keys), or None if cancelled
     """
+    card_data = get_card_data()
+    prix = card_data.get("Grillade", {}).get("Prix", 12.00)
+
     # TODO: Import and open grillade UI dialog
     # For now, return placeholder
     return {
-        "plat": "Grillade",
-        "nom": "Grillade Mixte",
-        "prix": 12.00,
-        "statut": "En attente",
-        "composition": {},
+        "Plat": "Grillade",
+        "Nom": "Grillade Mixte",
+        "Prix": prix,
+        "Statut": "En attente",
+        "Composition": {},
     }
