@@ -41,7 +41,7 @@ def route_selection(context, command_path: str) -> Dict:
 
     return {
         "Plat": "Frites",
-        "Nom": "Portion Standard",
+        "Nom": "Portion frites",
         "Prix": prix,
         "Statut": "En attente",
         "Composition": [],
