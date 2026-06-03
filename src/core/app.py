@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-main_window.py - Main Window Module
+app.py
 
 Description:
-    Gate to Morphoz SnackApp.
+    Point d'entrée principal de l'application Morphoz SnackApp.
 
 Author :
     Dracudar
@@ -13,13 +13,10 @@ Version:
     1.0
 
 Date de création :
-    2026.05.17
+    2026.05.18
 
 Date de modification:
-    2026.05.17
-
-License :
-    MIT
+    2026.05.18
 """
 
 from PySide6.QtWidgets import QApplication

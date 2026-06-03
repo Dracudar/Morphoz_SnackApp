@@ -1,11 +1,28 @@
-'''
-Code UI pour ajouter une portion de frites à la commande
-'''
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+old.py
+
+Description:
+    Interface tkinter temporaire pour l'ajout d'une portion de frites à la commande (version legacy).
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.30
+
+Date de modification:
+    2026.05.30
+"""
 
 # === Importer les modules nécessaires === #
 import os  # Pour manipuler les chemins de fichiers
 
-from modules.commandes_saisie.backend.commandes_saisie_save import MAJ_commande
+from modules.commandes_saisie.backend.saver import MAJ_commande
 from src.backend.chemins_exploitation import (
     charger_donnees_menu, 
     charger_donnees_stock,

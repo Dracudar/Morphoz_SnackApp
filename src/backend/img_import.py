@@ -1,6 +1,23 @@
-'''
-Gestion des images et icônes pour l'interface tkinter.
-'''
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+img_import.py
+
+Description:
+    Gestion des images et icônes pour l'interface graphique (chargement et redimensionnement).
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2025.05.31
+
+Date de modification:
+    2026.05.05
+"""
 
 import os
 from PIL import Image, ImageTk

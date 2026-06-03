@@ -1,4 +1,23 @@
-"""BoutonMenu widget - Square menu button with SVG icon and category name."""
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+bouton_menu.py
+
+Description:
+    Widget bouton menu carré avec icône SVG et libellé de catégorie de plat.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.18
+
+Date de modification:
+    2026.05.31
+"""
 
 from pathlib import Path
 from typing import Optional

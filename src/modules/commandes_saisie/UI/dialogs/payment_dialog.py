@@ -1,4 +1,23 @@
-"""PaymentDialog - Modal for selecting payment method."""
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+payment_dialog.py
+
+Description:
+    Dialogue modal de sélection du mode de paiement.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.31
+
+Date de modification:
+    2026.05.31
+"""
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap, QPainter

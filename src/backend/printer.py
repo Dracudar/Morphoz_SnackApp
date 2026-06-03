@@ -1,14 +1,31 @@
-'''
-Fonctions pour l'impression de tickets de commande et de cuisine après validation d'une commande.
-'''
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+printer.py
+
+Description:
+    Impression des tickets de commande récapitulatif et de cuisine après validation d'une commande.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2025.06.04
+
+Date de modification:
+    2026.05.05
+"""
 
 import json
 import os
 from PIL import Image
 from escpos.printer import Usb
-from .commandes_utils import charger_fichier_commande
+from src.backend.commandes_utils import charger_fichier_commande
 
-from ..config_printer import (
+from src.utils.config_printer import (
     IMPRIMANTE_USB_VENDOR_ID as VENDOR_ID, 
     IMPRIMANTE_USB_PRODUCT_ID as PRODUCT_ID, 
     IMPRIMANTE_USB_INTERFACE as INTERFACE

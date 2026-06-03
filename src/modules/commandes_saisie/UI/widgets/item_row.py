@@ -1,4 +1,23 @@
-"""ItemRow widget - displays single item in order list."""
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+item_row.py
+
+Description:
+    Widget ligne d'article affichant un item dans la liste de commande en cours.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.31
+
+Date de modification:
+    2026.05.31
+"""
 
 from typing import Dict
 from PySide6.QtCore import Qt, Signal

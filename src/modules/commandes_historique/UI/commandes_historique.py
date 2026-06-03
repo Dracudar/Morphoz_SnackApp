@@ -1,3 +1,24 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+commandes_historique.py
+
+Description:
+    Interface Qt/PySide6 de consultation de l'historique des commandes.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.26
+
+Date de modification:
+    2026.05.31
+"""
+
 from __future__ import annotations
 
 from typing import Any, Dict, List

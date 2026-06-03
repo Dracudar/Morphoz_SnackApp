@@ -1,11 +1,27 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Fonctionnalité pour mettre à jour le champ relatif au type de paiement dans le fichier de commande.
-Permet de lancer la validation de la commande après paiement et d'imprimer les tickets.
+paiements.py
+
+Description:
+    Mise à jour du mode de paiement dans le fichier de commande et déclenchement de la validation avec impression des tickets.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2025.06.07
+
+Date de modification:
+    2026.05.30
 """
 
 import json  # Pour manipuler les données JSON
 from ....backend.commandes_utils import charger_fichier_commande  # Pour charger le fichier de commande JSON
-from .commandes_saisie_gestion import valider_commande  # Pour valider la commande après paiement et imprimer les tickets
+from .gestion import valider_commande  # Pour valider la commande après paiement et imprimer les tickets
 
     
 def paiement_carte(context, chemin_fichier, affichage_commande_actuelle, affichage_commandes_validées):

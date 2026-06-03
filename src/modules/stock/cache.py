@@ -1,3 +1,24 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+cache.py
+
+Description:
+    Cache en mémoire pour les données de stock, avec comparaison aux valeurs originales pour détecter les modifications.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2025.06.17
+
+Date de modification:
+    2026.05.30
+"""
+
 import copy
 import json
 

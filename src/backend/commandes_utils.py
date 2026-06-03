@@ -1,8 +1,23 @@
-'''
-Module d'utilitaires pour la gestion des commandes
-- Génération d'un identifiant unique
-- Chargement de fichiers JSON avec gestion des erreurs
-'''
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+commandes_utils.py
+
+Description:
+    Utilitaires pour la gestion des commandes : génération d'identifiant unique et chargement de fichiers JSON avec gestion des erreurs.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2025.05.31
+
+Date de modification:
+    2026.05.05
+"""
 
 import os
 from datetime import datetime

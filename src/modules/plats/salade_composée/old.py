@@ -1,13 +1,30 @@
-'''
-Code UI pour les interfaces temporaire de personnalisation des salades composées
-'''
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+old.py
+
+Description:
+    Interface tkinter temporaire de personnalisation des salades composées (version legacy).
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.30
+
+Date de modification:
+    2026.05.30
+"""
 
 # === Importer les modules nécessaires === #
 from ...backend.chemins_exploitation import (
     charger_donnees_menu, 
     charger_donnees_stock,
 )
-from modules.commandes_saisie.backend.commandes_saisie_save import MAJ_commande
+from modules.commandes_saisie.backend.saver import MAJ_commande
 import os
 import tkinter as tk
 from tkinter import ttk, messagebox

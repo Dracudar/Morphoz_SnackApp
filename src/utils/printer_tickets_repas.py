@@ -1,6 +1,23 @@
-'''
-Script pour imprimer des tickets de repas gratuits à partir d'un fichier Excel.
-'''
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+printer_tickets_repas.py
+
+Description:
+    Impression de tickets de repas gratuits à partir d'un fichier Excel.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2025.06.09
+
+Date de modification:
+    2026.05.05
+"""
 
 import os
 from PIL import Image

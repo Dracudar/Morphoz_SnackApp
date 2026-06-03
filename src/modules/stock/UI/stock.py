@@ -1,3 +1,24 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+stock.py
+
+Description:
+    Interface Qt/PySide6 de gestion et consultation du stock.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2025.05.29
+
+Date de modification:
+    2026.05.31
+"""
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional

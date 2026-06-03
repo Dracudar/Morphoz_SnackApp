@@ -1,3 +1,24 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+parametres.py
+
+Description:
+    Interface Qt/PySide6 de gestion des paramètres de l'application.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2025.05.29
+
+Date de modification:
+    2026.05.31
+"""
+
 from __future__ import annotations
 
 from PySide6.QtCore import Signal, Qt

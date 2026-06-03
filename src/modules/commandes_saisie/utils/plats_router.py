@@ -1,8 +1,22 @@
-"""Orchestrator for routing plat selection to appropriate handlers.
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+plats_router.py
 
-Each plat module (pizza, grillade, frites, salade_composee) has a rooting.py
-that defines a single route_selection() function for that plat.
-The function name is uniform - only the module path changes.
+Description:
+    Orchestrateur de routage vers les handlers de plats par catégorie : chaque catégorie expose une fonction route_selection() dans son rooting.py.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.31
+
+Date de modification:
+    2026.05.31
 """
 
 import importlib

@@ -1,13 +1,30 @@
-'''
-Code UI pour les interfaces temporaire de personnalisation des grillades
-'''
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+old.py
+
+Description:
+    Interface tkinter temporaire de personnalisation des grillades (version legacy).
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.05.30
+
+Date de modification:
+    2026.05.30
+"""
 
 # === Importer les modules nécessaires === #
 import os  # Pour manipuler les chemins de fichiers
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from modules.commandes_saisie.backend.commandes_saisie_save import MAJ_commande
+from modules.commandes_saisie.backend.saver import MAJ_commande
 from src.frontend.temp_gestion import ouvrir_fenetre_unique 
 from ...backend.chemins_exploitation import (
     charger_donnees_menu, 

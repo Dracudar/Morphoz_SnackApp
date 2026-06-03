@@ -16,7 +16,7 @@ Date de création :
     2026.05.12
 
 Date de modification:
-    2026.05.18
+    2026.05.26
 """
 
 # Importation des modules nécessaires
@@ -29,15 +29,15 @@ from src.UI.view.interface_principale import InterfacePrincipaleWidget
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        
+
         # Configuration de la fenêtre
         self.setWindowTitle("Morphoz SnackApp")
         self.setGeometry(100, 100, 1200, 800)
-        
+
         # Créer le widget central
         self.interface_widget = InterfacePrincipaleWidget()
         self.setCentralWidget(self.interface_widget)
-        
+
         # Initialiser les actions et les menus
         self.setup_shortcuts()
         self.setup_menus()
