@@ -46,8 +46,7 @@ from src.modules.commandes_saisie.utils.plats_router import route_plat_selection
 from src.modules.commandes_saisie.backend.saver import MAJ_commande
 from src.modules.commandes_saisie.backend.gestion import (
     annuler_plat,
-    annuler_commande,
-    valider_commande,
+    annuler_all_plats
 )
 from src.modules.commandes_saisie.backend.paiements import (
     paiement_carte,
@@ -325,7 +324,7 @@ class SaisieCommandeModule(QFrame):
             return
 
         try:
-            annuler_commande(str(order_path))
+            annuler_all_plats(None, str(order_path), None)
             self.status_label.setText("Commande annulée")
             self.refresh()
             self.command_changed.emit()

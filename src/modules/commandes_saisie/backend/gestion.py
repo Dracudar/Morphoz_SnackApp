@@ -16,7 +16,7 @@ Date de création :
     2026.06.02
 
 Date de modification:
-    2026.06.03
+    2026.06.04
 """
 
 import os
@@ -103,11 +103,19 @@ def annuler_plat(context, chemin_fichier, plat_id, affichage_commande_actuelle):
     if not commande_data:
         return
 
+    # Résoudre la clé JSON : accepte la clé directe ("#01") ou l'ID interne ("20260603-001-01")
+    plat_key = plat_id if plat_id in commande_data["Commande"] else next(
+        (k for k, v in commande_data["Commande"].items() if v.get("ID") == plat_id),
+        None
+    )
+    if plat_key is None:
+        return
+
     # Mettre à jour le statut du plat
-    commande_data["Commande"][plat_id]["Statut"] = "Annulé"
+    commande_data["Commande"][plat_key]["Statut"] = "Annulé"
 
     # Récupérer le plat annulé
-    plat_annule = commande_data["Commande"][plat_id]
+    plat_annule = commande_data["Commande"][plat_key]
     # Ré-incrémenter le stock selon le type de plat
     if hasattr(context, "stock_cache"):
         refresh_needed = False
@@ -159,7 +167,8 @@ def annuler_plat(context, chemin_fichier, plat_id, affichage_commande_actuelle):
     annuler_commande(chemin_fichier)
 
     # Rafraîchir l'affichage
-    affichage_commande_actuelle(context)
+    if affichage_commande_actuelle:
+        affichage_commande_actuelle(context)
 
 def annuler_all_plats(context, chemin_fichier, affichage_commande_actuelle):
     """
