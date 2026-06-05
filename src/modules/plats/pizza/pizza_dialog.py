@@ -12,7 +12,7 @@ Author :
     Dracudar
 
 Version:
-    1.2
+    1.3
 
 Date de création :
     2026.06.05
@@ -148,6 +148,9 @@ _TITLE_STYLE = "font-size: 18px; font-weight: 700; color: #f5f5f5;"
 _SECTION_STYLE = "font-size: 14px; font-weight: 700; color: #f5f5f5;"
 _CATEGORY_STYLE = "font-size: 12px; font-weight: 700; color: #a8d08d; margin-top: 6px;"
 _PRICE_STYLE = "font-size: 11px; color: #a8d08d;"
+_PRIX_TOTAL_STYLE = "font-size: 13px; font-weight: 600; color: #a8d08d; padding: 4px 0;"
+
+SUPPLEMENT_VIANDE = 1.0  # € par viande sélectionnée
 
 
 # ── Dialogue ───────────────────────────────────────────────────────────────────
@@ -184,6 +187,9 @@ class PizzaDialog(QDialog):
         # Widgets de saisie reconstruits à chaque étape 2
         self._base_radios: Dict[str, QRadioButton] = {}
         self._ingredient_cbs: Dict[str, QPushButton] = {}
+        self._viande_btns: Dict[str, QPushButton] = {}
+        self._prix_base: float = 0.0
+        self._prix_label: Optional[QLabel] = None
 
         self.setWindowTitle("Pizza")
         self.setModal(True)
@@ -283,6 +289,9 @@ class PizzaDialog(QDialog):
         """Construit la page de personnalisation (base en ligne, ingrédients en dessous)."""
         self._base_radios = {}
         self._ingredient_cbs = {}
+        self._viande_btns = {}
+        self._prix_base = recette_data.get("Prix", 0.0)
+        self._prix_label = None
 
         page = QWidget()
         layout = QVBoxLayout(page)
@@ -306,6 +315,13 @@ class PizzaDialog(QDialog):
         ingr_widget = self._build_ingredients_scroll(recette_ingr)
         if ingr_widget:
             layout.addWidget(ingr_widget, stretch=1)
+
+        # Affichage du prix total (mis à jour dynamiquement)
+        self._prix_label = QLabel()
+        self._prix_label.setStyleSheet(_PRIX_TOTAL_STYLE)
+        self._prix_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self._prix_label)
+        self._update_prix_display()
 
         # Boutons actions : [Annuler] [← Retour] ──── [Valider]
         actions = QHBoxLayout()
@@ -417,9 +433,28 @@ class PizzaDialog(QDialog):
                 btn.setChecked(ingr in recette_ingr)
                 scroll_layout.addWidget(btn)
                 self._ingredient_cbs[ingr] = btn
+                if cat == "Viande":
+                    self._viande_btns[ingr] = btn
+                    btn.toggled.connect(self._update_prix_display)
 
         layout.addWidget(scroll)
         return frame
+
+    # ──────────────────────────────── Prix dynamique ──────────────────────────
+
+    def _update_prix_display(self):
+        """Met à jour l'étiquette de prix en fonction des viandes sélectionnées."""
+        if self._prix_label is None:
+            return
+        nb_viandes = sum(1 for btn in self._viande_btns.values() if btn.isChecked())
+        supplement = nb_viandes * SUPPLEMENT_VIANDE
+        total = self._prix_base + supplement
+        if supplement > 0:
+            self._prix_label.setText(
+                f"Prix : {self._prix_base:.2f} € + {supplement:.2f} € (viande) = {total:.2f} €"
+            )
+        else:
+            self._prix_label.setText(f"Prix : {self._prix_base:.2f} €")
 
     # ──────────────────────────────── Validation ──────────────────────────────
 
@@ -451,11 +486,14 @@ class PizzaDialog(QDialog):
         if ingr_retires or ingr_supplementaires:
             recette_field = f"{nom_recette} - Modifié !"
 
+        nb_viandes = sum(1 for n in ingredients if n in self._viande_btns)
+        prix_final = recette_data.get("Prix", 0.0) + nb_viandes * SUPPLEMENT_VIANDE
+
         self.result_data = {
             "Plat": "Pizza",
             "Recette": recette_field,
             "Nom": nom,
-            "Prix": recette_data.get("Prix", 0.0),
+            "Prix": prix_final,
             "Statut": "En attente",
             "Composition": {
                 "Base": base,
