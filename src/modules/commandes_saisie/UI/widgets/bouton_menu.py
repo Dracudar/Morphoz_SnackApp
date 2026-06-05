@@ -16,9 +16,10 @@ Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.03
+    2026.06.06
 """
 
+import unicodedata
 from pathlib import Path
 from typing import Optional
 
@@ -85,7 +86,9 @@ class BoutonMenu(QPushButton):
     def _get_default_svg(self) -> str:
         """Recherche l'icône SVG dans le dossier du plat, ou retourne l'icône vide par défaut."""
         # Format: "Pizza" -> "pizza" or "Salade composée" -> "salade_composee"
-        plat_name_lower = self.category_name.lower().replace(" ", "_")
+        normalized = unicodedata.normalize("NFD", self.category_name)
+        ascii_name = "".join(c for c in normalized if unicodedata.category(c) != "Mn")
+        plat_name_lower = ascii_name.lower().replace(" ", "_")
         category_folder = Path(f"src/modules/plats/{plat_name_lower}/")
         category_icon = category_folder / "icon.svg"
 
