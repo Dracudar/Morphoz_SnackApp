@@ -16,7 +16,7 @@ Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.03
+    2026.06.04
 """
 
 from __future__ import annotations
@@ -309,7 +309,7 @@ class SaisieCommandeModule(QFrame):
             return
 
         try:
-            annuler_plat(None, str(order_path), item_id, None)
+            annuler_plat(str(order_path), item_id)
             self.status_label.setText(f"Item {item_id} annulé")
             self.refresh()
             self.command_changed.emit()
@@ -324,7 +324,7 @@ class SaisieCommandeModule(QFrame):
             return
 
         try:
-            annuler_all_plats(None, str(order_path), None)
+            annuler_all_plats(str(order_path))
             self.status_label.setText("Commande annulée")
             self.refresh()
             self.command_changed.emit()
@@ -351,13 +351,13 @@ class SaisieCommandeModule(QFrame):
 
         try:
             if payment_type == "Carte":
-                paiement_carte(None, str(order_path), None, None)
+                paiement_carte(str(order_path))
                 msg = "Paiement carte effectué ✓"
             elif payment_type == "Espèces":
-                paiement_especes(None, str(order_path), None, None)
+                paiement_especes(str(order_path))
                 msg = "Paiement espèces effectué ✓"
             elif payment_type == "Gratuit":
-                gratuit(None, str(order_path), None, None)
+                gratuit(str(order_path))
                 msg = "Repas gratuit enregistré ✓"
             else:
                 msg = "Mode de paiement inconnu"

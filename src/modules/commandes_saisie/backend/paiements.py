@@ -10,44 +10,43 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2025.06.07
 
 Date de modification:
-    2026.06.03
+    2026.06.04
 """
 
-import json  # Pour manipuler les données JSON
-from ....backend.commandes_utils import charger_fichier_commande  # Pour charger le fichier de commande JSON
-from .gestion import valider_commande  # Pour valider la commande après paiement et imprimer les tickets
-
-    
-def paiement_carte(context, chemin_fichier, affichage_commande_actuelle, affichage_commandes_validées):
-        """Enregistre le paiement par carte dans la commande et déclenche la validation."""
-        commande = charger_fichier_commande(chemin_fichier)
-        commande["Informations"]["Type de paiement"] = "Carte"  # Met à jour le type de paiement dans la commande
-        with open(chemin_fichier, "w", encoding="utf-8") as f:
-            json.dump(commande, f, indent=4, ensure_ascii=False)
-
-        valider_commande(context, chemin_fichier, affichage_commande_actuelle, affichage_commandes_validées)
-
-def paiement_especes(context, chemin_fichier, affichage_commande_actuelle, affichage_commandes_validées):
-        """Enregistre le paiement en espèces dans la commande et déclenche la validation."""
-        commande = charger_fichier_commande(chemin_fichier)
-        commande["Informations"]["Type de paiement"] = "Espèces"  # Met à jour le type de paiement dans la commande
-        with open(chemin_fichier, "w", encoding="utf-8") as f:
-            json.dump(commande, f, indent=4, ensure_ascii=False)
-
-        valider_commande(context, chemin_fichier, affichage_commande_actuelle, affichage_commandes_validées)
+import json
+from src.backend.commandes_utils import charger_fichier_commande
+from src.modules.commandes_saisie.backend.gestion import valider_commande
 
 
-def gratuit(context, chemin_fichier, affichage_commande_actuelle, affichage_commandes_validées):
-    """Enregistre un repas gratuit dans la commande et déclenche la validation."""
+def paiement_carte(chemin_fichier):
+    """Enregistre le paiement par carte dans la commande et déclenche la validation."""
     commande = charger_fichier_commande(chemin_fichier)
-    commande["Informations"]["Type de paiement"] = "Repas gratuit"  # Met à jour le type de paiement dans la commande
+    # Mettre à jour le type de paiement dans la commande
+    commande["Informations"]["Type de paiement"] = "Carte"
     with open(chemin_fichier, "w", encoding="utf-8") as f:
         json.dump(commande, f, indent=4, ensure_ascii=False)
+    valider_commande(chemin_fichier)
 
-    valider_commande(context, chemin_fichier, affichage_commande_actuelle, affichage_commandes_validées)
+def paiement_especes(chemin_fichier):
+    """Enregistre le paiement en espèces dans la commande et déclenche la validation."""
+    commande = charger_fichier_commande(chemin_fichier)
+    # Mettre à jour le type de paiement dans la commande
+    commande["Informations"]["Type de paiement"] = "Espèces"
+    with open(chemin_fichier, "w", encoding="utf-8") as f:
+        json.dump(commande, f, indent=4, ensure_ascii=False)
+    valider_commande(chemin_fichier)
+
+def gratuit(chemin_fichier):
+    """Enregistre un repas gratuit dans la commande et déclenche la validation."""
+    commande = charger_fichier_commande(chemin_fichier)
+    # Mettre à jour le type de paiement dans la commande
+    commande["Informations"]["Type de paiement"] = "Repas gratuit"
+    with open(chemin_fichier, "w", encoding="utf-8") as f:
+        json.dump(commande, f, indent=4, ensure_ascii=False)
+    valider_commande(chemin_fichier)

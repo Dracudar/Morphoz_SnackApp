@@ -10,7 +10,7 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.06.02
@@ -25,14 +25,11 @@ from datetime import datetime
 from ....backend.commandes_utils import charger_fichier_commande
 from ....backend.printer import print_ticket_recap, print_ticket_cuisine
 
-def valider_commande(context, chemin_fichier, affichage_commande_actuelle, affichage_commandes_validées):
+def valider_commande(chemin_fichier):
     """
     Valide la commande : enregistre la date, imprime les tickets, passe les plats en préparation et déplace le fichier.
 
-    :param context: Contexte applicatif (accès au stock_cache).
     :param chemin_fichier: Chemin vers le fichier JSON de la commande.
-    :param affichage_commande_actuelle: Callback de rafraîchissement de la vue saisie.
-    :param affichage_commandes_validées: Callback de rafraîchissement du suivi des commandes.
     """
     commande = charger_fichier_commande(chemin_fichier)
     if not commande:
@@ -41,7 +38,8 @@ def valider_commande(context, chemin_fichier, affichage_commande_actuelle, affic
     # TODO : mettre en place le système de paiement (CB, espèces, repas gratuits) et mettre à jour le type de paiement dans le fichier JSON
     
     # Mettre à jour la date de validation
-    commande["Informations"]["Date de validation"] = [datetime.now().strftime("%d/%m/%Y"), datetime.now().strftime("%H:%M")]
+    now = datetime.now()
+    commande["Informations"]["Date de validation"] = [now.strftime("%d/%m/%Y"), now.strftime("%H:%M")]
 
     # Impression des tickets pour chaque plat mis en préparation
     print_ticket_recap(chemin_fichier)
@@ -60,10 +58,6 @@ def valider_commande(context, chemin_fichier, affichage_commande_actuelle, affic
     # Sauvegarder les modifications de la commande
     with open(chemin_fichier, "w", encoding="utf-8") as fichier:
         json.dump(commande, fichier, indent=4, ensure_ascii=False)
-
-    # Sauvegarder le stock modifié
-    if hasattr(context, "stock_cache"):
-        context.stock_cache.save()
 
     # Déplacer le fichier
     dossier_en_cours = os.path.join(os.path.dirname(chemin_fichier), "en_cours")
@@ -95,7 +89,7 @@ def annuler_commande(chemin_fichier):
         os.makedirs(dossier_annulee, exist_ok=True)
         os.rename(chemin_fichier, os.path.join(dossier_annulee, os.path.basename(chemin_fichier)))
 
-def annuler_plat(context, chemin_fichier, plat_id, affichage_commande_actuelle):
+def annuler_plat(chemin_fichier, plat_id):
     """
     Annule un plat dans la commande en cours.
     """
@@ -114,46 +108,6 @@ def annuler_plat(context, chemin_fichier, plat_id, affichage_commande_actuelle):
     # Mettre à jour le statut du plat
     commande_data["Commande"][plat_key]["Statut"] = "Annulé"
 
-    # Récupérer le plat annulé
-    plat_annule = commande_data["Commande"][plat_key]
-    # Ré-incrémenter le stock selon le type de plat
-    if hasattr(context, "stock_cache"):
-        refresh_needed = False
-        # Pizza ou pizza dessert
-        if plat_annule["Plat"] == "Pizza" or plat_annule["Plat"] == "Pizza dessert":
-            was_out = context.stock_cache.is_out_of_stock(["Plats", "Pizza", "Pâte à pizza"])
-            context.stock_cache.incrementer(["Plats", "Pizza", "Pâte à pizza"])
-            is_out = context.stock_cache.is_out_of_stock(["Plats", "Pizza", "Pâte à pizza"])
-            if was_out != is_out:
-                refresh_needed = True
-        # Grillade
-        elif plat_annule["Plat"] == "Grillade":
-            viandes = plat_annule["Composition"]["Viandes"]
-            was = {v: context.stock_cache.is_out_of_stock(["Plats", "Grillades", v]) for v in viandes}
-            for viande, quantite in viandes.items():
-                context.stock_cache.incrementer(["Plats", "Grillades", viande], n=quantite)
-            changed = any(was[v] != context.stock_cache.is_out_of_stock(["Plats", "Grillades", v]) for v in viandes)
-            if changed:
-                refresh_needed = True
-        # Frites
-        elif plat_annule["Plat"] == "Frites":
-            was_out = context.stock_cache.is_out_of_stock(["Accompagnement", "Frites"])
-            context.stock_cache.incrementer(["Accompagnement", "Frites"])
-            is_out = context.stock_cache.is_out_of_stock(["Accompagnement", "Frites"])
-            if was_out != is_out:
-                refresh_needed = True
-        # Salade composée
-        elif plat_annule["Plat"] == "Salade composée":
-            was_out = context.stock_cache.is_out_of_stock(["Plats", "Salade composée"])
-            context.stock_cache.incrementer(["Plats", "Salade composée"])
-            is_out = context.stock_cache.is_out_of_stock(["Plats", "Salade composée"])
-            if was_out != is_out:
-                refresh_needed = True
-
-        if refresh_needed:
-            from ....frontend.boutons_menu import affichage_menu
-            affichage_menu(context, context.images_references if hasattr(context, "images_references") else [])
-
     # Recalculer le montant total
     commande_data["Informations"]["Montant"] = sum(
         plat["Prix"] for plat in commande_data["Commande"].values() if plat["Statut"] != "Annulé"
@@ -166,11 +120,7 @@ def annuler_plat(context, chemin_fichier, plat_id, affichage_commande_actuelle):
     # Vérifier si tous les plats sont annulés
     annuler_commande(chemin_fichier)
 
-    # Rafraîchir l'affichage
-    if affichage_commande_actuelle:
-        affichage_commande_actuelle(context)
-
-def annuler_all_plats(context, chemin_fichier, affichage_commande_actuelle):
+def annuler_all_plats(chemin_fichier):
     """
     Annule tous les plats dans la commande en cours.
     """
@@ -180,4 +130,4 @@ def annuler_all_plats(context, chemin_fichier, affichage_commande_actuelle):
     # Mettre à jour le statut de tous les plats
     for plat_id, plat in commande_data["Commande"].items():
         if plat["Statut"] == "En attente":
-            annuler_plat(context, chemin_fichier, plat_id, affichage_commande_actuelle)
+            annuler_plat(chemin_fichier, plat_id)
