@@ -272,7 +272,7 @@ class SaladeDialog(QDialog):
 
         self._warning_label.setVisible(False)
 
-        nom = f"Salade composée avec {', '.join(ingredients)}"
+        nom = f"Salade composée : {', '.join(ingredients)}"
 
         nb_viandes = sum(1 for n in ingredients if n in self._viande_btns)
         prix_final = self.prix + nb_viandes * SUPPLEMENT_VIANDE
