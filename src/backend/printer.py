@@ -40,7 +40,7 @@ def charger_logo(nom_image, taille=()):
     :return: PIL.Image.Image
     """
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Répertoire du fichier
-    chemin = os.path.abspath(os.path.join(BASE_DIR, '..', '..', 'assets', 'img', nom_image))
+    chemin = os.path.abspath(os.path.join(BASE_DIR, '..', '..', 'assets', 'imgs', nom_image))
     try:
         img = Image.open(chemin).convert("RGBA")
         if taille:
