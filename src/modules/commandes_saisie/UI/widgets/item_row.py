@@ -16,7 +16,7 @@ Date de création :
     2026.05.31
 
 Date de modification:
-    2026.06.03
+    2026.06.06
 """
 
 from typing import Dict
@@ -107,7 +107,7 @@ class ItemRow(QFrame):
         layout.addWidget(seq_label)
 
         # Dish name (stretch)
-        name = self.item_data.get("plat") or self.item_data.get("nom", "")
+        name = self.item_data.get("nom") or self.item_data.get("plat", "")
         details = QLabel(name)
         details.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         details.setStyleSheet(ITEM_LABEL_STYLE)
