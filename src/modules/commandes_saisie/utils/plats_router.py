@@ -16,7 +16,7 @@ Date de création :
     2026.05.31
 
 Date de modification:
-    2026.05.31
+    2026.06.06
 """
 
 import importlib
@@ -28,6 +28,7 @@ PLAT_HANDLERS = {
     "Grillade": "src.modules.plats.grillade.rooting",
     "Frites": "src.modules.plats.frites.rooting",
     "Salade composée": "src.modules.plats.salade_composee.rooting",
+    "Crêpe": "src.modules.plats.crepe.rooting",
 }
 
 
