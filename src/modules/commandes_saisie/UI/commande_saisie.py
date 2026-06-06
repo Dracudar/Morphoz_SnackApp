@@ -38,7 +38,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.backend.data_sources import get_draft_orders, get_menu_categories
-from src.backend.app_config import get_archive_folder_path
+from src.backend.app_config import get_archive_folder_path, get_logs_folder_path
 from src.modules.commandes_saisie.UI.widgets.bouton_menu import BoutonMenu
 from src.modules.commandes_saisie.UI.widgets.item_row import ItemRow, extract_seq
 from src.modules.commandes_saisie.UI.payment_dialog import PaymentDialog
@@ -435,9 +435,8 @@ class SaisieCommandeModule(QFrame):
 
         if result:
             # Get archive paths for saving
-            archive_path = get_archive_folder_path()
-            commandes_path = str(archive_path / "commandes")
-            logs_path = str(archive_path / "logs")
+            commandes_path = str(get_archive_folder_path())
+            logs_path = str(get_logs_folder_path())
 
             # Add result to order using MAJ_commande()
             MAJ_commande(commandes_path, logs_path, result)

@@ -18,7 +18,7 @@ Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.06
+    2026.06.07
 """
 
 from __future__ import annotations
@@ -34,6 +34,7 @@ from src.backend.app_config import (
     _load_json_file,
     _write_json_file,
     get_archive_folder_path,
+    get_archive_menu_file_path,
     get_command_root,
     get_menu_file_path,
     get_stock_file_path,
@@ -50,6 +51,16 @@ def get_card_data() -> Dict[str, Any]:
 def save_card_data(payload: Dict[str, Any]) -> bool:
     """Sauvegarde la carte snack dans le fichier JSON configuré. Retourne True si succès."""
     return _write_json_file(get_menu_file_path(), payload)
+
+
+def get_archive_card_data() -> Dict[str, Any]:
+    """Charge la carte archive depuis le fichier JSON configuré."""
+    return _load_json_file(get_archive_menu_file_path())
+
+
+def save_archive_card_data(payload: Dict[str, Any]) -> bool:
+    """Sauvegarde la carte archive dans le fichier JSON configuré. Retourne True si succès."""
+    return _write_json_file(get_archive_menu_file_path(), payload)
 
 
 # ── Stock ─────────────────────────────────────────────────────────────────────

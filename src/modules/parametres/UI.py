@@ -4,28 +4,32 @@
 parametres.py
 
 Description:
-    Interface Qt/PySide6 de gestion des paramètres de l'application.
+    Interface Qt/PySide6 de gestion des paramètres de l'application :
+    dossier data, configuration imprimante et options d'impression.
 
 Author :
     Dracudar
 
 Version:
-    1.0
+    2.0
 
 Date de création :
     2025.05.29
 
 Date de modification:
-    2026.06.03
+    2026.06.06
 """
 
 from __future__ import annotations
 
 from PySide6.QtCore import Signal, Qt
+from PySide6.QtGui import QIntValidator
 from PySide6.QtWidgets import (
+	QCheckBox,
 	QFileDialog,
 	QFrame,
 	QFormLayout,
+	QGroupBox,
 	QHBoxLayout,
 	QLabel,
 	QLineEdit,
@@ -34,11 +38,17 @@ from PySide6.QtWidgets import (
 	QVBoxLayout,
 )
 
-from src.backend.app_config import get_app_paths, get_default_app_paths, save_app_paths
+from src.backend.app_config import (
+	get_data_folder,
+	get_default_config,
+	get_printer_config,
+	get_print_options,
+	save_app_config,
+)
 
 
 class ParametresModule(QFrame):
-	"""Module de configuration des chemins de fichiers (stock, carte, archive)."""
+	"""Module de configuration : dossier data, imprimante et options d'impression."""
 
 	config_changed = Signal()
 
@@ -49,47 +59,84 @@ class ParametresModule(QFrame):
 		self.load_config()
 
 	def _build_ui(self):
-		"""Construit l'interface : formulaire de chemins avec boutons Parcourir et actions."""
+		"""Construit l'interface en trois sections : Données, Imprimante, Impression."""
 		self.setFrameShape(QFrame.Shape.StyledPanel)
 
 		main_layout = QVBoxLayout(self)
 		main_layout.setContentsMargins(14, 14, 14, 14)
-		main_layout.setSpacing(12)
+		main_layout.setSpacing(14)
 
-		title = QLabel("Parametres")
+		title = QLabel("Paramètres")
 		title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 		title.setObjectName("sectionTitle")
 		main_layout.addWidget(title)
 
-		description = QLabel(
-			"Selection des fichiers de travail utilises par l'application. "
-			"Le bouton enregistrer met a jour la configuration sans fermer l'application."
+		# ── Section Données ───────────────────────────────────────────────────
+		group_data = QGroupBox("Données")
+		group_data.setObjectName("paramGroup")
+		layout_data = QFormLayout(group_data)
+		layout_data.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+		layout_data.setHorizontalSpacing(12)
+		layout_data.setVerticalSpacing(10)
+
+		self.data_folder_field = QLineEdit()
+		layout_data.addRow("Dossier data", self._path_row(self.data_folder_field, self._browse_data_folder))
+
+		info = QLabel(
+			"Les fichiers stock.json, carte_active.json, carte_archive.json\n"
+			"et le sous-dossier commandes/ sont automatiquement créés si absents."
 		)
-		description.setWordWrap(True)
-		description.setStyleSheet("color: #d6d6d6; font-size: 14px;")
-		main_layout.addWidget(description)
+		info.setObjectName("paramInfo")
+		layout_data.addRow(info)
 
-		form = QFormLayout()
-		form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
-		form.setFormAlignment(Qt.AlignmentFlag.AlignTop)
-		form.setHorizontalSpacing(12)
-		form.setVerticalSpacing(10)
+		main_layout.addWidget(group_data)
 
-		self.stock_field = QLineEdit()
-		self.menu_field = QLineEdit()
-		self.archive_field = QLineEdit()
+		# ── Section Imprimante ────────────────────────────────────────────────
+		group_printer = QGroupBox("Imprimante thermique")
+		group_printer.setObjectName("paramGroup")
+		layout_printer = QFormLayout(group_printer)
+		layout_printer.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+		layout_printer.setHorizontalSpacing(12)
+		layout_printer.setVerticalSpacing(10)
 
-		form.addRow("Fichier stock", self._path_row(self.stock_field, self._browse_stock))
-		form.addRow("Fichier carte", self._path_row(self.menu_field, self._browse_menu))
-		form.addRow("Dossier archive", self._path_row(self.archive_field, self._browse_archive))
+		self.vendor_id_field = QLineEdit()
+		self.vendor_id_field.setPlaceholderText("ex. 0x04B8")
+		self.product_id_field = QLineEdit()
+		self.product_id_field.setPlaceholderText("ex. 0x0E15")
+		self.interface_field = QLineEdit()
+		self.interface_field.setValidator(QIntValidator(0, 9, self))
+		self.interface_field.setMaximumWidth(60)
+		self.interface_field.setPlaceholderText("0")
+		self.modele_field = QLineEdit()
+		self.modele_field.setPlaceholderText("ex. TM-T20II")
 
-		main_layout.addLayout(form)
+		layout_printer.addRow("Vendor ID", self.vendor_id_field)
+		layout_printer.addRow("Product ID", self.product_id_field)
+		layout_printer.addRow("Interface USB", self.interface_field)
+		layout_printer.addRow("Modèle / Profil", self.modele_field)
 
+		main_layout.addWidget(group_printer)
+
+		# ── Section Impression ────────────────────────────────────────────────
+		group_print = QGroupBox("Options d'impression")
+		group_print.setObjectName("paramGroup")
+		layout_print = QVBoxLayout(group_print)
+		layout_print.setSpacing(8)
+
+		self.ticket_client_check = QCheckBox("Imprimer le ticket client (récapitulatif)")
+		self.ticket_cuisine_check = QCheckBox("Imprimer le ticket cuisine")
+
+		layout_print.addWidget(self.ticket_client_check)
+		layout_print.addWidget(self.ticket_cuisine_check)
+
+		main_layout.addWidget(group_print)
+
+		# ── Boutons d'action ──────────────────────────────────────────────────
 		buttons_layout = QHBoxLayout()
 		buttons_layout.setSpacing(10)
 
 		self.reload_button = QPushButton("Recharger")
-		self.default_button = QPushButton("Valeurs par defaut")
+		self.default_button = QPushButton("Valeurs par défaut")
 		self.save_button = QPushButton("Enregistrer")
 
 		self.reload_button.clicked.connect(self.load_config)
@@ -103,7 +150,7 @@ class ParametresModule(QFrame):
 
 		self.status_label = QLabel("")
 		self.status_label.setWordWrap(True)
-		self.status_label.setStyleSheet("color: #a8d08d; font-size: 13px;")
+		self.status_label.setObjectName("paramStatus")
 		main_layout.addWidget(self.status_label)
 
 		main_layout.addStretch()
@@ -120,12 +167,51 @@ class ParametresModule(QFrame):
 				font-weight: 700;
 				padding: 4px;
 			}
+			QGroupBox#paramGroup {
+				color: #d6d6d6;
+				font-size: 15px;
+				font-weight: 600;
+				border: 1px solid #555a64;
+				border-radius: 7px;
+				margin-top: 8px;
+				padding: 10px 8px 8px 8px;
+			}
+			QGroupBox#paramGroup::title {
+				subcontrol-origin: margin;
+				subcontrol-position: top left;
+				padding: 0 6px;
+				left: 10px;
+			}
+			QLabel#paramInfo {
+				color: #9da5b4;
+				font-size: 12px;
+			}
+			QLabel#paramStatus {
+				color: #a8d08d;
+				font-size: 13px;
+			}
 			QLineEdit {
 				background-color: #3b3f46;
 				color: #f5f5f5;
 				border: 1px solid #676d79;
 				border-radius: 6px;
 				padding: 6px 8px;
+			}
+			QCheckBox {
+				color: #f5f5f5;
+				font-size: 14px;
+				spacing: 8px;
+			}
+			QCheckBox::indicator {
+				width: 16px;
+				height: 16px;
+				border-radius: 3px;
+				border: 1px solid #676d79;
+				background-color: #3b3f46;
+			}
+			QCheckBox::indicator:checked {
+				background-color: #5865f2;
+				border-color: #5865f2;
 			}
 			QPushButton {
 				background-color: #4f545e;
@@ -144,7 +230,7 @@ class ParametresModule(QFrame):
 		)
 
 	def _path_row(self, field: QLineEdit, callback):
-		"""Crée une ligne de formulaire composée d'un champ texte et d'un bouton Parcourir."""
+		"""Crée une ligne composée d'un champ texte et d'un bouton Parcourir."""
 		row = QHBoxLayout()
 		row.setSpacing(8)
 		row.addWidget(field, 1)
@@ -156,53 +242,78 @@ class ParametresModule(QFrame):
 		container.setLayout(row)
 		return container
 
-	def _browse_stock(self):
-		"""Ouvre un sélecteur de fichier JSON pour le fichier stock."""
-		path, _ = QFileDialog.getOpenFileName(self, "Choisir le fichier stock", self.stock_field.text(), "JSON (*.json)")
+	def _browse_data_folder(self):
+		"""Ouvre un sélecteur de dossier pour le dossier data."""
+		path = QFileDialog.getExistingDirectory(self, "Choisir le dossier data", self.data_folder_field.text())
 		if path:
-			self.stock_field.setText(path)
-
-	def _browse_menu(self):
-		"""Ouvre un sélecteur de fichier JSON pour le fichier carte."""
-		path, _ = QFileDialog.getOpenFileName(self, "Choisir le fichier carte", self.menu_field.text(), "JSON (*.json)")
-		if path:
-			self.menu_field.setText(path)
-
-	def _browse_archive(self):
-		"""Ouvre un sélecteur de dossier pour le répertoire d'archive."""
-		path = QFileDialog.getExistingDirectory(self, "Choisir le dossier archive", self.archive_field.text())
-		if path:
-			self.archive_field.setText(path)
+			self.data_folder_field.setText(path)
 
 	def load_config(self):
-		"""Charge la configuration actuelle depuis app_config et remplit les champs."""
-		paths = get_app_paths()
-		self.stock_field.setText(paths["stock_file"])
-		self.menu_field.setText(paths["menu_file"])
-		self.archive_field.setText(paths["archive_folder"])
-		self.status_label.setText("Configuration chargee.")
+		"""Charge la configuration actuelle et remplit tous les champs."""
+		self.data_folder_field.setText(str(get_data_folder()))
+
+		printer = get_printer_config()
+		self.vendor_id_field.setText(f"0x{printer['vendor_id']:04X}")
+		self.product_id_field.setText(f"0x{printer['product_id']:04X}")
+		self.interface_field.setText(str(printer["interface"]))
+		self.modele_field.setText(printer["modele"])
+
+		options = get_print_options()
+		self.ticket_client_check.setChecked(options["ticket_client"])
+		self.ticket_cuisine_check.setChecked(options["ticket_cuisine"])
+
+		self.status_label.setText("Configuration chargée.")
 
 	def reset_defaults(self):
 		"""Restaure les valeurs par défaut dans les champs sans sauvegarder."""
-		paths = get_default_app_paths()
-		self.stock_field.setText(paths["stock_file"])
-		self.menu_field.setText(paths["menu_file"])
-		self.archive_field.setText(paths["archive_folder"])
-		self.status_label.setText("Valeurs par defaut restaurees.")
+		defaults = get_default_config()
+
+		self.data_folder_field.setText(defaults["data_folder"])
+
+		printer = defaults["imprimante"]
+		self.vendor_id_field.setText(printer["vendor_id"])
+		self.product_id_field.setText(printer["product_id"])
+		self.interface_field.setText(str(printer["interface"]))
+		self.modele_field.setText(printer["modele"])
+
+		self.ticket_client_check.setChecked(defaults["impression"]["ticket_client"])
+		self.ticket_cuisine_check.setChecked(defaults["impression"]["ticket_cuisine"])
+
+		self.status_label.setText("Valeurs par défaut restaurées.")
 
 	def save_config(self):
-		"""Valide les chemins, sauvegarde la configuration et émet config_changed."""
-		stock_path = self.stock_field.text().strip()
-		menu_path = self.menu_field.text().strip()
-		archive_path = self.archive_field.text().strip()
+		"""Valide les champs, crée la structure de fichiers et sauvegarde la configuration."""
+		data_folder = self.data_folder_field.text().strip()
+		vendor_id = self.vendor_id_field.text().strip()
+		product_id = self.product_id_field.text().strip()
+		interface = int(self.interface_field.text() or "0")
+		modele = self.modele_field.text().strip()
 
-		if not stock_path or not menu_path or not archive_path:
-			QMessageBox.warning(self, "Parametres", "Tous les chemins doivent etre renseignes.")
+		if not modele:
+			QMessageBox.warning(self, "Paramètres", "Le modèle de l'imprimante doit être renseigné.")
 			return
 
-		if not save_app_paths(stock_path, menu_path, archive_path):
-			QMessageBox.critical(self, "Parametres", "Impossible d'enregistrer la configuration.")
+		# Validation basique du format hex pour vendor/product ID
+		for label, value in [("Vendor ID", vendor_id), ("Product ID", product_id)]:
+			try:
+				int(value, 16) if value.startswith(("0x", "0X")) else int(value)
+			except ValueError:
+				QMessageBox.warning(self, "Paramètres", f"{label} invalide : '{value}'.\nFormat attendu : 0x04B8 ou 1208.")
+				return
+
+		ok = save_app_config(
+			data_folder=data_folder,
+			vendor_id=vendor_id,
+			product_id=product_id,
+			interface=interface,
+			modele=modele,
+			ticket_client=self.ticket_client_check.isChecked(),
+			ticket_cuisine=self.ticket_cuisine_check.isChecked(),
+		)
+
+		if not ok:
+			QMessageBox.critical(self, "Paramètres", "Impossible d'enregistrer la configuration ou de créer le dossier data.")
 			return
 
-		self.status_label.setText("Configuration enregistree.")
+		self.status_label.setText("Configuration enregistrée. Structure de fichiers vérifiée.")
 		self.config_changed.emit()
