@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    2.0
+    2.1
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.03
+    2026.06.06
 """
 
 from __future__ import annotations
@@ -62,6 +62,23 @@ def get_stock_data() -> Dict[str, Any]:
 def save_stock_data(payload: Dict[str, Any]) -> bool:
     """Sauvegarde le stock dans le fichier JSON configuré. Retourne True si succès."""
     return _write_json_file(get_stock_file_path(), payload)
+
+
+_stock_cache_instance = None
+
+
+def get_stock_cache():
+    """Retourne l'instance singleton du cache de stock pour la session en cours.
+
+    Le cache est initialisé à partir du fichier JSON au premier appel, puis
+    partagé entre tous les modules. Les modifications ne sont persistées sur
+    disque que via cache.save() (appelé à la validation d'une commande).
+    """
+    global _stock_cache_instance
+    if _stock_cache_instance is None:
+        from src.modules.stock.cache import StockCache
+        _stock_cache_instance = StockCache(str(get_stock_file_path()))
+    return _stock_cache_instance
 
 
 # ── Catégories et icônes ──────────────────────────────────────────────────────

@@ -2,7 +2,7 @@
   "Plats": {
     "Pizza": {
       "Pâte à pizza": {
-        "Quantité": 200,
+        "Quantité": 180,
         "OutOfStock": false
       },
       "Bases": {
@@ -17,33 +17,34 @@
     "Grillades": {
       "Poitrine": {
         "Valeur": 1,
-        "Quantité": 200,
+        "Quantité": 100,
         "OutOfStock": false
       },
       "Chipolatta": {
         "Valeur": 1,
-        "Quantité": 200,
+        "Quantité": 100,
         "OutOfStock": false
       },
       "Merguez": {
         "Valeur": 1,
-        "Quantité": 200,
+        "Quantité": 100,
         "OutOfStock": false
       },
       "Steak vegé": {
         "Valeur": 2,
-        "Quantité": 100,
+        "Quantité": 50,
         "OutOfStock": false
       }
     },
-    "Fish & Chips": {
-      "Poisson panné": {
-        "Quantité": 0,
-        "OutOfStock": true
-      }
-    },
     "Salade composée": {
-      "OutOfStock": false
+      "Pâtes": {
+        "Farfalle": {
+          "OutOfStock": true
+        },
+        "Penne": {
+          "OutOfStock": false
+        }
+      }
     }
   },
   "Accompagnement": {
@@ -51,29 +52,24 @@
       "OutOfStock": false
     },
     "Légumes": {
-      "OutOfStock": false
+      "OutOfStock": true
     }
   },
   "Ingrédients": {
-    "Pâtes": {
-      "Farfalle": {
-        "OutOfStock": true
-      },
-      "Penne": {
-        "OutOfStock": false
-      }
-    },
     "Viande": {
-      "Poulet": {
+      "Jambon": {
         "OutOfStock": false
       },
       "Lardons": {
         "OutOfStock": false
       },
-      "Jambon": {
+      "Mélange de fruits de mer": {
+        "OutOfStock": true
+      },
+      "Poitrine de porc marinée aux épices": {
         "OutOfStock": false
       },
-      "Mélange de fruits de mer": {
+      "Poulet": {
         "OutOfStock": false
       }
     },
@@ -81,59 +77,51 @@
       "Mozzarella": {
         "OutOfStock": false
       },
-      "Parmesan": {
-        "OutOfStock": true
+      "Roquefort": {
+        "OutOfStock": false
+      },
+      "Chèvre": {
+        "OutOfStock": false
       },
       "Emmental": {
-        "OutOfStock": true
-      },
-      "Bleu": {
-        "OutOfStock": true
-      },
-      "Mélange de fromages": {
         "OutOfStock": false
       }
     },
-    "Légumes": {
-      "Oignons": {
-        "OutOfStock": false
-      },
-      "Poivrons": {
-        "OutOfStock": false
-      },
+    "Fruits et légumes": {
       "Champignons": {
+        "OutOfStock": false
+      },
+      "Bananes": {
         "OutOfStock": false
       },
       "Haricots rouges": {
         "OutOfStock": true
       },
       "Maïs": {
-        "OutOfStock": true
+        "OutOfStock": false
+      },
+      "Oignons": {
+        "OutOfStock": false
       },
       "Olives noires": {
+        "OutOfStock": false
+      },
+      "Poivrons": {
+        "OutOfStock": false
+      },
+      "Pommes de terre": {
+        "OutOfStock": false
+      },
+      "Tomates": {
         "OutOfStock": false
       },
       "Roquette": {
         "OutOfStock": false
       }
     },
-    "Sauces": {
-      "Ketchup": {
-        "OutOfStock": true
-      },
-      "Mayonnaise": {
-        "OutOfStock": true
-      },
-      "Sauce BBQ": {
-        "OutOfStock": true
-      },
-      "Sauce bernaise": {
-        "OutOfStock": true
-      }
-    },
     "Herbes": {
       "Basilic": {
-        "OutOfStock": true
+        "OutOfStock": false
       },
       "Ciboulette": {
         "OutOfStock": true
@@ -145,8 +133,39 @@
         "OutOfStock": true
       },
       "Origan": {
-        "OutOfStock": false
+        "OutOfStock": true
       }
+    }
+  },
+  "Condiments et épices": {
+    "Caramel": {
+      "OutOfStock": false
+    },
+    "Chocolat": {
+      "OutOfStock": false
+    },
+    "Miel": {
+      "OutOfStock": false
+    },
+    "Oignons frits": {
+      "OutOfStock": false
+    },
+    "Sucre": {
+      "OutOfStock": false
+    }
+  },
+  "Sauces": {
+    "Ketchup": {
+      "OutOfStock": true
+    },
+    "Mayonnaise": {
+      "OutOfStock": true
+    },
+    "Sauce BBQ": {
+      "OutOfStock": true
+    },
+    "Sauce bernaise": {
+      "OutOfStock": true
     }
   }
 }

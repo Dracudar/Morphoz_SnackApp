@@ -10,7 +10,7 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.3
 
 Date de création :
     2026.05.31
@@ -23,7 +23,7 @@ from typing import Dict, Optional
 
 from PySide6.QtWidgets import QApplication, QDialog
 
-from src.backend.data_sources import get_card_data, get_stock_data
+from src.backend.data_sources import get_card_data, get_stock_cache
 from src.modules.plats.grillade.grillade_dialog import GrilladeDialog
 
 
@@ -38,19 +38,25 @@ def route_selection(context, command_path: str) -> Optional[Dict]:
         Dict du plat (clés : Plat, Nom, Prix, Statut, Composition),
         ou None si l'utilisateur annule.
     """
+    cache = get_stock_cache()
     card_data = get_card_data()
-    stock_data = get_stock_data()
+    stock_data = cache.data
 
     prix = card_data.get("Grillade", {}).get("Prix", 6.5)
     grillades_stock = _get_available_grillades(stock_data)
+    frites_disponibles = not stock_data.get("Accompagnement", {}).get("Frites", {}).get("OutOfStock", False)
 
     if not grillades_stock:
         return None
 
     parent = QApplication.activeWindow()
-    dialog = GrilladeDialog(prix, grillades_stock, parent=parent)
+    dialog = GrilladeDialog(prix, grillades_stock, frites_disponibles, parent=parent)
 
     if dialog.exec() == QDialog.DialogCode.Accepted:
+        # TODO : décrémenter les frites si accompagnement = "Frites" quand
+        # celles-ci auront un suivi de stock au poids
+        for viande, qte in dialog.result_data["Composition"]["Viandes"].items():
+            cache.decrementer(["Plats", "Grillades", viande], qte)
         return dialog.result_data
     return None
 

@@ -10,20 +10,20 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.3
 
 Date de création :
     2026.05.31
 
 Date de modification:
-    2026.06.05
+    2026.06.06
 """
 
 from typing import Dict, List, Optional
 
 from PySide6.QtWidgets import QApplication, QDialog
 
-from src.backend.data_sources import get_card_data, get_stock_data
+from src.backend.data_sources import get_card_data, get_stock_cache
 from src.modules.plats.pizza.pizza_dialog import PizzaDialog
 
 
@@ -38,8 +38,9 @@ def route_selection(context, command_path: str) -> Optional[Dict]:
         Dict du plat (clés : Plat, Recette, Nom, Prix, Statut, Composition),
         ou None si l'utilisateur annule.
     """
+    cache = get_stock_cache()
     card_data = get_card_data()
-    stock_data = get_stock_data()
+    stock_data = cache.data
 
     recettes = card_data.get("Pizza", {}).get("Recettes", {})
     if not recettes:
@@ -52,6 +53,9 @@ def route_selection(context, command_path: str) -> Optional[Dict]:
     dialog = PizzaDialog(recettes, bases, stock_ingredients, parent=parent)
 
     if dialog.exec() == QDialog.DialogCode.Accepted:
+        # TODO : décrémenter les ingrédients (Viande, Fromage, Légumes…) quand
+        # ceux-ci auront une Quantité dans le stock (actuellement OutOfStock seul)
+        cache.decrementer(["Plats", "Pizza", "Pâte à pizza"])
         return dialog.result_data
     return None
 
@@ -70,19 +74,33 @@ def _get_available_bases(stock_data: Dict) -> List[str]:
 
 
 def _get_available_ingredients(stock_data: Dict) -> Dict[str, List[str]]:
-    """Retourne les ingrédients disponibles par catégorie (sans Pâtes, sans hors-stock)."""
-    ingr_dict = stock_data.get("Ingrédients", {})
-    if not isinstance(ingr_dict, dict):
-        return {}
+    """Retourne les ingrédients disponibles par catégorie pour la pizza (sans hors-stock).
 
+    Combine les ingrédients communs (Ingrédients) et les condiments/épices.
+    """
     result = {}
-    for cat, items in ingr_dict.items():
-        if cat == "Pâtes" or not isinstance(items, dict):
-            continue
-        available = [
-            name for name, data in items.items()
+
+    def _disponibles(items_dict):
+        return [
+            name for name, data in items_dict.items()
             if isinstance(data, dict) and not data.get("OutOfStock", False)
         ]
-        if available:
-            result[cat] = available
+
+    # Ingrédients communs (Viande, Fromage, Fruits et légumes, Herbes…)
+    ingr_dict = stock_data.get("Ingrédients", {})
+    if isinstance(ingr_dict, dict):
+        for cat, items in ingr_dict.items():
+            if not isinstance(items, dict):
+                continue
+            disponibles = _disponibles(items)
+            if disponibles:
+                result[cat] = disponibles
+
+    # Condiments et épices
+    condiments = stock_data.get("Condiments et épices", {})
+    if isinstance(condiments, dict):
+        disponibles = _disponibles(condiments)
+        if disponibles:
+            result["Condiments et épices"] = disponibles
+
     return result

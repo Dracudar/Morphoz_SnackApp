@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.2
 
 Date de création :
     2026.06.02
 
 Date de modification:
-    2026.06.04
+    2026.06.06
 """
 
 import os
@@ -24,6 +24,7 @@ import json
 from datetime import datetime
 from ....backend.commandes_utils import charger_fichier_commande
 from ....backend.printer import print_ticket_recap, print_ticket_cuisine
+from ....backend.data_sources import get_stock_cache
 
 def valider_commande(chemin_fichier):
     """
@@ -59,6 +60,9 @@ def valider_commande(chemin_fichier):
     with open(chemin_fichier, "w", encoding="utf-8") as fichier:
         json.dump(commande, fichier, indent=4, ensure_ascii=False)
 
+    # Persister le cache de stock : les décrémentations de la commande sont confirmées
+    get_stock_cache().save()
+
     # Déplacer le fichier
     dossier_en_cours = os.path.join(os.path.dirname(chemin_fichier), "en_cours")
     os.makedirs(dossier_en_cours, exist_ok=True)
@@ -89,6 +93,19 @@ def annuler_commande(chemin_fichier):
         os.makedirs(dossier_annulee, exist_ok=True)
         os.rename(chemin_fichier, os.path.join(dossier_annulee, os.path.basename(chemin_fichier)))
 
+def _restaurer_stock_plat(plat):
+    """Restitue dans le cache les quantités consommées par un plat annulé."""
+    cache = get_stock_cache()
+    plat_type = plat.get("Plat", "")
+    composition = plat.get("Composition", {})
+
+    if plat_type == "Pizza":
+        cache.incrementer(["Plats", "Pizza", "Pâte à pizza"])
+    elif plat_type == "Grillade":
+        for viande, qte in composition.get("Viandes", {}).items():
+            cache.incrementer(["Plats", "Grillades", viande], qte)
+
+
 def annuler_plat(chemin_fichier, plat_id):
     """
     Annule un plat dans la commande en cours.
@@ -105,14 +122,20 @@ def annuler_plat(chemin_fichier, plat_id):
     if plat_key is None:
         return
 
+    plat = commande_data["Commande"][plat_key]
+
+    # Restaurer le stock uniquement si le plat était encore en attente (non validé)
+    if plat["Statut"] == "En attente":
+        _restaurer_stock_plat(plat)
+
     # Mettre à jour le statut du plat
-    commande_data["Commande"][plat_key]["Statut"] = "Annulé"
+    plat["Statut"] = "Annulé"
 
     # Recalculer le montant total
     commande_data["Informations"]["Montant"] = sum(
-        plat["Prix"] for plat in commande_data["Commande"].values() if plat["Statut"] != "Annulé"
+        p["Prix"] for p in commande_data["Commande"].values() if p["Statut"] != "Annulé"
     )
-    
+
     # Sauvegarder les modifications
     with open(chemin_fichier, "w", encoding="utf-8") as f:
         json.dump(commande_data, f, indent=4, ensure_ascii=False)

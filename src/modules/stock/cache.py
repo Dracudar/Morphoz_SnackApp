@@ -16,7 +16,7 @@ Date de création :
     2025.06.17
 
 Date de modification:
-    2026.06.03
+    2026.06.06
 """
 
 import copy
@@ -109,3 +109,8 @@ class StockCache:
         for key in chemin:
             ref = ref[key]
         return ref.get("OutOfStock", False)
+
+    @property
+    def data(self):
+        """Retourne le dict de stock en mémoire (lecture directe, non copié)."""
+        return self._stock_cache

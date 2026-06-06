@@ -12,7 +12,7 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.2
 
 Date de création :
     2026.06.06
@@ -144,6 +144,7 @@ class GrilladeDialog(QDialog):
         self,
         prix: float,
         grillades_stock: Dict[str, Dict],
+        frites_disponibles: bool = True,
         parent=None,
     ):
         """
@@ -151,11 +152,13 @@ class GrilladeDialog(QDialog):
             prix: Prix de la grillade depuis la carte active.
             grillades_stock: Dict des viandes disponibles avec leur Valeur et Quantité.
                              Ex: {"Poitrine": {"Valeur": 1, "Quantité": 200, "OutOfStock": false}}
+            frites_disponibles: False si les frites sont hors stock (option accompagnement désactivée).
             parent: Widget parent Qt.
         """
         super().__init__(parent)
         self.prix = prix
         self.grillades_stock = grillades_stock
+        self.frites_disponibles = frites_disponibles
         self.result_data: Optional[Dict] = None
 
         # Quantités sélectionnées par viande {nom: int}
@@ -165,7 +168,7 @@ class GrilladeDialog(QDialog):
         self._btn_plus: Dict[str, QPushButton] = {}
         self._btn_moins: Dict[str, QPushButton] = {}
 
-        self._accompagnement: str = "Frites"
+        self._accompagnement: str = "Frites" if frites_disponibles else "Sans"
         self._accomp_btns: Dict[str, QPushButton] = {}
 
         self._warning_label: Optional[QLabel] = None
@@ -318,8 +321,12 @@ class GrilladeDialog(QDialog):
             btn = QPushButton(choix)
             btn.setStyleSheet(_ACCOMP_BTN_STYLE)
             btn.setCheckable(True)
-            btn.setChecked(choix == "Frites")
-            btn.clicked.connect(lambda _, c=choix: self._select_accompagnement(c))
+            btn.setChecked(choix == self._accompagnement)
+            if choix == "Frites" and not self.frites_disponibles:
+                btn.setEnabled(False)
+                btn.setToolTip("Hors stock")
+            else:
+                btn.clicked.connect(lambda _, c=choix: self._select_accompagnement(c))
             group.addButton(btn)
             layout.addWidget(btn)
             self._accomp_btns[choix] = btn
