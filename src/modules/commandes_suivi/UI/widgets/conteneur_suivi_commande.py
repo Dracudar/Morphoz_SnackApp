@@ -12,7 +12,7 @@ Author :
     Dracudar
 
 Version:
-    1.2
+    1.3
 
 Date de création :
     2026.05.18
@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 	QFrame,
 	QHBoxLayout,
 	QLabel,
+	QPushButton,
 	QScrollArea,
 	QVBoxLayout,
 	QWidget,
@@ -64,6 +65,7 @@ class ConteneurSuiviCommande(QFrame):
 	def __init__(self, parent=None):
 		super().__init__(parent)
 		self.setObjectName("suiviContainer")
+		self._expanded_orders: set[str] = set()
 		self._build_ui()
 		self._build_timer()
 		self.refresh_orders()
@@ -148,17 +150,27 @@ class ConteneurSuiviCommande(QFrame):
 
 	def _add_order_card(self, order: dict):
 		"""Crée et insère le bloc d'une commande avec ses sous-conteneurs de plats."""
+		order_id = order.get("id", "")
+		is_collapsed = order_id not in self._expanded_orders
+
 		card = QFrame()
 		card.setObjectName("commandeCard")
 		card_layout = QVBoxLayout(card)
 		card_layout.setContentsMargins(8, 8, 8, 8)
 		card_layout.setSpacing(6)
 
-		card_layout.addWidget(self._build_card_header(order))
+		plats_container = QWidget()
+		plats_layout = QVBoxLayout(plats_container)
+		plats_layout.setContentsMargins(0, 0, 0, 0)
+		plats_layout.setSpacing(6)
 
 		visible_items = order.get("items", [])
 		for item in visible_items:
-			card_layout.addWidget(self._build_plat_subcard(item))
+			plats_layout.addWidget(self._build_plat_subcard(item))
+
+		card_layout.addWidget(self._build_card_header(order, plats_container, is_collapsed))
+		card_layout.addWidget(plats_container)
+		plats_container.setVisible(not is_collapsed)
 
 		card.setStyleSheet(
 			f"""
@@ -172,8 +184,8 @@ class ConteneurSuiviCommande(QFrame):
 
 		self.list_layout.insertWidget(self.list_layout.count() - 1, card)
 
-	def _build_card_header(self, order: dict) -> QFrame:
-		"""Construit le bandeau d'en-tête avec l'ID de commande et le nombre de plats."""
+	def _build_card_header(self, order: dict, plats_container: QWidget, is_collapsed: bool) -> QFrame:
+		"""Construit le bandeau d'en-tête avec l'ID de commande, le nombre de plats et le bouton de réduction."""
 		header = QFrame()
 		header.setObjectName("commandeCardHeader")
 		header_layout = QHBoxLayout(header)
@@ -181,6 +193,17 @@ class ConteneurSuiviCommande(QFrame):
 		header_layout.setSpacing(8)
 
 		order_id = order.get("id", "")
+
+		toggle_btn = QPushButton("▶" if is_collapsed else "▼")
+		toggle_btn.setFixedSize(20, 20)
+		toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+		toggle_btn.setStyleSheet(
+			f"QPushButton {{ color: {_TEXT_CARD_CNT}; background: transparent; border: none; font-size: 11px; }}"
+			f"QPushButton:hover {{ color: {_TEXT_CARD_ID}; }}"
+		)
+		toggle_btn.clicked.connect(lambda: self._toggle_order(order_id, plats_container, toggle_btn))
+		header_layout.addWidget(toggle_btn)
+
 		id_label = QLabel(f"Commande {order_id}")
 		id_label.setStyleSheet(
 			f"color: {_TEXT_CARD_ID}; font-size: 14px; font-weight: 700;"
@@ -197,6 +220,17 @@ class ConteneurSuiviCommande(QFrame):
 		header_layout.addWidget(count_label)
 
 		return header
+
+	def _toggle_order(self, order_id: str, plats_container: QWidget, toggle_btn: QPushButton):
+		"""Bascule l'état replié/déplié d'une commande et met à jour l'affichage."""
+		if order_id in self._expanded_orders:
+			self._expanded_orders.discard(order_id)
+			plats_container.setVisible(False)
+			toggle_btn.setText("▶")
+		else:
+			self._expanded_orders.add(order_id)
+			plats_container.setVisible(True)
+			toggle_btn.setText("▼")
 
 	def _build_plat_subcard(self, item: dict) -> QFrame:
 		"""Construit un sous-conteneur pour un plat avec son ID réduit et son badge de statut."""
