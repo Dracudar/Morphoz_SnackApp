@@ -16,7 +16,7 @@ Date de création :
     2026.05.31
 
 Date de modification:
-    2026.06.06
+    2026.06.07
 """
 
 from typing import Dict
@@ -41,7 +41,7 @@ CANCEL_BUTTON_STYLE = """
 """
 
 ITEM_ROW_STYLE = """
-    QFrame {
+    QFrame#itemRow {
         background-color: #3b3f46;
         border: 1px solid #60646c;
         border-radius: 4px;
@@ -125,5 +125,6 @@ class ItemRow(QFrame):
         price_label.setStyleSheet(ITEM_LABEL_STYLE)
         layout.addWidget(price_label)
 
+        self.setObjectName("itemRow")
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setStyleSheet(ITEM_ROW_STYLE)
