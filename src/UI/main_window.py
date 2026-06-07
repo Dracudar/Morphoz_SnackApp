@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    2.0
+    2.1
 
 Date de création :
     2026.05.12
 
 Date de modification:
-    2026.05.26
+    2026.06.08
 """
 
 # Importation des modules nécessaires
@@ -97,7 +97,13 @@ class MainWindow(QMainWindow):
             lambda: self.interface_widget.set_left_page("parametres")
         )
 
+        self.poste_prep_action = QAction("Poste de préparation", self)
+        self.poste_prep_action.triggered.connect(
+            lambda: self.interface_widget.set_left_page("poste_preparation")
+        )
+
         view_menu.addAction(self.saisie_action)
+        view_menu.addAction(self.poste_prep_action)
         view_menu.addSeparator()
         view_menu.addAction(self.carte_action)
         view_menu.addAction(self.stock_action)

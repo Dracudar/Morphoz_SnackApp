@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    2.1
+    2.2
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.06
+    2026.06.08
 """
 
 from __future__ import annotations
@@ -300,6 +300,60 @@ def get_live_orders() -> List[Dict[str, Any]]:
         )
 
     return orders
+
+
+def get_live_orders_prep() -> List[Dict[str, Any]]:
+    """Charge les plats actifs des commandes en cours, pour le poste de préparation.
+
+    Retourne une liste plate (un dict par plat) avec composition complète, triée par ID de
+    commande puis par ID de plat. Exclut les plats au statut Annulé et Livré.
+    """
+    root_folder = get_command_root()
+    if root_folder is None:
+        return []
+
+    live_folder = None
+    for folder_name in ("en_cours", "en-cours"):
+        candidate = root_folder / folder_name
+        if candidate.exists():
+            live_folder = candidate
+            break
+
+    if live_folder is None:
+        return []
+
+    plats: List[Dict[str, Any]] = []
+    for order_file in sorted(live_folder.glob("commande_*.json")):
+        payload = _load_json_file(order_file)
+        infos = payload.get("Informations", {})
+        if not isinstance(infos, dict):
+            infos = {}
+        order_id = infos.get("ID", order_file.stem.replace("commande_", ""))
+        command_lines = payload.get("Commande", {})
+        if not isinstance(command_lines, dict):
+            continue
+
+        for line_key in sorted(command_lines.keys()):
+            line_data = command_lines.get(line_key, {})
+            if not isinstance(line_data, dict):
+                continue
+
+            status = str(line_data.get("Statut", "")).strip() or "Inconnu"
+            if status.lower() in ("annulé", "livré"):
+                continue
+
+            plats.append({
+                "order_id": order_id,
+                "file": order_file,
+                "id": line_data.get("ID", line_key),
+                "plat": line_data.get("Plat", ""),
+                "nom": line_data.get("Nom", ""),
+                "status": status,
+                "composition": line_data.get("Composition", {}),
+                "prix": line_data.get("Prix"),
+            })
+
+    return plats
 
 
 def get_completed_orders() -> List[Dict[str, Any]]:

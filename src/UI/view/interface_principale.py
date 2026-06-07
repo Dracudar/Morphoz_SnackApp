@@ -27,6 +27,7 @@ _PAGES_MODE_SPLIT = frozenset({"saisie"})
 
 from src.modules.carte.UI import CarteModule
 from src.modules.commandes_historique.UI import CommandesHistoriqueModule
+from src.modules.commandes_poste_preparation.UI.poste_preparation import PostePreparationModule
 from src.modules.commandes_saisie.UI.commande_saisie import SaisieCommandeModule
 from src.modules.commandes_suivi.UI.UI import SuiviCommandesModule
 from src.modules.parametres.UI import ParametresModule
@@ -82,12 +83,14 @@ class InterfacePrincipaleWidget(QWidget):
         self.page_carte = CarteModule()
         self.page_historique = CommandesHistoriqueModule()
         self.page_parametres = ParametresModule()
+        self.page_poste_prep = PostePreparationModule()
 
         self.left_stack.addWidget(self.page_saisie)
         self.left_stack.addWidget(self.page_stock)
         self.left_stack.addWidget(self.page_carte)
         self.left_stack.addWidget(self.page_historique)
         self.left_stack.addWidget(self.page_parametres)
+        self.left_stack.addWidget(self.page_poste_prep)
 
         self.suivi_module = SuiviCommandesModule()
 
@@ -110,6 +113,7 @@ class InterfacePrincipaleWidget(QWidget):
             "carte": self.page_carte,
             "historique": self.page_historique,
             "parametres": self.page_parametres,
+            "poste_preparation": self.page_poste_prep,
         }
         widget = pages.get(page_name)
         if widget is not None:
@@ -123,6 +127,7 @@ class InterfacePrincipaleWidget(QWidget):
         self.page_stock.reload_from_disk()
         self.page_carte.reload_from_disk()
         self.page_historique.refresh_orders()
+        self.page_poste_prep.refresh()
         self.suivi_module.tracker.refresh_orders()
 
     def _refresh_page(self, widget):
