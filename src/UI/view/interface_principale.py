@@ -25,7 +25,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QStackedWidget, QVBox
 from src.modules.carte.UI import CarteModule
 from src.modules.commandes_historique.UI import CommandesHistoriqueModule
 from src.modules.commandes_saisie.UI.commande_saisie import SaisieCommandeModule
-from src.modules.commandes_suivi.UI.commandes_suivi import SuiviCommandesModule
+from src.modules.commandes_suivi.UI.UI import SuiviCommandesModule
 from src.modules.parametres.UI import ParametresModule
 from src.modules.stock.UI import StockModule
 
