@@ -16,7 +16,7 @@ Date de création :
     2026.06.02
 
 Date de modification:
-    2026.06.06
+    2026.06.07
 """
 
 import os
@@ -79,6 +79,16 @@ def creer_dict_plat(plat_id, plat):
     else:
         return base_dict
 
+def _sort_key_plat(id_type: str) -> tuple:
+    """Retourne (lettre, numéro) pour trier les plats comme à l'affichage. Ex: 'P030' → ('P', 30)."""
+    if id_type and len(id_type) > 1 and id_type[0].isalpha():
+        try:
+            return (id_type[0], int(id_type[1:]))
+        except ValueError:
+            pass
+    return ("", 0)
+
+
 def MAJ_commande(commandes_path, logs_path, plat):
     """
     Ajoute un plat à une commande existante ou crée une nouvelle commande.
@@ -109,6 +119,11 @@ def MAJ_commande(commandes_path, logs_path, plat):
 
         commande["Informations"]["Montant"] = sum(
             p["Prix"] for p in commande["Commande"].values() if p["Statut"] != "Annulé"
+        )
+
+        # Trier les plats par type alphabétique puis numéro croissant (ex: B001 < G001 < P001)
+        commande["Commande"] = dict(
+            sorted(commande["Commande"].items(), key=lambda kv: _sort_key_plat(kv[0]))
         )
 
         with open(chemin_fichier, "w", encoding="utf-8") as fichier:
