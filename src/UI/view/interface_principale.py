@@ -10,17 +10,20 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.03
+    2026.06.08
 """
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QStackedWidget, QVBoxLayout, QWidget
+
+# Pages affichées en mode split (saisie + suivi côte à côte) ; toutes les autres passent en plein écran.
+_PAGES_MODE_SPLIT = frozenset({"saisie"})
 
 from src.modules.carte.UI import CarteModule
 from src.modules.commandes_historique.UI import CommandesHistoriqueModule
@@ -95,7 +98,9 @@ class InterfacePrincipaleWidget(QWidget):
         root_layout.addWidget(self.suivi_module, 1)
 
     def set_left_page(self, page_name: str):
-        """Affiche la page demandée dans le stack gauche et la rafraîchit.
+        """Affiche la page demandée dans le stack gauche et adapte le mode d'affichage.
+
+        Mode split (saisie + suivi côte à côte) pour « saisie », plein écran pour toutes les autres pages.
 
         :param page_name: Identifiant de la page (« saisie », « stock », « carte », « historique », « parametres »).
         """
@@ -110,6 +115,7 @@ class InterfacePrincipaleWidget(QWidget):
         if widget is not None:
             self.left_stack.setCurrentWidget(widget)
             self._refresh_page(widget)
+            self.suivi_module.setVisible(page_name in _PAGES_MODE_SPLIT)
 
     def refresh_all_pages(self):
         """Rafraîchit toutes les pages et le suivi (appelé sur changement de config ou de commande)."""
