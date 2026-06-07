@@ -40,7 +40,7 @@ from PySide6.QtWidgets import (
 from src.backend.data_sources import get_draft_orders, get_menu_categories
 from src.backend.app_config import get_archive_folder_path, get_logs_folder_path
 from src.modules.commandes_saisie.UI.widgets.bouton_menu import BoutonMenu
-from src.modules.commandes_saisie.UI.widgets.item_row import ItemRow, extract_seq
+from src.modules.commandes_saisie.UI.widgets.item_row import ItemRow, extract_plat_sort_key
 from src.modules.commandes_saisie.UI.payment_dialog import PaymentDialog
 from src.modules.commandes_saisie.utils.plats_router import route_plat_selection
 from src.modules.commandes_saisie.backend.saver import MAJ_commande
@@ -286,7 +286,7 @@ class SaisieCommandeModule(QFrame):
                 widget.deleteLater()
 
         # Add ItemRow for each item, sorted by sequence number
-        items = sorted(order.get("items", []), key=lambda x: extract_seq(x.get("id", "")))
+        items = sorted(order.get("items", []), key=lambda x: extract_plat_sort_key(x.get("id", "")))
         for item_data in items:
             row = ItemRow(item_data["id"], item_data)
             row.item_cancelled.connect(self._handle_item_cancel)

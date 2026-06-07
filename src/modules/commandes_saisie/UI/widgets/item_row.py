@@ -10,7 +10,7 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    2.0
 
 Date de création :
     2026.05.31
@@ -55,25 +55,30 @@ ITEM_LABEL_STYLE = """
     padding: 0 4px;
 """
 
-SEQ_LABEL_STYLE = """
-    color: #a0a4ab;
-    font-size: 12px;
-    font-weight: 600;
+ID_TYPE_LABEL_STYLE = """
+    color: #f0b429;
+    font-size: 14px;
+    font-weight: 700;
     padding: 0 4px;
 """
 
 
-def extract_seq(item_id: str) -> int:
-    """Extrait le numéro de séquence depuis un ID de plat (ex: '20260603-001-02' → 2)."""
-    part = item_id.split("-")[-1] if "-" in item_id else item_id.lstrip("#")
-    try:
-        return int(part)
-    except ValueError:
-        return 0
+def extract_plat_sort_key(item_id: str) -> tuple:
+    """
+    Retourne (type_prefix, numero) pour trier par type alphabétique puis numéro croissant.
+    Ex: '20260606-007-P030' → ('P', 30),  '20260606-007-G001' → ('G', 1)
+    """
+    part = item_id.split("-")[-1] if "-" in item_id else item_id
+    if part and len(part) > 1 and part[0].isalpha():
+        try:
+            return (part[0], int(part[1:]))
+        except ValueError:
+            pass
+    return ("", 0)
 
 
 class ItemRow(QFrame):
-    """Ligne d'article : [Annuler ✕] [#N] [Nom du plat] [Prix]"""
+    """Ligne d'article : [Annuler ✕] [X000] [Nom du plat] [Prix]"""
 
     item_cancelled = Signal(str)  # Emits item_id
 
@@ -84,7 +89,7 @@ class ItemRow(QFrame):
         self._build_ui()
 
     def _build_ui(self):
-        """Construit la ligne : [Annuler] [#N] [Plat] [Prix]"""
+        """Construit la ligne : [Annuler] [X000] [Plat] [Prix]"""
         self.setFixedHeight(ROW_HEIGHT)
 
         layout = QHBoxLayout(self)
@@ -98,13 +103,14 @@ class ItemRow(QFrame):
         cancel_btn.clicked.connect(lambda: self.item_cancelled.emit(self.item_id))
         layout.addWidget(cancel_btn)
 
-        # Sequence number (#N)
-        seq = extract_seq(self.item_data.get("id", ""))
-        seq_label = QLabel(f"#{seq}")
-        seq_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignCenter)
-        seq_label.setFixedWidth(28)
-        seq_label.setStyleSheet(SEQ_LABEL_STYLE)
-        layout.addWidget(seq_label)
+        # Identifiant de type journalier (P030, G001…) extrait depuis l'ID complet
+        full_id = self.item_data.get("id", "")
+        id_type = full_id.split("-")[-1] if "-" in full_id else ""
+        id_type_label = QLabel(id_type or "—")
+        id_type_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignCenter)
+        id_type_label.setFixedWidth(52)
+        id_type_label.setStyleSheet(ID_TYPE_LABEL_STYLE)
+        layout.addWidget(id_type_label)
 
         # Dish name (stretch)
         name = self.item_data.get("nom") or self.item_data.get("plat", "")

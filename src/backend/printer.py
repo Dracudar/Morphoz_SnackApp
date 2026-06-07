@@ -16,7 +16,7 @@ Date de création :
     2025.06.04
 
 Date de modification:
-    2026.06.06
+    2026.06.07
 """
 
 import os
@@ -131,6 +131,10 @@ def print_ticket_recap(chemin_fichier):
                     for ingredient in plat['Composition']['Ingrédients']:
                         p.text(f"  - {ingredient}\n")
 
+                elif plat["Plat"] == "Crêpe":
+                    p.text(f"{plat_id} - {plat['Nom']}\n")
+                    p.text(f"Prix : {plat['Prix']} €\n")
+
                 elif plat["Plat"] == "Pizza dessert":
                     p.text(f"{plat_id} - {plat['Plat']}\n")
                     p.text(f"Prix : {plat['Prix']} €\n")
@@ -224,6 +228,10 @@ def print_ticket_cuisine(chemin_fichier):
                     p.text("Composition :\n")
                     for ingredient in plat['Composition']['Ingrédients']:
                         p.text(f"  - {ingredient}\n")
+
+                elif plat["Plat"] == "Crêpe":
+                    p.text(f"{plat['Nom']}\n")
+                    p.text("\n" * 3)
 
                 elif plat["Plat"] == "Pizza dessert":
                     p.text(f"{plat['Plat']}\n")

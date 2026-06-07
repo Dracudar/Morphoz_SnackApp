@@ -10,20 +10,24 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    3.0
 
 Date de création :
     2026.06.02
 
 Date de modification:
-    2026.06.03
+    2026.06.06
 """
 
 import os
 import json
 from datetime import datetime
 from collections import OrderedDict
-from src.backend.commandes_utils import charger_fichier_commande
+from src.backend.commandes_utils import (
+    charger_fichier_commande,
+    generer_ID_commande,
+    generer_ID_plat,
+)
 
 
 def initialiser_dossiers_commandes(commandes_path, logs_path):
@@ -42,40 +46,12 @@ def initialiser_dossiers_commandes(commandes_path, logs_path):
     os.makedirs(os.path.join(commandes_path, "corrompu"), exist_ok=True)
 
 
-def ID_generator(logs_path, commandes_path):
-    """
-    Génère un identifiant unique pour une commande au format aaaammjj-000.
-
-    :param logs_path: Chemin vers le dossier des logs.
-    :param commandes_path: Chemin vers le dossier des commandes.
-    :return: Identifiant unique de la commande.
-    """
-    date_actuelle = datetime.now().strftime("%Y%m%d")  # aaaammjj
-    log_file = os.path.join(logs_path, "dernier_id.json")
-
-    # Vérifier si le fichier de log existe
-    if os.path.exists(log_file):
-        with open(log_file, "r", encoding="utf-8") as fichier:
-            dernier_id = json.load(fichier).get(date_actuelle, 0)
-    else:
-        dernier_id = 0
-
-    # Incrémenter l'identifiant
-    nouvel_id = dernier_id + 1
-
-    # Mettre à jour le fichier de log
-    with open(log_file, "w", encoding="utf-8") as fichier:
-        json.dump({date_actuelle: nouvel_id}, fichier, indent=4)
-
-    # Retourner l'identifiant au format aaaammjj-000
-    return f"{date_actuelle}-{nouvel_id:03d}"
-
-
 # === Gestion des fichiers de commandes === #
 def creer_dict_plat(plat_id, plat):
     """
-    Crée un dictionnaire représentant un plat, avec le champ 'Recette' inséré
-    entre 'Plat' et 'Nom' si le plat est une pizza.
+    Crée un dictionnaire représentant un plat.
+    L'identifiant plat_id est au format aaaammjj-000-X000 (ex: 20260606-007-P030).
+    Le champ 'Recette' est inséré après 'Plat' pour les pizzas.
     """
     base_dict = {
         "ID": plat_id,
@@ -106,65 +82,59 @@ def creer_dict_plat(plat_id, plat):
 def MAJ_commande(commandes_path, logs_path, plat):
     """
     Ajoute un plat à une commande existante ou crée une nouvelle commande.
+    L'identifiant du plat est construit en combinant l'ID de commande et
+    l'identifiant journalier de type (ex: 20260606-007-P030).
 
     :param commandes_path: Chemin vers le dossier des commandes.
     :param logs_path: Chemin vers le dossier des logs.
     :param plat: Dictionnaire contenant les informations du plat à ajouter.
     """
-    # Initialiser les dossiers si nécessaire
     initialiser_dossiers_commandes(commandes_path, logs_path)
 
-    # Search for existing draft orders in the root commandes folder
     fichiers_commandes = [
         f for f in os.listdir(commandes_path) if f.startswith("commande_") and f.endswith(".json")
     ]
 
     if fichiers_commandes:
-        # Charger le dernier fichier de commande existant
-        fichiers_commandes.sort()  # Trier pour obtenir le dernier fichier
-        dernier_fichier = fichiers_commandes[-1]
-        chemin_fichier = os.path.join(commandes_path, dernier_fichier)
+        fichiers_commandes.sort()
+        chemin_fichier = os.path.join(commandes_path, fichiers_commandes[-1])
 
         commande = charger_fichier_commande(chemin_fichier)
         if not commande:
             return
 
-        # Ajouter le plat à la commande
-        numero_plat = len(commande["Commande"]) + 1
-        plat_id = f"{commande['Informations']['ID']}-{numero_plat:02d}"
-        commande["Commande"][f"#{numero_plat:02d}"] = creer_dict_plat(plat_id, plat)
+        id_type = generer_ID_plat(plat["Plat"])  # ex: "P030"
+        plat_id = f"{commande['Informations']['ID']}-{id_type}"  # ex: "20260606-007-P030"
+        commande["Commande"][id_type] = creer_dict_plat(plat_id, plat)
 
-        # Mettre à jour le montant total
         commande["Informations"]["Montant"] = sum(
             p["Prix"] for p in commande["Commande"].values() if p["Statut"] != "Annulé"
         )
 
-        # Sauvegarder les modifications
         with open(chemin_fichier, "w", encoding="utf-8") as fichier:
             json.dump(commande, fichier, indent=4, ensure_ascii=False)
 
     else:
-        # Créer une nouvelle commande
-        nouvel_id = ID_generator(logs_path, commandes_path)
+        nouvel_id = generer_ID_commande()
         chemin_fichier = os.path.join(commandes_path, f"commande_{nouvel_id}.json")
-        plat_id = f"{nouvel_id}-01"
+        id_type = generer_ID_plat(plat["Plat"])  # ex: "P001"
+        plat_id = f"{nouvel_id}-{id_type}"  # ex: "20260606-007-P001"
         nouvelle_commande = {
             "Informations": {
-                "ID": nouvel_id,  # Identifiant de la commande au format aaaammjj-000
-                "Date de création": [datetime.now().strftime("%d/%m/%Y"), datetime.now().strftime("%H:%M")],  # Date et heure de création du fichier
-                "Date de validation": ["", ""],  # Date et heure où la commande a été payé et validée
-                "Date de livraison": ["", ""],  # Date et heure où la totaliré des plats a été livrée
-                "Statut": "En saisie",  # Statut de la commande (En saisie, Validée, Terminée, Annulée)
-                "Montant": plat["Prix"],  # Montant total de la commande
-                "Devise": "EUR",  # Devise de la commande (EUR, USD, etc.), EUR par défaut
-                "Type de paiement": "",  # Type de paiement (CB, espèces ou repas gratuits), défini au moment de la validation
-                "Contact": ""  # Numéro de téléphone du client, défini au moment de la validation (utilité à voir si l'on connecte le logiciel à un service de SMS pour prévenir lorsqu'un plat est prêt)
+                "ID": nouvel_id,
+                "Date de création": [datetime.now().strftime("%d/%m/%Y"), datetime.now().strftime("%H:%M")],
+                "Date de validation": ["", ""],
+                "Date de livraison": ["", ""],
+                "Statut": "En saisie",
+                "Montant": plat["Prix"],
+                "Devise": "EUR",
+                "Type de paiement": "",
+                "Contact": ""
             },
             "Commande": {
-                "#01": creer_dict_plat(plat_id, plat)
+                id_type: creer_dict_plat(plat_id, plat)
             }
         }
 
-        # Sauvegarder la nouvelle commande
         with open(chemin_fichier, "w", encoding="utf-8") as fichier:
             json.dump(nouvelle_commande, fichier, indent=4, ensure_ascii=False)

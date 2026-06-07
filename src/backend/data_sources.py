@@ -18,7 +18,7 @@ Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.07
+    2026.06.06
 """
 
 from __future__ import annotations

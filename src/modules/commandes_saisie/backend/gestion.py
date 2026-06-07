@@ -10,7 +10,7 @@ Author :
     Dracudar
 
 Version:
-    1.2
+    2.3
 
 Date de création :
     2026.06.02
@@ -22,9 +22,15 @@ Date de modification:
 import os
 import json
 from datetime import datetime
-from ....backend.commandes_utils import charger_fichier_commande
+from ....backend.commandes_utils import (
+    charger_fichier_commande,
+    decrementer_ID_commande,
+    decrementer_ID_plat,
+    get_id_cache,
+)
 from ....backend.printer import print_ticket_recap, print_ticket_cuisine
 from ....backend.data_sources import get_stock_cache
+
 
 def valider_commande(chemin_fichier):
     """
@@ -37,16 +43,13 @@ def valider_commande(chemin_fichier):
         return
 
     # TODO : mettre en place le système de paiement (CB, espèces, repas gratuits) et mettre à jour le type de paiement dans le fichier JSON
-    
-    # Mettre à jour la date de validation
+
     now = datetime.now()
     commande["Informations"]["Date de validation"] = [now.strftime("%d/%m/%Y"), now.strftime("%H:%M")]
 
-    # Impression des tickets pour chaque plat mis en préparation
     print_ticket_recap(chemin_fichier)
     print_ticket_cuisine(chemin_fichier)
 
-    # Mettre à jour les statuts
     commande["Informations"]["Statut"] = "Validée"
     for plat in commande["Commande"].values():
         if plat["Statut"] == "En attente":
@@ -56,14 +59,12 @@ def valider_commande(chemin_fichier):
     # 1 ticket par plat mis en préparation avec l'ID complet, le nom du plat et la composition
     # 1 ticket récapitulatif avec l'ID de la commande, le montant total, le type de paiement et la date de validation, la liste des plats mis en préparation (numéro de plat et nom du plat)
 
-    # Sauvegarder les modifications de la commande
     with open(chemin_fichier, "w", encoding="utf-8") as fichier:
         json.dump(commande, fichier, indent=4, ensure_ascii=False)
 
-    # Persister le cache de stock : les décrémentations de la commande sont confirmées
     get_stock_cache().save()
+    get_id_cache().save()
 
-    # Déplacer le fichier
     dossier_en_cours = os.path.join(os.path.dirname(chemin_fichier), "en_cours")
     os.makedirs(dossier_en_cours, exist_ok=True)
     os.rename(chemin_fichier, os.path.join(dossier_en_cours, os.path.basename(chemin_fichier)))
@@ -71,7 +72,8 @@ def valider_commande(chemin_fichier):
 # == Annulation de commande == #
 def annuler_commande(chemin_fichier):
     """
-    Annule définitivement la commande si tous ses plats sont à l'état « Annulé » et déplace le fichier.
+    Pour une commande validée : marque la commande "Annulée" et déplace le fichier
+    dès que tous ses plats sont à l'état "Annulé".
 
     :param chemin_fichier: Chemin vers le fichier JSON de la commande.
     """
@@ -79,16 +81,13 @@ def annuler_commande(chemin_fichier):
     if not commande:
         return
 
-    # Vérifier si tous les plats sont annulés
     plats = commande["Commande"].values()
     if all(plat["Statut"] == "Annulé" for plat in plats):
         commande["Informations"]["Statut"] = "Annulée"
 
-        # Sauvegarder les modifications
         with open(chemin_fichier, "w", encoding="utf-8") as fichier:
             json.dump(commande, fichier, indent=4, ensure_ascii=False)
 
-        # Déplacer le fichier
         dossier_annulee = os.path.join(os.path.dirname(chemin_fichier), "annulee")
         os.makedirs(dossier_annulee, exist_ok=True)
         os.rename(chemin_fichier, os.path.join(dossier_annulee, os.path.basename(chemin_fichier)))
@@ -109,12 +108,19 @@ def _restaurer_stock_plat(plat):
 def annuler_plat(chemin_fichier, plat_id):
     """
     Annule un plat dans la commande en cours.
+
+    - Commande "En saisie" + plat "En attente" : suppression physique du plat et
+      décrémentation du compteur de type en mémoire. La clé type (P001, G001…)
+      est supprimée directement, sans renumérotation.
+      Si la commande devient vide, le fichier est supprimé.
+    - Commande validée : marquage "Annulé" et déplacement si tous les plats
+      sont annulés (comportement existant).
     """
     commande_data = charger_fichier_commande(chemin_fichier)
     if not commande_data:
         return
 
-    # Résoudre la clé JSON : accepte la clé directe ("#01") ou l'ID interne ("20260603-001-01")
+    # Résoudre la clé : accepte la clé directe ("P001") ou l'ID complet ("20260607-097-P001")
     plat_key = plat_id if plat_id in commande_data["Commande"] else next(
         (k for k, v in commande_data["Commande"].items() if v.get("ID") == plat_id),
         None
@@ -123,34 +129,71 @@ def annuler_plat(chemin_fichier, plat_id):
         return
 
     plat = commande_data["Commande"][plat_key]
+    statut_commande = commande_data["Informations"]["Statut"]
 
-    # Restaurer le stock uniquement si le plat était encore en attente (non validé)
-    if plat["Statut"] == "En attente":
+    if statut_commande == "En saisie" and plat["Statut"] == "En attente":
+        # --- Branche saisie : suppression physique ---
         _restaurer_stock_plat(plat)
+        # La clé IS déjà le type part (ex: "P030") — pas besoin de l'extraire de l'ID
+        decrementer_ID_plat(plat.get("Plat", ""), plat_key)
 
-    # Mettre à jour le statut du plat
-    plat["Statut"] = "Annulé"
+        del commande_data["Commande"][plat_key]
 
-    # Recalculer le montant total
-    commande_data["Informations"]["Montant"] = sum(
-        p["Prix"] for p in commande_data["Commande"].values() if p["Statut"] != "Annulé"
-    )
+        if not commande_data["Commande"]:
+            os.remove(chemin_fichier)
+            decrementer_ID_commande()
+            return
 
-    # Sauvegarder les modifications
-    with open(chemin_fichier, "w", encoding="utf-8") as f:
-        json.dump(commande_data, f, indent=4, ensure_ascii=False)
+        commande_data["Informations"]["Montant"] = sum(
+            p["Prix"] for p in commande_data["Commande"].values()
+        )
 
-    # Vérifier si tous les plats sont annulés
-    annuler_commande(chemin_fichier)
+        with open(chemin_fichier, "w", encoding="utf-8") as f:
+            json.dump(commande_data, f, indent=4, ensure_ascii=False)
+
+    else:
+        # --- Branche commande validée : marquage "Annulé" ---
+        if plat["Statut"] == "En attente":
+            _restaurer_stock_plat(plat)
+
+        plat["Statut"] = "Annulé"
+
+        commande_data["Informations"]["Montant"] = sum(
+            p["Prix"] for p in commande_data["Commande"].values() if p["Statut"] != "Annulé"
+        )
+
+        with open(chemin_fichier, "w", encoding="utf-8") as f:
+            json.dump(commande_data, f, indent=4, ensure_ascii=False)
+
+        annuler_commande(chemin_fichier)
 
 def annuler_all_plats(chemin_fichier):
     """
-    Annule tous les plats dans la commande en cours.
+    Annule tous les plats de la commande en cours.
+
+    - Commande "En saisie" : restaure le stock, décrémente les compteurs en mémoire
+      (traitement en ordre inverse pour minimiser les trous), supprime le fichier.
+    - Commande validée : appelle annuler_plat pour chaque plat (comportement existant).
     """
     commande_data = charger_fichier_commande(chemin_fichier)
     if not commande_data:
         return
-    # Mettre à jour le statut de tous les plats
-    for plat_id, plat in commande_data["Commande"].items():
-        if plat["Statut"] == "En attente":
+
+    statut_commande = commande_data["Informations"]["Statut"]
+
+    if statut_commande == "En saisie":
+        # Traitement en ordre inverse (tri alpha-numérique décroissant) pour maximiser
+        # les décrémentations consécutives et éviter les trous
+        for plat_key in sorted(commande_data["Commande"], reverse=True):
+            plat = commande_data["Commande"][plat_key]
+            if plat["Statut"] == "En attente":
+                _restaurer_stock_plat(plat)
+                decrementer_ID_plat(plat.get("Plat", ""), plat_key)
+
+        os.remove(chemin_fichier)
+        decrementer_ID_commande()
+
+    else:
+        plat_ids = list(commande_data["Commande"].keys())
+        for plat_id in plat_ids:
             annuler_plat(chemin_fichier, plat_id)
