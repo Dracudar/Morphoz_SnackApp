@@ -25,6 +25,7 @@ from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import QMainWindow
 
 from src.UI.view.interface_principale import InterfacePrincipaleWidget
+from src.UI.suivi_exterieur_window import SuiviExterieurWindow
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -41,6 +42,12 @@ class MainWindow(QMainWindow):
         # Initialiser les actions et les menus
         self.setup_shortcuts()
         self.setup_menus()
+
+        # Fenêtre secondaire de suivi extérieur (créée une fois, masquée/affichée à la demande)
+        self.suivi_exterieur_window = SuiviExterieurWindow()
+        self.suivi_exterieur_window.closed.connect(
+            lambda: self.suivi_ext_action.setChecked(False)
+        )
     
     def setup_shortcuts(self):
         """Configure les actions globales de la fenêtre."""
@@ -102,6 +109,10 @@ class MainWindow(QMainWindow):
             lambda: self.interface_widget.set_left_page("poste_preparation")
         )
 
+        self.suivi_ext_action = QAction("Affichage extérieur", self)
+        self.suivi_ext_action.setCheckable(True)
+        self.suivi_ext_action.toggled.connect(self._toggle_suivi_exterieur)
+
         view_menu.addAction(self.saisie_action)
         view_menu.addAction(self.poste_prep_action)
         view_menu.addSeparator()
@@ -109,9 +120,19 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.stock_action)
         view_menu.addAction(self.historique_action)
         view_menu.addSeparator()
+        view_menu.addAction(self.suivi_ext_action)
+        view_menu.addSeparator()
         view_menu.addAction(self.parametres_action)
         
     
+    def _toggle_suivi_exterieur(self, checked: bool):
+        """Affiche ou masque la fenêtre de suivi extérieur."""
+        if checked:
+            self.suivi_exterieur_window.show()
+            self.suivi_exterieur_window.raise_()
+        else:
+            self.suivi_exterieur_window.hide()
+
     def toggle_fullscreen(self):
         """Bascule le mode plein écran"""
         if self.isFullScreen():
