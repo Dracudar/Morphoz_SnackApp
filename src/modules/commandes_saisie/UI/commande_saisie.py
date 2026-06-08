@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.04
+    2026.06.08
 """
 
 from __future__ import annotations
@@ -46,7 +46,8 @@ from src.modules.commandes_saisie.utils.plats_router import route_plat_selection
 from src.modules.commandes_saisie.backend.saver import MAJ_commande
 from src.modules.commandes_saisie.backend.gestion import (
     annuler_plat,
-    annuler_all_plats
+    annuler_all_plats,
+    set_prioritaire,
 )
 from src.modules.commandes_saisie.backend.paiements import (
     paiement_carte,
@@ -119,29 +120,23 @@ class SaisieCommandeModule(QFrame):
         parent_layout.addWidget(self.menu_frame, 0)
 
     def _build_command_detail_frame(self, parent_layout):
-        """Construit le cadre détail commande en 4 sections : titre, liste articles, montant, actions."""
+        """Construit le cadre détail commande en 3 sections : titre, liste articles, actions."""
         detail_frame = QFrame()
         detail_frame.setObjectName("detailFrame")
         detail_layout = QVBoxLayout(detail_frame)
         detail_layout.setContentsMargins(10, 10, 10, 10)
         detail_layout.setSpacing(10)
 
-        # Section 1: Title (4%)
+        # Section 1: Title
         self.title_label = QLabel("Aucune commande en cours")
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title_label.setObjectName("sectionTitle")
         detail_layout.addWidget(self.title_label)
 
-        # Section 2: Items List (34%)
+        # Section 2: Items List
         self._build_items_section(detail_layout)
 
-        # Section 3: Amount Display (3%)
-        self.amount_label = QLabel("Total: 0.00 €")
-        self.amount_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.amount_label.setObjectName("amountLabel")
-        detail_layout.addWidget(self.amount_label)
-
-        # Section 4: Action Buttons (4%)
+        # Section 3: Action Buttons
         self._build_actions_section(detail_layout)
 
         # Status message label (feedback)
@@ -171,23 +166,34 @@ class SaisieCommandeModule(QFrame):
         parent_layout.addWidget(items_scroll, 1)
 
     def _build_actions_section(self, parent_layout):
-        """Construit la section des boutons d'action (Annuler commande / Valider)."""
+        """Construit la section des boutons d'action (Annuler commande / Valider / Prioritaire)."""
         actions_layout = QHBoxLayout()
         actions_layout.setSpacing(10)
 
         self.button_cancel = QPushButton("Annuler commande")
         self.button_cancel.setObjectName("actionButton")
         self.button_cancel.setEnabled(False)
+        self.button_cancel.setFixedHeight(32)
 
         self.button_validate = QPushButton("Valider")
         self.button_validate.setObjectName("actionButton")
         self.button_validate.setEnabled(False)
+        self.button_validate.setFixedHeight(32)
+
+        self.button_priority = QPushButton("!")
+        self.button_priority.setObjectName("priorityButton")
+        self.button_priority.setCheckable(True)
+        self.button_priority.setEnabled(False)
+        self.button_priority.setFixedSize(32, 32)
+        self.button_priority.setToolTip("Commande prioritaire")
 
         self.button_cancel.clicked.connect(self._handle_cancel_command)
         self.button_validate.clicked.connect(self._handle_validate_command)
+        self.button_priority.clicked.connect(self._handle_toggle_priority)
 
         actions_layout.addWidget(self.button_cancel)
         actions_layout.addWidget(self.button_validate, 1)
+        actions_layout.addWidget(self.button_priority)
 
         parent_layout.addLayout(actions_layout)
 
@@ -209,14 +215,6 @@ class SaisieCommandeModule(QFrame):
                 font-weight: 700;
                 padding: 4px;
             }
-            QLabel#amountLabel {
-                color: #f5f5f5;
-                font-size: 16px;
-                font-weight: 700;
-                padding: 8px;
-                background-color: #3a3d43;
-                border-radius: 4px;
-            }
             QPushButton#actionButton {
                 background-color: #4f545e;
                 border: 1px solid #7d8390;
@@ -224,8 +222,7 @@ class SaisieCommandeModule(QFrame):
                 color: #f5f5f5;
                 font-size: 14px;
                 font-weight: 700;
-                min-height: 40px;
-                padding: 6px 12px;
+                padding: 4px 12px;
             }
             QPushButton#actionButton:hover {
                 background-color: #626978;
@@ -234,6 +231,29 @@ class SaisieCommandeModule(QFrame):
                 color: #8f949c;
                 background-color: #3a3d43;
                 border-color: #595d64;
+            }
+            QPushButton#priorityButton {
+                background-color: #3a3d43;
+                border: 1px solid #595d64;
+                border-radius: 7px;
+                color: #595d64;
+                font-size: 16px;
+                font-weight: 900;
+            }
+            QPushButton#priorityButton:hover:!checked {
+                background-color: #4f545e;
+                border-color: #7d8390;
+                color: #c97a30;
+            }
+            QPushButton#priorityButton:checked {
+                background-color: #5a1a1a;
+                border: 2px solid #e74c3c;
+                color: #e74c3c;
+            }
+            QPushButton#priorityButton:disabled {
+                color: #3a3d43;
+                background-color: #2f3136;
+                border-color: #3a3d43;
             }
             """
         )
@@ -261,16 +281,18 @@ class SaisieCommandeModule(QFrame):
             if widget:
                 widget.deleteLater()
         self.items_layout.addStretch()
-        self.amount_label.setText("Total: 0.00 €")
         self.button_cancel.setEnabled(False)
+        self.button_priority.setChecked(False)
+        self.button_priority.setEnabled(False)
         self.button_validate.setEnabled(False)
 
     def _display_order_state(self, order: Dict):
-        """Affiche l'état d'une commande active : titre, articles, montant et boutons activés."""
+        """Affiche l'état d'une commande active : titre, articles et boutons activés."""
         self.title_label.setText(f"Commande {order['id']}")
         self._refresh_items_display(order)
-        self._update_total_display(order)
         self.button_cancel.setEnabled(True)
+        self.button_priority.setEnabled(True)
+        self.button_priority.setChecked(order.get("priority", False))
         # Update validate button with amount
         amount = order.get("amount", 0)
         self.button_validate.setText(f"Valider ({amount:.2f} €)")
@@ -294,11 +316,6 @@ class SaisieCommandeModule(QFrame):
 
         self.items_layout.addStretch()
 
-    def _update_total_display(self, order: Dict):
-        """Met à jour l'étiquette du montant total."""
-        amount = order.get("amount", 0)
-        self.amount_label.setText(f"Total: {amount:.2f} €")
-
     # ==================== Event Handlers ====================
 
     def _handle_item_cancel(self, item_id: str):
@@ -315,6 +332,17 @@ class SaisieCommandeModule(QFrame):
             self.command_changed.emit()
         except Exception as e:
             self.status_label.setText(f"Erreur annulation: {str(e)}")
+
+    def _handle_toggle_priority(self):
+        """Bascule le statut prioritaire de la commande en cours et enregistre dans le JSON."""
+        order_path = self._get_current_order_path()
+        if not order_path:
+            return
+        try:
+            set_prioritaire(str(order_path), self.button_priority.isChecked())
+            self.command_changed.emit()
+        except Exception as e:
+            self.status_label.setText(f"Erreur priorité: {str(e)}")
 
     def _handle_cancel_command(self):
         """Annule l'intégralité de la commande en cours et rafraîchit l'affichage."""
@@ -453,10 +481,9 @@ class SaisieCommandeModule(QFrame):
         self.refresh_timer.start()
 
     def _on_timer_tick(self):
-        """Appelé toutes les 2 secondes : met à jour la liste et le montant si une commande est active."""
+        """Appelé toutes les 2 secondes : met à jour la liste des articles si une commande est active."""
         order = self._get_current_order()
         if order:
             self._refresh_items_display(order)
-            self._update_total_display(order)
         else:
             self._display_no_order_state()

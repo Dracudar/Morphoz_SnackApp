@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    1.3
+    1.4
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.07
+    2026.06.08
 """
 
 from __future__ import annotations
@@ -204,7 +204,15 @@ class ConteneurSuiviCommande(QFrame):
 		toggle_btn.clicked.connect(lambda: self._toggle_order(order_id, plats_container, toggle_btn))
 		header_layout.addWidget(toggle_btn)
 
-		id_label = QLabel(f"Commande {order_id}")
+		priority_slot = QLabel("!" if order.get("priority", False) else "")
+		priority_slot.setFixedWidth(16)
+		priority_slot.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		priority_slot.setStyleSheet(
+			"color: #e74c3c; font-size: 16px; font-weight: 900; padding: 0;"
+		)
+		header_layout.addWidget(priority_slot)
+
+		id_label = QLabel(order_id)
 		id_label.setStyleSheet(
 			f"color: {_TEXT_CARD_ID}; font-size: 14px; font-weight: 700;"
 		)

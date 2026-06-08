@@ -16,7 +16,7 @@ Date de création :
     2026.06.02
 
 Date de modification:
-    2026.06.06
+    2026.06.08
 """
 
 import os
@@ -30,6 +30,21 @@ from ....backend.commandes_utils import (
 )
 from ....backend.printer import print_ticket_recap, print_ticket_cuisine
 from ....backend.data_sources import get_stock_cache
+
+
+def set_prioritaire(chemin_fichier: str, valeur: bool):
+    """
+    Définit le statut prioritaire d'une commande en brouillon.
+
+    :param chemin_fichier: Chemin vers le fichier JSON de la commande.
+    :param valeur: True pour marquer prioritaire, False pour désactiver.
+    """
+    commande = charger_fichier_commande(chemin_fichier)
+    if not commande:
+        return
+    commande["Informations"]["Prioritaire"] = valeur
+    with open(chemin_fichier, "w", encoding="utf-8") as f:
+        json.dump(commande, f, indent=4, ensure_ascii=False)
 
 
 def valider_commande(chemin_fichier):

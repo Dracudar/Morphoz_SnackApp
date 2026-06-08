@@ -16,7 +16,7 @@ Date de création :
     2026.06.02
 
 Date de modification:
-    2026.06.07
+    2026.06.08
 """
 
 import os
@@ -144,6 +144,7 @@ def MAJ_commande(commandes_path, logs_path, plat):
                 "Montant": plat["Prix"],
                 "Devise": "EUR",
                 "Type de paiement": "",
+                "Prioritaire": False,
                 "Contact": ""
             },
             "Commande": {

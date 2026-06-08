@@ -12,7 +12,7 @@ Author :
     Dracudar
 
 Version:
-    2.2
+    2.3
 
 Date de création :
     2026.05.18
@@ -214,6 +214,7 @@ def get_draft_orders() -> List[Dict[str, Any]]:
                 "created_at": infos.get("Date de création", ["", ""]),
                 "items": active_items,
                 "amount": infos.get("Montant", 0),
+                "priority": bool(infos.get("Prioritaire", False)),
             }
         )
 
@@ -296,6 +297,7 @@ def get_live_orders() -> List[Dict[str, Any]]:
                 "delivered_count": delivered_count,
                 "cancelled_count": cancelled_count,
                 "amount": infos.get("Montant"),
+                "priority": bool(infos.get("Prioritaire", False)),
             }
         )
 
