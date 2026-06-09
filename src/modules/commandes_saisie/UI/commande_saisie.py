@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.2
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.08
+    2026.06.09
 """
 
 from __future__ import annotations
@@ -25,7 +25,9 @@ import unicodedata
 from pathlib import Path
 from typing import Dict, Optional
 
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import Qt, QTimer, Signal, QSize
+from PySide6.QtGui import QColor, QIcon, QPixmap, QPainter
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -49,6 +51,30 @@ from src.modules.commandes_saisie.backend.gestion import (
     annuler_all_plats,
     set_prioritaire,
 )
+def _make_cancel_icon(size: int = 26) -> QIcon:
+    """Charge cancel.svg et retourne un QIcon avec modes normal (blanc) et désactivé (gris)."""
+    def _colorize(color: str) -> QPixmap:
+        renderer = QSvgRenderer("assets/icons/cancel.svg")
+        raw = QPixmap(size, size)
+        raw.fill(Qt.transparent)
+        p = QPainter(raw)
+        renderer.render(p)
+        p.end()
+        result = QPixmap(size, size)
+        result.fill(Qt.transparent)
+        p2 = QPainter(result)
+        p2.drawPixmap(0, 0, raw)
+        p2.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
+        p2.fillRect(result.rect(), QColor(color))
+        p2.end()
+        return result
+
+    icon = QIcon()
+    icon.addPixmap(_colorize("white"), QIcon.Mode.Normal)
+    icon.addPixmap(_colorize("#595d64"), QIcon.Mode.Disabled)
+    return icon
+
+
 from src.modules.commandes_saisie.backend.paiements import (
     paiement_carte,
     paiement_especes,
@@ -170,10 +196,13 @@ class SaisieCommandeModule(QFrame):
         actions_layout = QHBoxLayout()
         actions_layout.setSpacing(10)
 
-        self.button_cancel = QPushButton("Annuler commande")
-        self.button_cancel.setObjectName("actionButton")
+        self.button_cancel = QPushButton()
+        self.button_cancel.setIcon(_make_cancel_icon(22))
+        self.button_cancel.setIconSize(QSize(22, 22))
+        self.button_cancel.setObjectName("cancelButton")
         self.button_cancel.setEnabled(False)
-        self.button_cancel.setFixedHeight(32)
+        self.button_cancel.setFixedSize(32, 32)
+        self.button_cancel.setToolTip("Annuler la commande")
 
         self.button_validate = QPushButton("Valider")
         self.button_validate.setObjectName("actionButton")
@@ -214,6 +243,19 @@ class SaisieCommandeModule(QFrame):
                 font-size: 22px;
                 font-weight: 700;
                 padding: 4px;
+            }
+            QPushButton#cancelButton {
+                background-color: #d9534f;
+                border: 1px solid #ac2925;
+                border-radius: 7px;
+                padding: 0px;
+            }
+            QPushButton#cancelButton:hover {
+                background-color: #c9302c;
+            }
+            QPushButton#cancelButton:disabled {
+                background-color: #2f3136;
+                border-color: #3a3d43;
             }
             QPushButton#actionButton {
                 background-color: #4f545e;

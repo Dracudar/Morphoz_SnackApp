@@ -13,13 +13,13 @@ Author :
     Dracudar
 
 Version:
-    3.0
+    3.1
 
 Date de création :
     2025.05.31
 
 Date de modification:
-    2026.06.06
+    2026.06.09
 """
 
 import os
@@ -39,7 +39,8 @@ PREFIXES_PLAT = {
 class DerniersIDCache:
     """
     Cache mémoire des compteurs d'identifiants journaliers (commandes et plats).
-    Persisté sur disque uniquement à la validation via save().
+    Persisté sur disque à chaque création ou annulation d'identifiant pour éviter
+    les décalages après un redémarrage sans validation.
     Migration transparente depuis l'ancien fichier 'dernier_id.json'.
     """
 
@@ -71,7 +72,7 @@ class DerniersIDCache:
         return valeur
 
     def save(self):
-        """Persiste les compteurs sur disque (appeler à la validation de commande)."""
+        """Persiste les compteurs sur disque."""
         os.makedirs(self._logs_path, exist_ok=True)
         log_file = os.path.join(self._logs_path, self._FILENAME)
         with open(log_file, "w", encoding="utf-8") as f:
@@ -80,22 +81,25 @@ class DerniersIDCache:
     # ── Commande ──────────────────────────────────────────────────────────────
 
     def prochain_id_commande(self) -> str:
-        """Incrémente le compteur commande et retourne le nouvel ID (aaaammjj-000)."""
+        """Incrémente le compteur commande, le persiste sur disque et retourne le nouvel ID (aaaammjj-000)."""
         self._data["commande"] += 1
+        self.save()
         return f"{self._date}-{self._data['commande']:03d}"
 
     def decrementer_commande(self):
-        """Décrémente le compteur commande (annulation en saisie)."""
+        """Décrémente le compteur commande (annulation en saisie) et persiste sur disque."""
         if self._data["commande"] > 0:
             self._data["commande"] -= 1
+            self.save()
 
     # ── Plats ─────────────────────────────────────────────────────────────────
 
     def prochain_id_plat(self, type_plat: str) -> str:
-        """Incrémente le compteur du type de plat et retourne l'ID (ex: P001)."""
+        """Incrémente le compteur du type de plat, le persiste et retourne l'ID (ex: P001)."""
         cle = type_plat.lower()
         prefixe = PREFIXES_PLAT.get(cle, "X")
         self._data[cle] = self._data.get(cle, 0) + 1
+        self.save()
         return f"{prefixe}{self._data[cle]:03d}"
 
     def decrementer_plat(self, type_plat: str, id_plat_val: str):
@@ -111,6 +115,7 @@ class DerniersIDCache:
         compteur = self._data.get(cle, 0)
         if numero == compteur and compteur > 0:
             self._data[cle] -= 1
+            self.save()
 
 
 # ── Singleton ──────────────────────────────────────────────────────────────────
