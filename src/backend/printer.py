@@ -16,7 +16,7 @@ Date de création :
     2025.06.04
 
 Date de modification:
-    2026.06.07
+    2026.06.09
 """
 
 import os
@@ -58,7 +58,8 @@ def _get_printer():
 
 def print_ticket_recap(chemin_fichier):
     """Imprime un ticket récapitulatif de la commande (si activé dans la config)."""
-    if not get_print_options()["ticket_client"]:
+    options = get_print_options()
+    if not options["impression_active"] or not options["ticket_client"]:
         return
     try:
         p = _get_printer()
@@ -156,7 +157,8 @@ def print_ticket_recap(chemin_fichier):
 
 def print_ticket_cuisine(chemin_fichier):
     """Imprime un ticket de cuisine par plat (si activé dans la config)."""
-    if not get_print_options()["ticket_cuisine"]:
+    options = get_print_options()
+    if not options["impression_active"] or not options["ticket_cuisine"]:
         return
     try:
         p = _get_printer()

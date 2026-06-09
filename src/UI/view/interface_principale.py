@@ -16,7 +16,7 @@ Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.08
+    2026.06.09
 """
 
 from PySide6.QtCore import Qt
@@ -95,6 +95,7 @@ class InterfacePrincipaleWidget(QWidget):
         self.suivi_module = SuiviCommandesModule()
 
         self.page_parametres.config_changed.connect(self.refresh_all_pages)
+        self.page_parametres.go_back.connect(lambda: self.set_left_page("saisie"))
         self.page_saisie.command_changed.connect(self.refresh_all_pages)
 
         root_layout.addWidget(self.left_stack, 2)

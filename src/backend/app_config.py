@@ -18,7 +18,7 @@ Date de création :
     2026.05.31
 
 Date de modification:
-    2026.06.06
+    2026.06.09
 """
 
 from __future__ import annotations
@@ -154,10 +154,11 @@ def get_printer_config() -> Dict[str, Any]:
 # ── Options d'impression ───────────────────────────────────────────────────────
 
 def get_print_options() -> Dict[str, bool]:
-    """Retourne les options d'activation des tickets (client et cuisine)."""
+    """Retourne les options d'activation de l'impression (globale, ticket client et cuisine)."""
     config = _load_app_config()
     impression = config.get("impression", {})
     return {
+        "impression_active": bool(impression.get("impression_active", True)),
         "ticket_client": bool(impression.get("ticket_client", True)),
         "ticket_cuisine": bool(impression.get("ticket_cuisine", True)),
     }
@@ -186,6 +187,7 @@ def save_app_config(
     product_id: str,
     interface: int,
     modele: str,
+    impression_active: bool,
     ticket_client: bool,
     ticket_cuisine: bool,
 ) -> bool:
@@ -204,6 +206,7 @@ def save_app_config(
             "modele": modele.strip(),
         },
         "impression": {
+            "impression_active": impression_active,
             "ticket_client": ticket_client,
             "ticket_cuisine": ticket_cuisine,
         },
@@ -216,5 +219,5 @@ def get_default_config() -> Dict[str, Any]:
     return {
         "data_folder": str(_default_data_folder()),
         "imprimante": dict(_DEFAULT_PRINTER),
-        "impression": {"ticket_client": True, "ticket_cuisine": True},
+        "impression": {"impression_active": True, "ticket_client": True, "ticket_cuisine": True},
     }
