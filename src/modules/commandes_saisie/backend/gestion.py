@@ -79,6 +79,10 @@ def valider_commande(chemin_fichier):
         json.dump(commande, fichier, indent=4, ensure_ascii=False)
 
     get_stock_cache().save()
+    logger.log(logger.PERSISTANCE_STOCK, {
+        "contexte": "validation_commande",
+        "id_commande": commande["Informations"]["ID"],
+    })
     get_id_cache().save()
 
     logger.log(logger.VALIDATION_COMMANDE, {
@@ -119,7 +123,7 @@ def _log_stock_restauration(plat: dict, id_commande: str) -> None:
     """Log la restauration automatique de stock lors de l'annulation d'un plat."""
     type_plat = plat.get("Plat", "")
     if type_plat == "Pizza":
-        logger.log(logger.MODIFICATION_STOCK_AUTOMATIQUE, {
+        logger.log(logger.MODIFICATION_CACHE_STOCK, {
             "raison": "annulation_plat",
             "id_commande": id_commande,
             "id_plat": plat.get("ID", ""),
@@ -130,7 +134,7 @@ def _log_stock_restauration(plat: dict, id_commande: str) -> None:
     elif type_plat == "Grillade":
         viandes = plat.get("Composition", {}).get("Viandes", {})
         if viandes:
-            logger.log(logger.MODIFICATION_STOCK_AUTOMATIQUE, {
+            logger.log(logger.MODIFICATION_CACHE_STOCK, {
                 "raison": "annulation_plat",
                 "id_commande": id_commande,
                 "id_plat": plat.get("ID", ""),

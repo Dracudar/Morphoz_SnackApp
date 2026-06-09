@@ -94,7 +94,7 @@ def _log_stock_ajout(plat: dict, plat_id: str, id_commande: str) -> None:
     """Log les modifications automatiques de stock lors de l'ajout d'un plat."""
     type_plat = plat.get("Plat", "")
     if type_plat == "Pizza":
-        logger.log(logger.MODIFICATION_STOCK_AUTOMATIQUE, {
+        logger.log(logger.MODIFICATION_CACHE_STOCK, {
             "raison": "ajout_plat",
             "id_commande": id_commande,
             "id_plat": plat_id,
@@ -105,7 +105,7 @@ def _log_stock_ajout(plat: dict, plat_id: str, id_commande: str) -> None:
     elif type_plat == "Grillade":
         viandes = plat.get("Composition", {}).get("Viandes", {})
         if viandes:
-            logger.log(logger.MODIFICATION_STOCK_AUTOMATIQUE, {
+            logger.log(logger.MODIFICATION_CACHE_STOCK, {
                 "raison": "ajout_plat",
                 "id_commande": id_commande,
                 "id_plat": plat_id,
