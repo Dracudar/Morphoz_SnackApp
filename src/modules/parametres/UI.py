@@ -38,6 +38,8 @@ from PySide6.QtWidgets import (
 	QVBoxLayout,
 )
 
+from pathlib import Path
+
 from src.backend.app_config import (
 	get_data_folder,
 	get_default_config,
@@ -45,6 +47,7 @@ from src.backend.app_config import (
 	get_print_options,
 	save_app_config,
 )
+from src.backend import logger
 
 
 class ParametresModule(QFrame):
@@ -301,19 +304,56 @@ class ParametresModule(QFrame):
 				QMessageBox.warning(self, "Paramètres", f"{label} invalide : '{value}'.\nFormat attendu : 0x04B8 ou 1208.")
 				return
 
+		# Capture de la config actuelle avant sauvegarde pour comparaison
+		ancien_dossier = str(get_data_folder())
+		ancienne_imprimante = get_printer_config()
+		anciennes_options = get_print_options()
+
+		ticket_client = self.ticket_client_check.isChecked()
+		ticket_cuisine = self.ticket_cuisine_check.isChecked()
+
 		ok = save_app_config(
 			data_folder=data_folder,
 			vendor_id=vendor_id,
 			product_id=product_id,
 			interface=interface,
 			modele=modele,
-			ticket_client=self.ticket_client_check.isChecked(),
-			ticket_cuisine=self.ticket_cuisine_check.isChecked(),
+			ticket_client=ticket_client,
+			ticket_cuisine=ticket_cuisine,
 		)
 
 		if not ok:
 			QMessageBox.critical(self, "Paramètres", "Impossible d'enregistrer la configuration ou de créer le dossier data.")
 			return
+
+		# Log des modifications détectées
+		nouveau_dossier = data_folder or ancien_dossier
+		if Path(nouveau_dossier).resolve() != Path(ancien_dossier).resolve():
+			logger.log(logger.MODIFICATION_DOSSIER_DONNEES, {
+				"avant": ancien_dossier,
+				"apres": nouveau_dossier,
+			})
+
+		ancien_vendor = f"0x{ancienne_imprimante['vendor_id']:04X}"
+		ancien_product = f"0x{ancienne_imprimante['product_id']:04X}"
+		if (vendor_id.upper() != ancien_vendor or
+				product_id.upper() != ancien_product or
+				interface != ancienne_imprimante["interface"] or
+				modele != ancienne_imprimante["modele"]):
+			logger.log(logger.MODIFICATION_PARAMETRES_IMPRIMANTE, {
+				"avant": {"vendor_id": ancien_vendor, "product_id": ancien_product,
+						  "interface": ancienne_imprimante["interface"], "modele": ancienne_imprimante["modele"]},
+				"apres": {"vendor_id": vendor_id, "product_id": product_id,
+						  "interface": interface, "modele": modele},
+			})
+
+		if (ticket_client != anciennes_options["ticket_client"] or
+				ticket_cuisine != anciennes_options["ticket_cuisine"]):
+			logger.log(logger.MODIFICATION_OPTIONS_IMPRESSION, {
+				"avant": {"ticket_client": anciennes_options["ticket_client"],
+						  "ticket_cuisine": anciennes_options["ticket_cuisine"]},
+				"apres": {"ticket_client": ticket_client, "ticket_cuisine": ticket_cuisine},
+			})
 
 		self.status_label.setText("Configuration enregistrée. Structure de fichiers vérifiée.")
 		self.config_changed.emit()

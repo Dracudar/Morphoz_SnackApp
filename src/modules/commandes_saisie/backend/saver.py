@@ -39,12 +39,18 @@ def initialiser_dossiers_commandes(commandes_path, logs_path):
     :param commandes_path: Chemin vers le dossier des commandes
     :param logs_path: Chemin vers le dossier des logs
     """
-    os.makedirs(logs_path, exist_ok=True)
-    os.makedirs(commandes_path, exist_ok=True)
-    os.makedirs(os.path.join(commandes_path, "en_cours"), exist_ok=True)
-    os.makedirs(os.path.join(commandes_path, "terminee"), exist_ok=True)
-    os.makedirs(os.path.join(commandes_path, "annulee"), exist_ok=True)
-    os.makedirs(os.path.join(commandes_path, "corrompu"), exist_ok=True)
+    for chemin, type_dossier in [
+        (logs_path, "logs"),
+        (commandes_path, "commandes"),
+        (os.path.join(commandes_path, "en_cours"), "commandes/en_cours"),
+        (os.path.join(commandes_path, "terminee"), "commandes/terminee"),
+        (os.path.join(commandes_path, "annulee"), "commandes/annulee"),
+        (os.path.join(commandes_path, "corrompu"), "commandes/corrompu"),
+    ]:
+        creation = not os.path.exists(chemin)
+        os.makedirs(chemin, exist_ok=True)
+        if creation:
+            logger.log(logger.CREATION_DOSSIER, {"chemin": chemin, "type": type_dossier})
 
 
 # === Gestion des fichiers de commandes === #
