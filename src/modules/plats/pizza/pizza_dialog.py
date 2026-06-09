@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    1.3
+    1.4
 
 Date de création :
     2026.06.05
 
 Date de modification:
-    2026.06.05
+    2026.06.09
 """
 
 from typing import Dict, List, Optional
@@ -188,6 +188,7 @@ class PizzaDialog(QDialog):
         self._base_radios: Dict[str, QRadioButton] = {}
         self._ingredient_cbs: Dict[str, QPushButton] = {}
         self._viande_btns: Dict[str, QPushButton] = {}
+        self._recette_ingr: set = set()  # ingrédients natifs de la recette sélectionnée
         self._prix_base: float = 0.0
         self._prix_label: Optional[QLabel] = None
 
@@ -290,6 +291,7 @@ class PizzaDialog(QDialog):
         self._base_radios = {}
         self._ingredient_cbs = {}
         self._viande_btns = {}
+        self._recette_ingr = set(recette_data.get("Ingrédients", []))
         self._prix_base = recette_data.get("Prix", 0.0)
         self._prix_label = None
 
@@ -443,15 +445,34 @@ class PizzaDialog(QDialog):
     # ──────────────────────────────── Prix dynamique ──────────────────────────
 
     def _update_prix_display(self):
-        """Met à jour l'étiquette de prix en fonction des viandes sélectionnées."""
+        """Met à jour l'étiquette de prix en fonction des viandes sélectionnées.
+
+        Logique supplément :
+        - Viande native décochée  → -1 € (retrait d'un ingrédient inclus dans le prix de base)
+        - Viande ajoutée cochée   → +1 € (supplément)
+        """
         if self._prix_label is None:
             return
-        nb_viandes = sum(1 for btn in self._viande_btns.values() if btn.isChecked())
-        supplement = nb_viandes * SUPPLEMENT_VIANDE
-        total = self._prix_base + supplement
-        if supplement > 0:
+        viandes_retirees = sum(
+            1 for ingr, btn in self._viande_btns.items()
+            if ingr in self._recette_ingr and not btn.isChecked()
+        )
+        viandes_ajoutees = sum(
+            1 for ingr, btn in self._viande_btns.items()
+            if ingr not in self._recette_ingr and btn.isChecked()
+        )
+        delta = (viandes_ajoutees - viandes_retirees) * SUPPLEMENT_VIANDE
+        total = self._prix_base + delta
+
+        parts = []
+        if viandes_ajoutees:
+            parts.append(f"+ {viandes_ajoutees * SUPPLEMENT_VIANDE:.2f} € (viande supp.)")
+        if viandes_retirees:
+            parts.append(f"- {viandes_retirees * SUPPLEMENT_VIANDE:.2f} € (viande retirée)")
+
+        if parts:
             self._prix_label.setText(
-                f"Prix : {self._prix_base:.2f} € + {supplement:.2f} € (viande) = {total:.2f} €"
+                f"Prix : {self._prix_base:.2f} € {' '.join(parts)} = {total:.2f} €"
             )
         else:
             self._prix_label.setText(f"Prix : {self._prix_base:.2f} €")
@@ -486,8 +507,10 @@ class PizzaDialog(QDialog):
         if ingr_retires or ingr_supplementaires:
             recette_field = f"{nom_recette} - Modifié !"
 
-        nb_viandes = sum(1 for n in ingredients if n in self._viande_btns)
-        prix_final = recette_data.get("Prix", 0.0) + nb_viandes * SUPPLEMENT_VIANDE
+        recette_viandes = {n for n in recette_ingr_defaut if n in self._viande_btns}
+        viandes_retirees = sum(1 for n in recette_viandes if n not in ingr_set)
+        viandes_ajoutees = sum(1 for n in ingr_set if n in self._viande_btns and n not in recette_viandes)
+        prix_final = recette_data.get("Prix", 0.0) + (viandes_ajoutees - viandes_retirees) * SUPPLEMENT_VIANDE
 
         self.result_data = {
             "Plat": "Pizza",
