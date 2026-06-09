@@ -358,6 +358,70 @@ def get_live_orders_prep() -> List[Dict[str, Any]]:
     return plats
 
 
+def get_all_history_orders() -> List[Dict[str, Any]]:
+    """Charge toutes les commandes de l'historique depuis les dossiers en_cours, terminee et annulee.
+
+    Exclut les brouillons (racine du dossier commandes) et les fichiers du dossier corrompu.
+    Les commandes sont triées par ID décroissant (les plus récentes en premier).
+    """
+    root_folder = get_command_root()
+    if root_folder is None:
+        return []
+
+    folder_candidates = [
+        ("en_cours", "en-cours"),
+        ("terminee", "terminees", "valides", "validees"),
+        ("annulee", "annulees"),
+    ]
+
+    folders_to_scan: List[Path] = []
+    for candidates in folder_candidates:
+        for name in candidates:
+            candidate = root_folder / name
+            if candidate.exists():
+                folders_to_scan.append(candidate)
+                break
+
+    orders: List[Dict[str, Any]] = []
+    for folder in folders_to_scan:
+        for order_file in sorted(folder.glob("commande_*.json")):
+            infos, command_lines = _parse_order_file(order_file)
+            if not infos.get("ID"):
+                continue
+
+            items: List[Dict[str, Any]] = []
+            for line_key in sorted(command_lines.keys()):
+                line_data = command_lines.get(line_key, {})
+                if not isinstance(line_data, dict):
+                    continue
+                items.append(
+                    {
+                        "id": line_data.get("ID", line_key),
+                        "plat": line_data.get("Plat", ""),
+                        "nom": line_data.get("Nom", ""),
+                        "status": str(line_data.get("Statut", "")) or "Inconnu",
+                        "price": line_data.get("Prix"),
+                    }
+                )
+
+            orders.append(
+                {
+                    "file": order_file,
+                    "id": infos.get("ID", order_file.stem.replace("commande_", "")),
+                    "status": infos.get("Statut", ""),
+                    "created_at": infos.get("Date de création", ["", ""]),
+                    "validation_at": infos.get("Date de validation", ["", ""]),
+                    "delivery_at": infos.get("Date de livraison", ["", ""]),
+                    "items": items,
+                    "amount": infos.get("Montant"),
+                    "priority": bool(infos.get("Prioritaire", False)),
+                }
+            )
+
+    orders.sort(key=lambda o: o.get("id", ""), reverse=True)
+    return orders
+
+
 def get_completed_orders() -> List[Dict[str, Any]]:
     """Charge les commandes terminées depuis le sous-dossier d'archive configuré."""
     root_folder = get_command_root()
