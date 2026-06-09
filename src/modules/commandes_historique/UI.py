@@ -55,7 +55,6 @@ _TEXT_PLAT     = "#d6d6d6"
 
 # ── Badges statut plat ───────────────────────────────────────────────────────
 _STATUTS_PLAT: Dict[str, tuple] = {
-	"en attente":     ("#3a3d43", "#a8acb3", "En attente"),
 	"en préparation": ("#7a4a1a", "#c97a30", "En prép."),
 	"prêt":           ("#5e4a00", "#d4a017", "Prêt"),
 	"livré":          ("#1a5e2a", "#4caf50", "Livré"),
@@ -136,7 +135,7 @@ class CommandesHistoriqueModule(QFrame):
 		filter_row.addStretch()
 		main_layout.addLayout(filter_row)
 
-		# Ligne filtre date
+		# Ligne filtre date + heure
 		date_row = QHBoxLayout()
 		date_row.setSpacing(6)
 		date_label = QLabel("Période :")
@@ -151,6 +150,11 @@ class CommandesHistoriqueModule(QFrame):
 		self.date_from.setMaximumWidth(110)
 		self.date_from.textChanged.connect(self.refresh_orders)
 		date_row.addWidget(self.date_from)
+		self.time_from = QLineEdit()
+		self.time_from.setPlaceholderText("HH:MM")
+		self.time_from.setMaximumWidth(62)
+		self.time_from.textChanged.connect(self.refresh_orders)
+		date_row.addWidget(self.time_from)
 
 		to_label = QLabel("Au")
 		to_label.setStyleSheet(f"color: {_TEXT_CARD_CNT}; font-size: 13px;")
@@ -160,11 +164,16 @@ class CommandesHistoriqueModule(QFrame):
 		self.date_to.setMaximumWidth(110)
 		self.date_to.textChanged.connect(self.refresh_orders)
 		date_row.addWidget(self.date_to)
+		self.time_to = QLineEdit()
+		self.time_to.setPlaceholderText("HH:MM")
+		self.time_to.setMaximumWidth(62)
+		self.time_to.textChanged.connect(self.refresh_orders)
+		date_row.addWidget(self.time_to)
 
 		clear_date_btn = QPushButton("✕")
 		clear_date_btn.setObjectName("clearDateBtn")
 		clear_date_btn.setFixedSize(24, 24)
-		clear_date_btn.setToolTip("Effacer les dates")
+		clear_date_btn.setToolTip("Effacer les dates et heures")
 		clear_date_btn.clicked.connect(self._clear_dates)
 		date_row.addWidget(clear_date_btn)
 
@@ -274,29 +283,57 @@ class CommandesHistoriqueModule(QFrame):
 		self.refresh_orders()
 
 	def _clear_dates(self):
-		self.date_from.blockSignals(True)
-		self.date_to.blockSignals(True)
-		self.date_from.clear()
-		self.date_to.clear()
-		self.date_from.blockSignals(False)
-		self.date_to.blockSignals(False)
+		for field in (self.date_from, self.time_from, self.date_to, self.time_to):
+			field.blockSignals(True)
+			field.clear()
+			field.blockSignals(False)
 		self.refresh_orders()
 
-	def _parse_date(self, text: str) -> Optional[datetime]:
-		text = text.strip()
-		if not text:
+	def _parse_filter_datetime(
+		self, date_text: str, time_text: str, default_time: str = "00:00"
+	) -> Optional[datetime]:
+		"""Construit un datetime depuis les champs date + heure du filtre.
+
+		Si la date est absente, retourne None.
+		Si l'heure est absente, utilise default_time ("00:00" côté début, "23:59" côté fin).
+		"""
+		date_text = date_text.strip()
+		if not date_text:
 			return None
 		for fmt in ("%d/%m/%Y", "%d/%m/%y"):
 			try:
-				return datetime.strptime(text, fmt)
+				d = datetime.strptime(date_text, fmt)
+				t_text = time_text.strip() or default_time
+				try:
+					t = datetime.strptime(t_text, "%H:%M")
+					return d.replace(hour=t.hour, minute=t.minute)
+				except ValueError:
+					return d
 			except ValueError:
 				continue
 		return None
 
-	def _get_order_date(self, order: Dict[str, Any]) -> Optional[datetime]:
+	def _get_order_datetime(self, order: Dict[str, Any]) -> Optional[datetime]:
+		"""Retourne le datetime complet de création de la commande (date + heure)."""
 		created = order.get("created_at", ["", ""])
-		if isinstance(created, list) and created:
-			return self._parse_date(str(created[0]))
+		if not isinstance(created, list) or not created:
+			return None
+		date_str = str(created[0]).strip()
+		time_str = str(created[1]).strip() if len(created) >= 2 else ""
+		if not date_str:
+			return None
+		for fmt in ("%d/%m/%Y", "%d/%m/%y"):
+			try:
+				d = datetime.strptime(date_str, fmt)
+				if time_str:
+					try:
+						t = datetime.strptime(time_str, "%H:%M")
+						return d.replace(hour=t.hour, minute=t.minute)
+					except ValueError:
+						pass
+				return d
+			except ValueError:
+				continue
 		return None
 
 	# ── Données ─────────────────────────────────────────────────────────────
@@ -333,17 +370,17 @@ class CommandesHistoriqueModule(QFrame):
 		if query:
 			orders = [o for o in orders if self._matches_search(o, query)]
 
-		date_from = self._parse_date(self.date_from.text())
-		date_to = self._parse_date(self.date_to.text())
-		if date_from or date_to:
+		dt_from = self._parse_filter_datetime(self.date_from.text(), self.time_from.text(), "00:00")
+		dt_to = self._parse_filter_datetime(self.date_to.text(), self.time_to.text(), "23:59")
+		if dt_from or dt_to:
 			filtered = []
 			for o in orders:
-				d = self._get_order_date(o)
-				if d is None:
+				dt = self._get_order_datetime(o)
+				if dt is None:
 					continue
-				if date_from and d < date_from:
+				if dt_from and dt < dt_from:
 					continue
-				if date_to and d > date_to:
+				if dt_to and dt > dt_to:
 					continue
 				filtered.append(o)
 			orders = filtered
