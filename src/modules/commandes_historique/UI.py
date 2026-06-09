@@ -7,13 +7,14 @@ Description:
     Interface Qt/PySide6 de consultation de l'historique des commandes.
     Affiche toutes les commandes (en cours, terminées, annulées) sauf celles
     en cours de saisie et les fichiers corrompus.
-    Permet la recherche par ID et le filtrage par statut et par date.
+    La recherche libre reste accessible en permanence ; les filtres avancés
+    (statut, période, type de plat) sont regroupés dans une fenêtre dédiée.
 
 Author :
     Dracudar
 
 Version:
-    2.0
+    3.0
 
 Date de création :
     2026.05.26
@@ -25,7 +26,7 @@ Date de modification:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtWidgets import (
@@ -40,6 +41,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.backend.data_sources import get_all_history_orders
+from src.modules.commandes_historique.filtre_dialog import FiltreHistoriqueDialog
 
 
 # ── Couleurs (identiques à conteneur_suivi_commande) ─────────────────────────
@@ -68,13 +70,18 @@ _STATUTS_COMMANDE: Dict[str, tuple] = {
 	"annulée":  ("#5e1a1a", "#c0392b", "Annulée"),
 }
 
-# ── Définition des boutons de filtre statut ──────────────────────────────────
-_FILTRES_STATUT: List[tuple] = [
-	("Tout",      None),
-	("En cours",  "validée"),
-	("Terminée",  "terminée"),
-	("Annulée",   "annulée"),
-]
+# ── Labels statut pour l'indicateur de filtres actifs ────────────────────────
+_STATUT_LABELS = {"validée": "En cours", "terminée": "Terminée", "annulée": "Annulée"}
+
+# ── État de filtres par défaut (aucun filtre actif) ──────────────────────────
+_FILTERS_DEFAULT: Dict[str, Any] = {
+	"status":     None,
+	"date_from":  "",
+	"time_from":  "",
+	"date_to":    "",
+	"time_to":    "",
+	"plat_types": set(),
+}
 
 
 class CommandesHistoriqueModule(QFrame):
@@ -84,7 +91,8 @@ class CommandesHistoriqueModule(QFrame):
 		super().__init__(parent)
 		self.setObjectName("historiqueModule")
 		self._expanded_orders: set[str] = set()
-		self._active_status_filter: Optional[str] = None
+		self._filters: Dict[str, Any] = dict(_FILTERS_DEFAULT)
+		self._filters["plat_types"] = set()
 		self._build_ui()
 		self._build_timer()
 		self.refresh_orders()
@@ -98,87 +106,36 @@ class CommandesHistoriqueModule(QFrame):
 		main_layout.setContentsMargins(14, 14, 14, 14)
 		main_layout.setSpacing(8)
 
+		# Titre
 		title = QLabel("Historique des commandes")
 		title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 		title.setObjectName("sectionTitle")
 		main_layout.addWidget(title)
 
-		# Ligne recherche + rafraîchir
+		# Ligne : recherche + bouton filtres + rafraîchir
 		search_row = QHBoxLayout()
 		self.search_field = QLineEdit()
 		self.search_field.setPlaceholderText("Rechercher par ID, plat ou statut…")
 		self.search_field.textChanged.connect(self.refresh_orders)
+
+		self.filter_btn = QPushButton("⚙ Filtres")
+		self.filter_btn.setObjectName("filterOpenButton")
+		self.filter_btn.clicked.connect(self._open_filter_dialog)
+
 		self.reload_button = QPushButton("↻ Rafraîchir")
 		self.reload_button.setObjectName("reloadButton")
 		self.reload_button.clicked.connect(self.refresh_orders)
+
 		search_row.addWidget(self.search_field, 1)
+		search_row.addWidget(self.filter_btn)
 		search_row.addWidget(self.reload_button)
 		main_layout.addLayout(search_row)
 
-		# Ligne filtres statut
-		filter_row = QHBoxLayout()
-		filter_row.setSpacing(6)
-		filter_label = QLabel("Statut :")
-		filter_label.setStyleSheet(f"color: {_TEXT_CARD_CNT}; font-size: 13px;")
-		filter_row.addWidget(filter_label)
-
-		self._filter_buttons: Dict[Optional[str], QPushButton] = {}
-		for label, status_key in _FILTRES_STATUT:
-			btn = QPushButton(label)
-			btn.setCheckable(True)
-			btn.setChecked(status_key is None)
-			btn.setObjectName("filterBtn")
-			btn.clicked.connect(lambda checked, k=status_key: self._set_status_filter(k))
-			self._filter_buttons[status_key] = btn
-			filter_row.addWidget(btn)
-
-		filter_row.addStretch()
-		main_layout.addLayout(filter_row)
-
-		# Ligne filtre date + heure
-		date_row = QHBoxLayout()
-		date_row.setSpacing(6)
-		date_label = QLabel("Période :")
-		date_label.setStyleSheet(f"color: {_TEXT_CARD_CNT}; font-size: 13px;")
-		date_row.addWidget(date_label)
-
-		from_label = QLabel("Du")
-		from_label.setStyleSheet(f"color: {_TEXT_CARD_CNT}; font-size: 13px;")
-		date_row.addWidget(from_label)
-		self.date_from = QLineEdit()
-		self.date_from.setPlaceholderText("JJ/MM/AAAA")
-		self.date_from.setMaximumWidth(110)
-		self.date_from.textChanged.connect(self.refresh_orders)
-		date_row.addWidget(self.date_from)
-		self.time_from = QLineEdit()
-		self.time_from.setPlaceholderText("HH:MM")
-		self.time_from.setMaximumWidth(62)
-		self.time_from.textChanged.connect(self.refresh_orders)
-		date_row.addWidget(self.time_from)
-
-		to_label = QLabel("Au")
-		to_label.setStyleSheet(f"color: {_TEXT_CARD_CNT}; font-size: 13px;")
-		date_row.addWidget(to_label)
-		self.date_to = QLineEdit()
-		self.date_to.setPlaceholderText("JJ/MM/AAAA")
-		self.date_to.setMaximumWidth(110)
-		self.date_to.textChanged.connect(self.refresh_orders)
-		date_row.addWidget(self.date_to)
-		self.time_to = QLineEdit()
-		self.time_to.setPlaceholderText("HH:MM")
-		self.time_to.setMaximumWidth(62)
-		self.time_to.textChanged.connect(self.refresh_orders)
-		date_row.addWidget(self.time_to)
-
-		clear_date_btn = QPushButton("✕")
-		clear_date_btn.setObjectName("clearDateBtn")
-		clear_date_btn.setFixedSize(24, 24)
-		clear_date_btn.setToolTip("Effacer les dates et heures")
-		clear_date_btn.clicked.connect(self._clear_dates)
-		date_row.addWidget(clear_date_btn)
-
-		date_row.addStretch()
-		main_layout.addLayout(date_row)
+		# Indicateur de filtres actifs (masqué par défaut)
+		self.filter_indicator = QLabel("")
+		self.filter_indicator.setObjectName("filterIndicator")
+		self.filter_indicator.setVisible(False)
+		main_layout.addWidget(self.filter_indicator)
 
 		# Compteur
 		self.summary_label = QLabel("Commandes : 0")
@@ -216,6 +173,11 @@ class CommandesHistoriqueModule(QFrame):
 				font-weight: 700;
 				padding: 4px;
 			}}
+			QLabel#filterIndicator {{
+				color: #c97a30;
+				font-size: 12px;
+				padding: 2px 4px;
+			}}
 			QLineEdit {{
 				background-color: #3b3f46;
 				color: {_TEXT_TITLE};
@@ -236,34 +198,18 @@ class CommandesHistoriqueModule(QFrame):
 			QPushButton#reloadButton:hover {{
 				background-color: #626978;
 			}}
-			QPushButton#filterBtn {{
-				background-color: #3a3d43;
-				border: 1px solid #60646c;
-				border-radius: 12px;
-				color: {_TEXT_CARD_CNT};
-				font-size: 12px;
-				font-weight: 600;
-				padding: 3px 14px;
-				min-height: 26px;
-			}}
-			QPushButton#filterBtn:checked {{
+			QPushButton#filterOpenButton {{
 				background-color: #4f545e;
-				border: 1px solid {_TEXT_CARD_CNT};
+				border: 1px solid #7d8390;
+				border-radius: 7px;
 				color: {_TEXT_TITLE};
+				font-size: 14px;
+				font-weight: 700;
+				min-height: 34px;
+				padding: 6px 12px;
 			}}
-			QPushButton#filterBtn:hover:!checked {{
-				background-color: #4a4e55;
-			}}
-			QPushButton#clearDateBtn {{
-				background-color: #3a3d43;
-				border: 1px solid #60646c;
-				border-radius: 3px;
-				color: {_TEXT_CARD_CNT};
-				font-size: 11px;
-			}}
-			QPushButton#clearDateBtn:hover {{
-				background-color: #4a4e55;
-				color: {_TEXT_TITLE};
+			QPushButton#filterOpenButton:hover {{
+				background-color: #626978;
 			}}
 			"""
 		)
@@ -274,28 +220,96 @@ class CommandesHistoriqueModule(QFrame):
 		self.refresh_timer.timeout.connect(self.refresh_orders)
 		self.refresh_timer.start()
 
-	# ── Filtres ─────────────────────────────────────────────────────────────
+	# ── Gestion du dialog filtres ───────────────────────────────────────────
 
-	def _set_status_filter(self, status_key: Optional[str]):
-		self._active_status_filter = status_key
-		for key, btn in self._filter_buttons.items():
-			btn.setChecked(key == status_key)
-		self.refresh_orders()
+	def _open_filter_dialog(self):
+		"""Ouvre la fenêtre de filtres ; applique les changements si acceptés."""
+		plat_types = self._get_available_plat_types()
+		dialog = FiltreHistoriqueDialog(
+			parent=self,
+			current_filters=self._filters,
+			available_plat_types=plat_types,
+		)
+		if dialog.exec():
+			self._filters = dialog.get_filters()
+			self._update_filter_indicator()
+			self.refresh_orders()
 
-	def _clear_dates(self):
-		for field in (self.date_from, self.time_from, self.date_to, self.time_to):
-			field.blockSignals(True)
-			field.clear()
-			field.blockSignals(False)
-		self.refresh_orders()
+	def _get_available_plat_types(self) -> List[str]:
+		"""Collecte les types de plat distincts présents dans l'historique."""
+		orders = get_all_history_orders()
+		types: Set[str] = set()
+		for order in orders:
+			for item in order.get("items", []):
+				plat = item.get("plat", "").strip()
+				if plat:
+					types.add(plat)
+		return sorted(types)
+
+	def _count_active_filters(self) -> int:
+		"""Retourne le nombre de catégories de filtres actuellement actives."""
+		f = self._filters
+		n = 0
+		if f.get("status") is not None:
+			n += 1
+		if f.get("date_from") or f.get("date_to"):
+			n += 1
+		if f.get("plat_types"):
+			n += 1
+		return n
+
+	def _update_filter_indicator(self):
+		"""Met à jour le bouton filtres et l'indicateur textuel selon l'état actif."""
+		n = self._count_active_filters()
+		if n > 0:
+			self.filter_btn.setText(f"⚙ Filtres · {n} actif{'s' if n > 1 else ''}")
+			self.filter_btn.setStyleSheet(
+				"""
+				QPushButton#filterOpenButton {
+					background-color: #4a3a1a;
+					border: 1px solid #c97a30;
+					border-radius: 7px;
+					color: #c97a30;
+					font-size: 14px;
+					font-weight: 700;
+					min-height: 34px;
+					padding: 6px 12px;
+				}
+				QPushButton#filterOpenButton:hover { background-color: #5a4a2a; }
+				"""
+			)
+			self.filter_indicator.setText(self._describe_active_filters())
+			self.filter_indicator.setVisible(True)
+		else:
+			self.filter_btn.setText("⚙ Filtres")
+			self.filter_btn.setStyleSheet("")
+			self.filter_indicator.setVisible(False)
+
+	def _describe_active_filters(self) -> str:
+		"""Construit un résumé textuel des filtres actifs pour l'indicateur."""
+		f = self._filters
+		parts = []
+		if f.get("status"):
+			parts.append(_STATUT_LABELS.get(f["status"], f["status"]))
+		date_from, time_from = f.get("date_from", ""), f.get("time_from", "")
+		date_to, time_to = f.get("date_to", ""), f.get("time_to", "")
+		if date_from or date_to:
+			from_str = f"{date_from} {time_from}".strip() if date_from else "…"
+			to_str = f"{date_to} {time_to}".strip() if date_to else "…"
+			parts.append(f"{from_str} → {to_str}")
+		plat_types = f.get("plat_types") or set()
+		if plat_types:
+			parts.append(", ".join(sorted(plat_types)))
+		return "  ·  ".join(parts)
+
+	# ── Logique de filtrage ─────────────────────────────────────────────────
 
 	def _parse_filter_datetime(
 		self, date_text: str, time_text: str, default_time: str = "00:00"
 	) -> Optional[datetime]:
 		"""Construit un datetime depuis les champs date + heure du filtre.
 
-		Si la date est absente, retourne None.
-		Si l'heure est absente, utilise default_time ("00:00" côté début, "23:59" côté fin).
+		Utilise default_time si l'heure est absente ("00:00" côté début, "23:59" côté fin).
 		"""
 		date_text = date_text.strip()
 		if not date_text:
@@ -336,8 +350,6 @@ class CommandesHistoriqueModule(QFrame):
 				continue
 		return None
 
-	# ── Données ─────────────────────────────────────────────────────────────
-
 	def _matches_search(self, order: Dict[str, Any], query: str) -> bool:
 		haystack = [
 			str(order.get("id", "")),
@@ -353,6 +365,8 @@ class CommandesHistoriqueModule(QFrame):
 			])
 		return any(query in value.lower() for value in haystack if value)
 
+	# ── Données et affichage ────────────────────────────────────────────────
+
 	def clear_cards(self):
 		while self.list_layout.count() > 1:
 			item = self.list_layout.takeAt(0)
@@ -362,16 +376,15 @@ class CommandesHistoriqueModule(QFrame):
 
 	def refresh_orders(self):
 		orders = get_all_history_orders()
+		f = self._filters
 
-		if self._active_status_filter is not None:
-			orders = [o for o in orders if o.get("status", "").lower() == self._active_status_filter]
+		# Filtre statut
+		if f.get("status") is not None:
+			orders = [o for o in orders if o.get("status", "").lower() == f["status"]]
 
-		query = self.search_field.text().strip().lower()
-		if query:
-			orders = [o for o in orders if self._matches_search(o, query)]
-
-		dt_from = self._parse_filter_datetime(self.date_from.text(), self.time_from.text(), "00:00")
-		dt_to = self._parse_filter_datetime(self.date_to.text(), self.time_to.text(), "23:59")
+		# Filtre période
+		dt_from = self._parse_filter_datetime(f.get("date_from", ""), f.get("time_from", ""), "00:00")
+		dt_to   = self._parse_filter_datetime(f.get("date_to", ""),   f.get("time_to", ""),   "23:59")
 		if dt_from or dt_to:
 			filtered = []
 			for o in orders:
@@ -384,6 +397,19 @@ class CommandesHistoriqueModule(QFrame):
 					continue
 				filtered.append(o)
 			orders = filtered
+
+		# Filtre type de plat
+		active_types: Set[str] = set(f.get("plat_types") or set())
+		if active_types:
+			orders = [
+				o for o in orders
+				if any(item.get("plat", "").strip() in active_types for item in o.get("items", []))
+			]
+
+		# Filtre recherche libre
+		query = self.search_field.text().strip().lower()
+		if query:
+			orders = [o for o in orders if self._matches_search(o, query)]
 
 		self.clear_cards()
 		self.summary_label.setText(f"Commandes : {len(orders)}")
@@ -464,9 +490,7 @@ class CommandesHistoriqueModule(QFrame):
 		header_layout.addWidget(priority_slot)
 
 		id_label = QLabel(order_id)
-		id_label.setStyleSheet(
-			f"color: {_TEXT_CARD_ID}; font-size: 14px; font-weight: 700;"
-		)
+		id_label.setStyleSheet(f"color: {_TEXT_CARD_ID}; font-size: 14px; font-weight: 700;")
 		header_layout.addWidget(id_label)
 
 		header_layout.addWidget(self._build_order_status_badge(order.get("status", "")))
