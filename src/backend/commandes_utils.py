@@ -165,6 +165,11 @@ def charger_fichier_commande(chemin_fichier):
     """
     if not os.path.exists(chemin_fichier):
         print(f"Erreur : Le fichier '{chemin_fichier}' est introuvable.")
+        logger.log(logger.ERREUR, {
+            "contexte": "lecture_commande",
+            "message": "Fichier introuvable",
+            "chemin": chemin_fichier,
+        })
         return None
 
     try:
