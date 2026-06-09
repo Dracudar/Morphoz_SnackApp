@@ -25,6 +25,7 @@ Date de modification:
 import os
 from datetime import datetime
 import json
+from src.backend import logger
 
 # Préfixe par type de plat pour les ID_plat (P001, G001, etc.)
 PREFIXES_PLAT = {
@@ -173,5 +174,10 @@ def charger_fichier_commande(chemin_fichier):
         print(f"Erreur : Le fichier '{chemin_fichier}' contient des données invalides.")
         dossier_corrompu = os.path.join(os.path.dirname(chemin_fichier), "corrompu")
         os.makedirs(dossier_corrompu, exist_ok=True)
-        os.rename(chemin_fichier, os.path.join(dossier_corrompu, os.path.basename(chemin_fichier)))
+        chemin_destination = os.path.join(dossier_corrompu, os.path.basename(chemin_fichier))
+        os.rename(chemin_fichier, chemin_destination)
+        logger.log(logger.FICHIER_CORROMPU, {
+            "chemin_original": chemin_fichier,
+            "chemin_destination": chemin_destination,
+        })
         return None

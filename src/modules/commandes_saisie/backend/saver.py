@@ -28,6 +28,7 @@ from src.backend.commandes_utils import (
     generer_ID_commande,
     generer_ID_plat,
 )
+from src.backend import logger
 
 
 def initialiser_dossiers_commandes(commandes_path, logs_path):
@@ -89,6 +90,34 @@ def _sort_key_plat(id_type: str) -> tuple:
     return ("", 0)
 
 
+def _log_stock_ajout(plat: dict, plat_id: str, id_commande: str) -> None:
+    """Log les modifications automatiques de stock lors de l'ajout d'un plat."""
+    type_plat = plat.get("Plat", "")
+    if type_plat == "Pizza":
+        logger.log(logger.MODIFICATION_STOCK_AUTOMATIQUE, {
+            "raison": "ajout_plat",
+            "id_commande": id_commande,
+            "id_plat": plat_id,
+            "type_plat": "Pizza",
+            "nom_plat": plat.get("Nom", ""),
+            "modifications": [{"chemin": ["Plats", "Pizza", "Pâte à pizza"], "delta": -1}],
+        })
+    elif type_plat == "Grillade":
+        viandes = plat.get("Composition", {}).get("Viandes", {})
+        if viandes:
+            logger.log(logger.MODIFICATION_STOCK_AUTOMATIQUE, {
+                "raison": "ajout_plat",
+                "id_commande": id_commande,
+                "id_plat": plat_id,
+                "type_plat": "Grillade",
+                "nom_plat": plat.get("Nom", ""),
+                "modifications": [
+                    {"chemin": ["Plats", "Grillades", viande], "delta": -qte}
+                    for viande, qte in viandes.items()
+                ],
+            })
+
+
 def MAJ_commande(commandes_path, logs_path, plat):
     """
     Ajoute un plat à une commande existante ou crée une nouvelle commande.
@@ -129,6 +158,15 @@ def MAJ_commande(commandes_path, logs_path, plat):
         with open(chemin_fichier, "w", encoding="utf-8") as fichier:
             json.dump(commande, fichier, indent=4, ensure_ascii=False)
 
+        logger.log(logger.AJOUT_PLAT, {
+            "id_commande": commande["Informations"]["ID"],
+            "id_plat": plat_id,
+            "type_plat": plat["Plat"],
+            "nom_plat": plat["Nom"],
+            "prix": plat["Prix"],
+        })
+        _log_stock_ajout(plat, plat_id, commande["Informations"]["ID"])
+
     else:
         nouvel_id = generer_ID_commande()
         chemin_fichier = os.path.join(commandes_path, f"commande_{nouvel_id}.json")
@@ -154,3 +192,12 @@ def MAJ_commande(commandes_path, logs_path, plat):
 
         with open(chemin_fichier, "w", encoding="utf-8") as fichier:
             json.dump(nouvelle_commande, fichier, indent=4, ensure_ascii=False)
+
+        logger.log(logger.AJOUT_PLAT, {
+            "id_commande": nouvel_id,
+            "id_plat": plat_id,
+            "type_plat": plat["Plat"],
+            "nom_plat": plat["Nom"],
+            "prix": plat["Prix"],
+        })
+        _log_stock_ajout(plat, plat_id, nouvel_id)

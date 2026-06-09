@@ -30,6 +30,7 @@ from ....backend.commandes_utils import (
 )
 from ....backend.printer import print_ticket_recap, print_ticket_cuisine
 from ....backend.data_sources import get_stock_cache
+from ....backend import logger
 
 
 def set_prioritaire(chemin_fichier: str, valeur: bool):
@@ -80,6 +81,13 @@ def valider_commande(chemin_fichier):
     get_stock_cache().save()
     get_id_cache().save()
 
+    logger.log(logger.VALIDATION_COMMANDE, {
+        "id_commande": commande["Informations"]["ID"],
+        "montant": commande["Informations"]["Montant"],
+        "nb_plats": len(commande["Commande"]),
+        "prioritaire": commande["Informations"].get("Prioritaire", False),
+    })
+
     dossier_en_cours = os.path.join(os.path.dirname(chemin_fichier), "en_cours")
     os.makedirs(dossier_en_cours, exist_ok=True)
     os.rename(chemin_fichier, os.path.join(dossier_en_cours, os.path.basename(chemin_fichier)))
@@ -106,6 +114,34 @@ def annuler_commande(chemin_fichier):
         dossier_annulee = os.path.join(os.path.dirname(chemin_fichier), "annulee")
         os.makedirs(dossier_annulee, exist_ok=True)
         os.rename(chemin_fichier, os.path.join(dossier_annulee, os.path.basename(chemin_fichier)))
+
+def _log_stock_restauration(plat: dict, id_commande: str) -> None:
+    """Log la restauration automatique de stock lors de l'annulation d'un plat."""
+    type_plat = plat.get("Plat", "")
+    if type_plat == "Pizza":
+        logger.log(logger.MODIFICATION_STOCK_AUTOMATIQUE, {
+            "raison": "annulation_plat",
+            "id_commande": id_commande,
+            "id_plat": plat.get("ID", ""),
+            "type_plat": "Pizza",
+            "nom_plat": plat.get("Nom", ""),
+            "modifications": [{"chemin": ["Plats", "Pizza", "Pâte à pizza"], "delta": +1}],
+        })
+    elif type_plat == "Grillade":
+        viandes = plat.get("Composition", {}).get("Viandes", {})
+        if viandes:
+            logger.log(logger.MODIFICATION_STOCK_AUTOMATIQUE, {
+                "raison": "annulation_plat",
+                "id_commande": id_commande,
+                "id_plat": plat.get("ID", ""),
+                "type_plat": "Grillade",
+                "nom_plat": plat.get("Nom", ""),
+                "modifications": [
+                    {"chemin": ["Plats", "Grillades", viande], "delta": +qte}
+                    for viande, qte in viandes.items()
+                ],
+            })
+
 
 def _restaurer_stock_plat(plat):
     """Restitue dans le cache les quantités consommées par un plat annulé."""
@@ -148,9 +184,19 @@ def annuler_plat(chemin_fichier, plat_id):
 
     if statut_commande == "En saisie" and plat["Statut"] == "En attente":
         # --- Branche saisie : suppression physique ---
+        id_commande = commande_data["Informations"]["ID"]
         _restaurer_stock_plat(plat)
+        _log_stock_restauration(plat, id_commande)
         # La clé IS déjà le type part (ex: "P030") — pas besoin de l'extraire de l'ID
         decrementer_ID_plat(plat.get("Plat", ""), plat_key)
+
+        logger.log(logger.ANNULATION_PLAT, {
+            "id_commande": id_commande,
+            "id_plat": plat.get("ID", plat_key),
+            "type_plat": plat.get("Plat", ""),
+            "nom_plat": plat.get("Nom", ""),
+            "contexte": "saisie",
+        })
 
         del commande_data["Commande"][plat_key]
 
@@ -168,8 +214,18 @@ def annuler_plat(chemin_fichier, plat_id):
 
     else:
         # --- Branche commande validée : marquage "Annulé" ---
+        id_commande = commande_data["Informations"]["ID"]
         if plat["Statut"] == "En attente":
             _restaurer_stock_plat(plat)
+            _log_stock_restauration(plat, id_commande)
+
+        logger.log(logger.ANNULATION_PLAT, {
+            "id_commande": id_commande,
+            "id_plat": plat.get("ID", plat_key),
+            "type_plat": plat.get("Plat", ""),
+            "nom_plat": plat.get("Nom", ""),
+            "contexte": "commande_validee",
+        })
 
         plat["Statut"] = "Annulé"
 
@@ -197,13 +253,22 @@ def annuler_all_plats(chemin_fichier):
     statut_commande = commande_data["Informations"]["Statut"]
 
     if statut_commande == "En saisie":
+        id_commande = commande_data["Informations"]["ID"]
+        nb_plats = len(commande_data["Commande"])
         # Traitement en ordre inverse (tri alpha-numérique décroissant) pour maximiser
         # les décrémentations consécutives et éviter les trous
         for plat_key in sorted(commande_data["Commande"], reverse=True):
             plat = commande_data["Commande"][plat_key]
             if plat["Statut"] == "En attente":
                 _restaurer_stock_plat(plat)
+                _log_stock_restauration(plat, id_commande)
                 decrementer_ID_plat(plat.get("Plat", ""), plat_key)
+
+        logger.log(logger.ANNULATION_COMMANDE, {
+            "id_commande": id_commande,
+            "nb_plats": nb_plats,
+            "contexte": "saisie",
+        })
 
         os.remove(chemin_fichier)
         decrementer_ID_commande()
