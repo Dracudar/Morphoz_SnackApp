@@ -96,6 +96,7 @@ class InterfacePrincipaleWidget(QWidget):
 
         self.page_parametres.config_changed.connect(self.refresh_all_pages)
         self.page_parametres.go_back.connect(lambda: self.set_left_page("saisie"))
+        self.page_historique.go_back.connect(lambda: self.set_left_page("saisie"))
         self.page_saisie.command_changed.connect(self.refresh_all_pages)
 
         root_layout.addWidget(self.left_stack, 2)

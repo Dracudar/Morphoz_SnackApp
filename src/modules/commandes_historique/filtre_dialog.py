@@ -5,24 +5,29 @@ filtre_dialog.py - Fenêtre de paramétrage des filtres de l'historique
 
 Description:
     QDialog regroupant tous les paramètres de filtrage de la vue historique :
-    statut de commande, période (date + heure) et type de plat.
+    statut de commande, statut de plat (avec gestion de compatibilité selon le
+    statut commande), période (date + heure) et type de plat.
     Trois boutons en pied de fenêtre : appliquer, annuler, remise à zéro.
 
 Author :
     Dracudar
 
 Version:
-    1.0
+    1.2
 
 Date de création :
     2026.06.09
+
+Date de modification:
+    2026.06.10
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, FrozenSet, List, Optional, Set
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import (
 	QDialog,
 	QFrame,
@@ -42,13 +47,62 @@ _BORDER     = "#60646c"
 _TEXT_TITLE = "#f5f5f5"
 _TEXT_LABEL = "#a8acb3"
 
-# ── Options de filtre statut ──────────────────────────────────────────────────
+# ── Options de filtre statut commande ────────────────────────────────────────
 _FILTRES_STATUT: List[tuple] = [
 	("Tout",     None),
 	("En cours", "validée"),
 	("Terminée", "terminée"),
 	("Annulée",  "annulée"),
 ]
+
+# ── Options de filtre statut plat ────────────────────────────────────────────
+_FILTRES_STATUT_PLAT: List[tuple] = [
+	("En prép.", "en préparation"),
+	("Prêt",    "prêt"),
+	("Livré",   "livré"),
+	("Annulé",  "annulé"),
+]
+
+# Statuts commande compatibles avec chaque statut plat (None = tous)
+_COMPAT_STATUT_PLAT: Dict[str, Optional[FrozenSet[str]]] = {
+	"en préparation": frozenset({"validée"}),
+	"prêt":           frozenset({"validée", "annulée"}),
+	"livré":          None,
+	"annulé":         None,
+}
+
+
+class StrikedFilterButton(QPushButton):
+	"""Bouton filtre avec barre diagonale quand l'option est incompatible avec le contexte."""
+
+	def __init__(self, text: str, parent=None):
+		super().__init__(text, parent)
+		self._striked = False
+
+	def set_striked(self, striked: bool):
+		if striked:
+			self.setChecked(False)
+		self._striked = striked
+		self.update()
+
+	@property
+	def is_striked(self) -> bool:
+		return self._striked
+
+	def mousePressEvent(self, event):
+		if self._striked:
+			return
+		super().mousePressEvent(event)
+
+	def paintEvent(self, event):
+		super().paintEvent(event)
+		if self._striked:
+			painter = QPainter(self)
+			painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+			painter.setPen(QPen(QColor("#c0392b"), 1.5))
+			r = self.rect()
+			painter.drawLine(r.topLeft(), r.bottomRight())
+			painter.end()
 
 
 class FiltreHistoriqueDialog(QDialog):
@@ -67,6 +121,7 @@ class FiltreHistoriqueDialog(QDialog):
 		self._initial_filters: Dict[str, Any] = dict(current_filters or {})
 		self._available_plat_types: List[str] = sorted(available_plat_types or [])
 		self._status_btns: Dict[Optional[str], QPushButton] = {}
+		self._plat_status_btns: Dict[str, QPushButton] = {}
 		self._plat_btns: Dict[str, QPushButton] = {}
 		self._build_ui()
 		self._load_filters(self._initial_filters)
@@ -79,6 +134,7 @@ class FiltreHistoriqueDialog(QDialog):
 		root.setSpacing(12)
 
 		root.addWidget(self._section_statut())
+		root.addWidget(self._section_plat_statuts())
 		root.addWidget(self._section_periode())
 		if self._available_plat_types:
 			root.addWidget(self._section_plat_types())
@@ -203,6 +259,20 @@ class FiltreHistoriqueDialog(QDialog):
 		layout.addLayout(row)
 		return frame
 
+	def _section_plat_statuts(self) -> QFrame:
+		frame, layout = self._make_section("Statut du plat")
+		row = QHBoxLayout()
+		row.setSpacing(6)
+		for label, key in _FILTRES_STATUT_PLAT:
+			btn = StrikedFilterButton(label)
+			btn.setCheckable(True)
+			btn.setObjectName("filterBtn")
+			self._plat_status_btns[key] = btn
+			row.addWidget(btn)
+		row.addStretch()
+		layout.addLayout(row)
+		return frame
+
 	def _section_periode(self) -> QFrame:
 		frame, layout = self._make_section("Période")
 
@@ -279,12 +349,30 @@ class FiltreHistoriqueDialog(QDialog):
 		"""Maintient l'exclusivité des boutons de statut (un seul actif à la fois)."""
 		for k, btn in self._status_btns.items():
 			btn.setChecked(k == key)
+		self._update_plat_status_availability(key)
+
+	def _update_plat_status_availability(self, active_cmd_status: Optional[str]):
+		"""Barre en diagonale les boutons statut plat incompatibles avec le statut commande."""
+		for plat_status, btn in self._plat_status_btns.items():
+			compat = _COMPAT_STATUT_PLAT.get(plat_status)
+			compatible = (
+				active_cmd_status is None
+				or compat is None
+				or active_cmd_status in compat
+			)
+			btn.set_striked(not compatible)
 
 	def _load_filters(self, filters: Dict[str, Any]):
 		"""Remplit tous les contrôles à partir d'un dict de filtres."""
 		active_status = filters.get("status", None)
 		for k, btn in self._status_btns.items():
 			btn.setChecked(k == active_status)
+
+		self._update_plat_status_availability(active_status)
+
+		active_plat_statuses: Set[str] = set(filters.get("plat_statuses") or set())
+		for ps, btn in self._plat_status_btns.items():
+			btn.setChecked(not btn.is_striked and ps in active_plat_statuses)
 
 		self.date_from.setText(filters.get("date_from", ""))
 		self.time_from.setText(filters.get("time_from", ""))
@@ -308,12 +396,16 @@ class FiltreHistoriqueDialog(QDialog):
 			(k for k, btn in self._status_btns.items() if btn.isChecked()),
 			None,
 		)
+		active_plat_statuses: Set[str] = {
+			ps for ps, btn in self._plat_status_btns.items() if btn.isChecked()
+		}
 		active_types: Set[str] = {pt for pt, btn in self._plat_btns.items() if btn.isChecked()}
 		return {
-			"status":     active_status,
-			"date_from":  self.date_from.text().strip(),
-			"time_from":  self.time_from.text().strip(),
-			"date_to":    self.date_to.text().strip(),
-			"time_to":    self.time_to.text().strip(),
-			"plat_types": active_types,
+			"status":        active_status,
+			"date_from":     self.date_from.text().strip(),
+			"time_from":     self.time_from.text().strip(),
+			"date_to":       self.date_to.text().strip(),
+			"time_to":       self.time_to.text().strip(),
+			"plat_types":    active_types,
+			"plat_statuses": active_plat_statuses,
 		}

@@ -412,8 +412,10 @@ def get_all_history_orders() -> List[Dict[str, Any]]:
                     "created_at": infos.get("Date de création", ["", ""]),
                     "validation_at": infos.get("Date de validation", ["", ""]),
                     "delivery_at": infos.get("Date de livraison", ["", ""]),
+                    "cancelled_at": infos.get("Date d'annulation", ["", ""]),
                     "items": items,
                     "amount": infos.get("Montant"),
+                    "payment_type": infos.get("Type de paiement", ""),
                     "priority": bool(infos.get("Prioritaire", False)),
                 }
             )
