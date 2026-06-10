@@ -10,7 +10,7 @@ Author :
     Dracudar
 
 Version:
-    2.2
+    2.3
 
 Date de création :
     2026.05.12
@@ -146,3 +146,8 @@ class MainWindow(QMainWindow):
         """Quitte le plein écran"""
         if self.isFullScreen():
             self.showNormal()
+
+    def closeEvent(self, event):
+        """Ferme l'affichage externe avant de quitter l'application."""
+        self.suivi_exterieur_window.force_close()
+        event.accept()

@@ -13,13 +13,13 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.06.08
 
 Date de modification:
-    2026.06.08
+    2026.06.10
 """
 
 from PySide6.QtCore import Qt, QTimer, Signal
@@ -127,8 +127,17 @@ class SuiviExterieurWindow(QMainWindow):
         self._timer.timeout.connect(self.refresh)
         self._timer.start()
 
+    def force_close(self):
+        """Ferme définitivement la fenêtre lors de la fermeture de l'application."""
+        self._timer.stop()
+        self._app_closing = True
+        self.close()
+
     def closeEvent(self, event):
-        """Masque la fenêtre au lieu de la détruire pour conserver son état."""
+        """Masque la fenêtre (fermeture manuelle) ou la détruit (fermeture de l'app)."""
+        if getattr(self, '_app_closing', False):
+            event.accept()
+            return
         event.ignore()
         self.hide()
         self.closed.emit()
