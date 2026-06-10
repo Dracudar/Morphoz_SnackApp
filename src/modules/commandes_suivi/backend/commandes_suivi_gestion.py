@@ -10,7 +10,7 @@ Author :
     Dracudar
 
 Version:
-    1.2
+    1.3
 
 Date de création :
     2025.05.31
@@ -151,11 +151,19 @@ def marquer_plat_pret(chemin_fichier: str, plat_id_complet: str) -> bool:
     plat_key = _trouver_cle_plat(commande_data, plat_id_complet)
     if not plat_key or commande_data["Commande"][plat_key]["Statut"] != "En préparation":
         return False
+    plat_data = commande_data["Commande"][plat_key]
     now = [datetime.now().strftime("%d/%m/%Y"), datetime.now().strftime("%H:%M")]
     commande_data["Commande"][plat_key]["Statut"] = "Prêt"
     commande_data["Commande"][plat_key]["Date de mise en livraison"] = now
     with open(chemin_fichier, "w", encoding="utf-8") as f:
         json.dump(commande_data, f, indent=4, ensure_ascii=False)
+    logger.log(logger.PLAT_PRET, {
+        "id_commande": commande_data["Informations"]["ID"],
+        "id_plat": plat_id_complet,
+        "type_plat": plat_data.get("Plat", ""),
+        "nom_plat": plat_data.get("Nom", ""),
+        "contexte": "historique",
+    })
     return True
 
 
@@ -167,11 +175,19 @@ def marquer_plat_livre(chemin_fichier: str, plat_id_complet: str) -> bool:
     plat_key = _trouver_cle_plat(commande_data, plat_id_complet)
     if not plat_key or commande_data["Commande"][plat_key]["Statut"] not in ("En préparation", "Prêt"):
         return False
+    plat_data = commande_data["Commande"][plat_key]
     now = [datetime.now().strftime("%d/%m/%Y"), datetime.now().strftime("%H:%M")]
     commande_data["Commande"][plat_key]["Statut"] = "Livré"
     commande_data["Commande"][plat_key]["Date de livraison"] = now
     with open(chemin_fichier, "w", encoding="utf-8") as f:
         json.dump(commande_data, f, indent=4, ensure_ascii=False)
+    logger.log(logger.PLAT_LIVRE, {
+        "id_commande": commande_data["Informations"]["ID"],
+        "id_plat": plat_id_complet,
+        "type_plat": plat_data.get("Plat", ""),
+        "nom_plat": plat_data.get("Nom", ""),
+        "contexte": "historique",
+    })
     terminer_commande(chemin_fichier)
     return True
 
@@ -184,6 +200,7 @@ def annuler_plat_valide(chemin_fichier: str, plat_id_complet: str) -> bool:
     plat_key = _trouver_cle_plat(commande_data, plat_id_complet)
     if not plat_key or commande_data["Commande"][plat_key]["Statut"] in ("Annulé", "Livré"):
         return False
+    plat_data = commande_data["Commande"][plat_key]
     now = [datetime.now().strftime("%d/%m/%Y"), datetime.now().strftime("%H:%M")]
     commande_data["Commande"][plat_key]["Statut"] = "Annulé"
     commande_data["Commande"][plat_key]["Date d'annulation"] = now
@@ -192,6 +209,13 @@ def annuler_plat_valide(chemin_fichier: str, plat_id_complet: str) -> bool:
     )
     with open(chemin_fichier, "w", encoding="utf-8") as f:
         json.dump(commande_data, f, indent=4, ensure_ascii=False)
+    logger.log(logger.ANNULATION_PLAT, {
+        "id_commande": commande_data["Informations"]["ID"],
+        "id_plat": plat_id_complet,
+        "type_plat": plat_data.get("Plat", ""),
+        "nom_plat": plat_data.get("Nom", ""),
+        "contexte": "historique",
+    })
     _finaliser_apres_annulation(chemin_fichier)
     return True
 
@@ -203,11 +227,13 @@ def annuler_commande_complete(chemin_fichier: str) -> bool:
         return False
     now = [datetime.now().strftime("%d/%m/%Y"), datetime.now().strftime("%H:%M")]
     modifie = False
+    nb_annules = 0
     for plat in commande_data["Commande"].values():
         if plat["Statut"] not in ("Annulé", "Livré"):
             plat["Statut"] = "Annulé"
             plat["Date d'annulation"] = now
             modifie = True
+            nb_annules += 1
     if not modifie:
         return False
     commande_data["Informations"]["Montant"] = sum(
@@ -215,6 +241,11 @@ def annuler_commande_complete(chemin_fichier: str) -> bool:
     )
     with open(chemin_fichier, "w", encoding="utf-8") as f:
         json.dump(commande_data, f, indent=4, ensure_ascii=False)
+    logger.log(logger.ANNULATION_COMMANDE, {
+        "id_commande": commande_data["Informations"]["ID"],
+        "nb_plats_annules": nb_annules,
+        "contexte": "historique",
+    })
     _finaliser_apres_annulation(chemin_fichier)
     return True
 

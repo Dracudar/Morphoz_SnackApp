@@ -12,7 +12,7 @@ Author :
     Dracudar
 
 Version:
-    2.1
+    2.2
 
 Date de création :
     2025.06.04
@@ -26,6 +26,7 @@ from PIL import Image
 from escpos.printer import Usb
 from src.backend.commandes_utils import charger_fichier_commande
 from src.backend.app_config import get_printer_config, get_print_options
+from src.backend import logger
 
 
 def charger_logo(nom_image, taille=()):
@@ -243,8 +244,17 @@ def print_ticket_recap(chemin_fichier):
         commande = charger_fichier_commande(chemin_fichier)
         _do_print_recap(commande, p)
         p.close()
+        logger.log(logger.IMPRESSION_TICKET, {
+            "type": "recap",
+            "id_commande": commande["Informations"]["ID"],
+            "contexte": "auto",
+        })
     except Exception as e:
-        print(f"Imprimante non disponible : {e}")
+        logger.log(logger.ERREUR, {
+            "contexte": "impression_recap_auto",
+            "id_commande": chemin_fichier,
+            "detail": str(e),
+        })
 
 
 def print_ticket_cuisine(chemin_fichier):
@@ -258,14 +268,25 @@ def print_ticket_cuisine(chemin_fichier):
         infos = commande["Informations"]
         plats = commande["Commande"]
 
+        nb_tickets = 0
         for plat_id, plat in plats.items():
             if plat["Statut"] == "En attente":
                 _print_plat_ticket(plat, infos, p)
+                nb_tickets += 1
 
         p.close()
-
+        logger.log(logger.IMPRESSION_TICKET, {
+            "type": "cuisine",
+            "id_commande": infos["ID"],
+            "nb_tickets": nb_tickets,
+            "contexte": "auto",
+        })
     except Exception as e:
-        print(f"Imprimante non disponible : {e}")
+        logger.log(logger.ERREUR, {
+            "contexte": "impression_cuisine_auto",
+            "id_commande": chemin_fichier,
+            "detail": str(e),
+        })
 
 
 # ── Réimpression manuelle (depuis l'historique) ───────────────────────────────
@@ -282,7 +303,17 @@ def reprint_ticket_recap(chemin_fichier: str) -> None:
         p = _get_printer()
         _do_print_recap(commande, p, reprint=True)
         p.close()
+        logger.log(logger.IMPRESSION_TICKET, {
+            "type": "recap",
+            "id_commande": commande["Informations"]["ID"],
+            "contexte": "reimpression",
+        })
     except Exception as e:
+        logger.log(logger.ERREUR, {
+            "contexte": "reimpression_recap",
+            "id_commande": commande["Informations"]["ID"],
+            "detail": str(e),
+        })
         raise RuntimeError(f"Erreur d'impression : {e}") from e
 
 
@@ -302,7 +333,19 @@ def reprint_ticket_cuisine_plat(chemin_fichier: str, plat_id: str) -> None:
         p = _get_printer()
         _print_plat_ticket(plat, commande["Informations"], p)
         p.close()
+        logger.log(logger.IMPRESSION_TICKET, {
+            "type": "cuisine",
+            "id_commande": commande["Informations"]["ID"],
+            "id_plat": plat_id,
+            "contexte": "reimpression",
+        })
     except Exception as e:
+        logger.log(logger.ERREUR, {
+            "contexte": "reimpression_cuisine_plat",
+            "id_commande": commande["Informations"]["ID"],
+            "id_plat": plat_id,
+            "detail": str(e),
+        })
         raise RuntimeError(f"Erreur d'impression : {e}") from e
 
 
@@ -337,6 +380,15 @@ def reprint_all_active_cuisine() -> int:
             _print_plat_ticket(plat, commande["Informations"], p)
             count += 1
         p.close()
+        logger.log(logger.IMPRESSION_TICKET, {
+            "type": "cuisine",
+            "nb_tickets": count,
+            "contexte": "reimpression_globale",
+        })
         return count
     except Exception as e:
+        logger.log(logger.ERREUR, {
+            "contexte": "reimpression_cuisine_globale",
+            "detail": str(e),
+        })
         raise RuntimeError(f"Erreur d'impression : {e}") from e

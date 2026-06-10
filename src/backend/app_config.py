@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    2.0
+    2.1
 
 Date de création :
     2026.05.31
 
 Date de modification:
-    2026.06.09
+    2026.06.10
 """
 
 from __future__ import annotations
@@ -167,10 +167,12 @@ def get_print_options() -> Dict[str, bool]:
 # ── Sauvegarde ─────────────────────────────────────────────────────────────────
 
 def _create_data_structure(data_folder: Path) -> bool:
-    """Crée la structure de dossiers et les fichiers JSON vides si absents."""
+    """Crée la structure de dossiers et les fichiers JSON vides si absents. Vérifie les fichiers existants."""
     from src.backend import logger
     try:
         data_folder.mkdir(parents=True, exist_ok=True)
+
+        # Dossiers principaux
         for sous_dossier, type_dossier in [
             (COMMANDES_DIRNAME, "commandes"),
             (LOGS_DIRNAME, "logs"),
@@ -179,14 +181,39 @@ def _create_data_structure(data_folder: Path) -> bool:
             creation = not chemin.exists()
             chemin.mkdir(exist_ok=True)
             if creation:
+                logger.log(logger.CREATION_DOSSIER, {"chemin": str(chemin), "type": type_dossier})
+
+        # Sous-dossiers de commandes/
+        commandes_path = data_folder / COMMANDES_DIRNAME
+        for sous_dossier in ("en_cours", "terminee", "annulee", "corrompu"):
+            chemin = commandes_path / sous_dossier
+            creation = not chemin.exists()
+            chemin.mkdir(exist_ok=True)
+            if creation:
                 logger.log(logger.CREATION_DOSSIER, {
                     "chemin": str(chemin),
-                    "type": type_dossier,
+                    "type": f"commandes/{sous_dossier}",
                 })
+
+        # Fichiers JSON : création si absents, vérification si existants
         for filename in (STOCK_FILENAME, CARTE_ACTIVE_FILENAME, CARTE_ARCHIVE_FILENAME):
             file_path = data_folder / filename
             if not file_path.exists():
                 _write_json_file(file_path, {})
+                logger.log(logger.CREATION_FICHIER, {
+                    "chemin": str(file_path),
+                    "fichier": filename,
+                })
+            else:
+                try:
+                    with file_path.open("r", encoding="utf-8") as fh:
+                        json.load(fh)
+                except (OSError, json.JSONDecodeError):
+                    logger.log(logger.FICHIER_CORROMPU, {
+                        "chemin": str(file_path),
+                        "fichier": filename,
+                    })
+
     except OSError:
         return False
     return True

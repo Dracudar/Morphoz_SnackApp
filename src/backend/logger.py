@@ -16,16 +16,17 @@ Author:
     Dracudar
 
 Version:
-    1.2
+    1.6
 
 Date de création:
     2026.06.09
 
 Date de modification:
-    2026.06.09
+    2026.06.10
 """
 
 import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -48,6 +49,9 @@ MODIFICATION_PARAMETRES_IMPRIMANTE = "MODIFICATION_PARAMETRES_IMPRIMANTE"
 MODIFICATION_OPTIONS_IMPRESSION = "MODIFICATION_OPTIONS_IMPRESSION"
 MODIFICATION_DOSSIER_DONNEES = "MODIFICATION_DOSSIER_DONNEES"
 CREATION_DOSSIER = "CREATION_DOSSIER"
+IMPRESSION_TICKET = "IMPRESSION_TICKET"
+AFFICHAGE_EXTERIEUR = "AFFICHAGE_EXTERIEUR"
+CREATION_FICHIER = "CREATION_FICHIER"
 DEMARRAGE_APP = "DEMARRAGE_APP"
 ARRET_APP = "ARRET_APP"
 ERREUR = "ERREUR"
@@ -71,6 +75,9 @@ _CATEGORIES: dict = {
     MODIFICATION_PARAMETRES_IMPRIMANTE: "parametres",
     MODIFICATION_OPTIONS_IMPRESSION: "parametres",
     MODIFICATION_DOSSIER_DONNEES: "parametres",
+    IMPRESSION_TICKET: "commande",
+    AFFICHAGE_EXTERIEUR: "systeme",
+    CREATION_FICHIER: "systeme",
     CREATION_DOSSIER: "systeme",
     DEMARRAGE_APP: "systeme",
     ARRET_APP: "systeme",
@@ -106,6 +113,77 @@ def _next_index(today: str, log_file: Path) -> int:
 
 
 # ── API publique ───────────────────────────────────────────────────────────────
+
+def migrer_log_journalier(ancien_dossier: Path, nouveau_dossier: Path) -> None:
+    """Déplace ou fusionne le fichier de log du jour dans le nouveau dossier logs.
+
+    Appelée lors d'un changement de dossier data pour assurer la continuité du suivi.
+    - Nouveau dossier sans fichier log du jour → déplacement (move) du fichier source.
+    - Fichier déjà présent → fusion avec déduplication par (timestamp, evenement, details),
+      tri chronologique et réindexation.
+    """
+    global _log_index, _log_index_date
+
+    today = datetime.now().strftime("%Y%m%d")
+    ancien_fichier = Path(ancien_dossier) / f"app_{today}.log"
+
+    if not ancien_fichier.exists():
+        return
+
+    def _lire(chemin: Path) -> list:
+        entrees = []
+        try:
+            with chemin.open("r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        try:
+                            entrees.append(json.loads(line))
+                        except json.JSONDecodeError:
+                            pass
+        except OSError:
+            pass
+        return entrees
+
+    try:
+        Path(nouveau_dossier).mkdir(parents=True, exist_ok=True)
+        nouveau_fichier = Path(nouveau_dossier) / f"app_{today}.log"
+
+        if not nouveau_fichier.exists():
+            # Déplacement : le fichier source disparaît, pas de doublon possible
+            shutil.move(str(ancien_fichier), nouveau_fichier)
+        else:
+            # Fusion avec déduplication pour éviter les doublons lors d'aller-retours
+            def _cle(e: dict) -> tuple:
+                return (
+                    e.get("timestamp", ""),
+                    e.get("evenement", ""),
+                    json.dumps(e.get("details", {}), sort_keys=True, ensure_ascii=False),
+                )
+
+            vus: set = set()
+            uniques: list = []
+            for entree in _lire(ancien_fichier) + _lire(nouveau_fichier):
+                cle = _cle(entree)
+                if cle not in vus:
+                    vus.add(cle)
+                    uniques.append(entree)
+
+            uniques.sort(key=lambda e: e.get("timestamp", ""))
+            for i, entree in enumerate(uniques, start=1):
+                entree["index"] = i
+
+            with nouveau_fichier.open("w", encoding="utf-8") as f:
+                for entree in uniques:
+                    f.write(json.dumps(entree, ensure_ascii=False) + "\n")
+
+            # Resynchroniser le compteur pour que les prochains index soient continus
+            _log_index = len(uniques)
+            _log_index_date = today
+
+    except OSError:
+        pass
+
 
 def log(evenement: str, details: dict = None) -> None:
     """Enregistre un événement dans le fichier de log journalier (data/logs/app_YYYYMMDD.log).

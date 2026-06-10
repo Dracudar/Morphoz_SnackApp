@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    2.1
+    2.2
 
 Date de création :
     2026.05.12
 
 Date de modification:
-    2026.06.08
+    2026.06.10
 """
 
 # Importation des modules nécessaires
@@ -26,6 +26,7 @@ from PySide6.QtWidgets import QMainWindow
 
 from src.UI.view.interface_principale import InterfacePrincipaleWidget
 from src.UI.suivi_exterieur_window import SuiviExterieurWindow
+from src.backend import logger
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -132,6 +133,7 @@ class MainWindow(QMainWindow):
             self.suivi_exterieur_window.raise_()
         else:
             self.suivi_exterieur_window.hide()
+        logger.log(logger.AFFICHAGE_EXTERIEUR, {"etat": "activé" if checked else "désactivé"})
 
     def toggle_fullscreen(self):
         """Bascule le mode plein écran"""
