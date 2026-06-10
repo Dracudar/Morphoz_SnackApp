@@ -184,6 +184,11 @@ def annuler_plat(chemin_fichier, plat_id):
         if plat["Statut"] in ("En attente", "En préparation"):
             restaurer_stock_plat(plat)
             log_stock_restauration(plat, id_commande)
+            get_stock_cache().save()
+            logger.log(logger.PERSISTANCE_STOCK, {
+                "contexte": "annulation_plat",
+                "id_commande": id_commande,
+            })
 
         logger.log(logger.ANNULATION_PLAT, {
             "id_commande": id_commande,

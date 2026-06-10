@@ -28,6 +28,7 @@ from src.backend.commandes_utils import (
     log_stock_restauration,
     trouver_candidat_transfert,
 )
+from src.backend.data_sources import get_stock_cache
 from src.backend import logger
 
 
@@ -279,6 +280,11 @@ def annuler_plat_valide(chemin_fichier: str, plat_id_complet: str) -> bool:
     if statut_plat == "En préparation":
         restaurer_stock_plat(plat_data)
         log_stock_restauration(plat_data, id_commande)
+        get_stock_cache().save()
+        logger.log(logger.PERSISTANCE_STOCK, {
+            "contexte": "annulation_plat",
+            "id_commande": id_commande,
+        })
         commande_data["Commande"][plat_key]["Statut"] = "Annulé"
         commande_data["Commande"][plat_key]["Date d'annulation"] = now
         with open(chemin_fichier, "w", encoding="utf-8") as f:
