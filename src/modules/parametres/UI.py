@@ -11,7 +11,7 @@ Author :
     Dracudar
 
 Version:
-    2.5
+    2.6
 
 Date de création :
     2025.05.29
@@ -54,6 +54,7 @@ class ParametresModule(QFrame):
 
 	config_changed = Signal()
 	go_back = Signal()
+	go_to_poste_prep = Signal()
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
@@ -157,17 +158,23 @@ class ParametresModule(QFrame):
 		buttons_layout = QHBoxLayout()
 		buttons_layout.setSpacing(10)
 
-		self.back_button = QPushButton("  Retour")
-		self.back_button.setIcon(QIcon("assets/icons/return.svg"))
-		self.back_button.setIconSize(QSize(18, 18))
-		self.back_button.clicked.connect(self.go_back.emit)
+		self.btn_saisie = QPushButton("  Interface saisie")
+		self.btn_saisie.setIcon(QIcon("assets/icons/return.svg"))
+		self.btn_saisie.setIconSize(QSize(18, 18))
+		self.btn_saisie.clicked.connect(self.go_back.emit)
+
+		self.btn_poste_prep = QPushButton("  Interface suivi/préparation")
+		self.btn_poste_prep.setIcon(QIcon("assets/icons/return.svg"))
+		self.btn_poste_prep.setIconSize(QSize(18, 18))
+		self.btn_poste_prep.clicked.connect(self.go_to_poste_prep.emit)
 
 		self.save_button = QPushButton("  Enregistrer")
 		self.save_button.setIcon(QIcon("assets/icons/save.svg"))
 		self.save_button.setIconSize(QSize(18, 18))
 		self.save_button.clicked.connect(self.save_config)
 
-		buttons_layout.addWidget(self.back_button)
+		buttons_layout.addWidget(self.btn_saisie)
+		buttons_layout.addWidget(self.btn_poste_prep)
 		buttons_layout.addStretch()
 		buttons_layout.addWidget(self.save_button)
 
