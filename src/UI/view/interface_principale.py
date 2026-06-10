@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.2
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.09
+    2026.06.10
 """
 
 from PySide6.QtCore import Qt
@@ -101,6 +101,9 @@ class InterfacePrincipaleWidget(QWidget):
 
         root_layout.addWidget(self.left_stack, 2)
         root_layout.addWidget(self.suivi_module, 1)
+
+        # Affiche les paramètres au démarrage
+        self.set_left_page("parametres")
 
     def set_left_page(self, page_name: str):
         """Affiche la page demandée dans le stack gauche et adapte le mode d'affichage.
