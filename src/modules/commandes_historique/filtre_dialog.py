@@ -13,7 +13,7 @@ Author :
     Dracudar
 
 Version:
-    1.2
+    1.3
 
 Date de création :
     2026.06.09
@@ -123,6 +123,7 @@ class FiltreHistoriqueDialog(QDialog):
 		self._status_btns: Dict[Optional[str], QPushButton] = {}
 		self._plat_status_btns: Dict[str, QPushButton] = {}
 		self._plat_btns: Dict[str, QPushButton] = {}
+		self._priority_btn: Optional[QPushButton] = None
 		self._build_ui()
 		self._load_filters(self._initial_filters)
 
@@ -185,6 +186,24 @@ class FiltreHistoriqueDialog(QDialog):
 			QPushButton#filterBtn:hover:!checked {{
 				background-color: #4a4e55;
 			}}
+			QPushButton#filterBtnPriority {{
+				background-color: #3a3d43;
+				border: 1px solid {_BORDER};
+				border-radius: 12px;
+				color: #c0392b;
+				font-size: 12px;
+				font-weight: 700;
+				padding: 3px 14px;
+				min-height: 26px;
+			}}
+			QPushButton#filterBtnPriority:checked {{
+				background-color: #5e1a1a;
+				border: 1px solid #e74c3c;
+				color: #f5f5f5;
+			}}
+			QPushButton#filterBtnPriority:hover:!checked {{
+				background-color: #4a3535;
+			}}
 			QPushButton#applyBtn {{
 				background-color: #2d6a4f;
 				border: 1px solid #40916c;
@@ -246,17 +265,28 @@ class FiltreHistoriqueDialog(QDialog):
 
 	def _section_statut(self) -> QFrame:
 		frame, layout = self._make_section("Statut de la commande")
-		row = QHBoxLayout()
-		row.setSpacing(6)
+
+		status_row = QHBoxLayout()
+		status_row.setSpacing(6)
 		for label, key in _FILTRES_STATUT:
 			btn = QPushButton(label)
 			btn.setCheckable(True)
 			btn.setObjectName("filterBtn")
 			btn.clicked.connect(lambda _, k=key: self._on_status_click(k))
 			self._status_btns[key] = btn
-			row.addWidget(btn)
-		row.addStretch()
-		layout.addLayout(row)
+			status_row.addWidget(btn)
+		status_row.addStretch()
+		layout.addLayout(status_row)
+
+		priority_row = QHBoxLayout()
+		priority_row.setSpacing(6)
+		self._priority_btn = QPushButton("! Prioritaire")
+		self._priority_btn.setCheckable(True)
+		self._priority_btn.setObjectName("filterBtnPriority")
+		priority_row.addWidget(self._priority_btn)
+		priority_row.addStretch()
+		layout.addLayout(priority_row)
+
 		return frame
 
 	def _section_plat_statuts(self) -> QFrame:
@@ -368,6 +398,9 @@ class FiltreHistoriqueDialog(QDialog):
 		for k, btn in self._status_btns.items():
 			btn.setChecked(k == active_status)
 
+		if self._priority_btn is not None:
+			self._priority_btn.setChecked(bool(filters.get("priority_only", False)))
+
 		self._update_plat_status_availability(active_status)
 
 		active_plat_statuses: Set[str] = set(filters.get("plat_statuses") or set())
@@ -402,6 +435,7 @@ class FiltreHistoriqueDialog(QDialog):
 		active_types: Set[str] = {pt for pt, btn in self._plat_btns.items() if btn.isChecked()}
 		return {
 			"status":        active_status,
+			"priority_only": self._priority_btn.isChecked() if self._priority_btn is not None else False,
 			"date_from":     self.date_from.text().strip(),
 			"time_from":     self.time_from.text().strip(),
 			"date_to":       self.date_to.text().strip(),

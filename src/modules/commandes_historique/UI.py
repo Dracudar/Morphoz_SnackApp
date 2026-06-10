@@ -18,7 +18,7 @@ Author :
     Dracudar
 
 Version:
-    3.5
+    3.6
 
 Date de création :
     2026.05.26
@@ -151,6 +151,7 @@ _FILTERS_DEFAULT: Dict[str, Any] = {
 	"time_to":       "",
 	"plat_types":    set(),
 	"plat_statuses": set(),
+	"priority_only": False,
 }
 
 
@@ -191,8 +192,10 @@ class CommandesHistoriqueModule(QFrame):
 		self.search_field.setClearButtonEnabled(True)
 		self.search_field.textChanged.connect(self.refresh_orders)
 
-		self.filter_btn = QPushButton("⚙ Filtres")
+		self.filter_btn = QPushButton(" Filtres")
 		self.filter_btn.setObjectName("filterOpenButton")
+		self.filter_btn.setIcon(QIcon("assets/icons/filter.svg"))
+		self.filter_btn.setIconSize(QSize(16, 16))
 		self.filter_btn.clicked.connect(self._open_filter_dialog)
 
 		search_row.addWidget(self.search_field, 1)
@@ -362,6 +365,8 @@ class CommandesHistoriqueModule(QFrame):
 		n = 0
 		if f.get("status") is not None:
 			n += 1
+		if f.get("priority_only"):
+			n += 1
 		if f.get("date_from") or f.get("date_to"):
 			n += 1
 		if f.get("plat_types"):
@@ -374,7 +379,7 @@ class CommandesHistoriqueModule(QFrame):
 		"""Met à jour le bouton filtres et l'indicateur textuel selon l'état actif."""
 		n = self._count_active_filters()
 		if n > 0:
-			self.filter_btn.setText(f"⚙ Filtres · {n} actif{'s' if n > 1 else ''}")
+			self.filter_btn.setText(f" Filtres · {n} actif{'s' if n > 1 else ''}")
 			self.filter_btn.setStyleSheet(
 				"""
 				QPushButton#filterOpenButton {
@@ -392,7 +397,7 @@ class CommandesHistoriqueModule(QFrame):
 			self.filter_indicator.setText(self._describe_active_filters())
 			self.filter_indicator.setVisible(True)
 		else:
-			self.filter_btn.setText("⚙ Filtres")
+			self.filter_btn.setText(" Filtres")
 			self.filter_btn.setStyleSheet("")
 			self.filter_indicator.setVisible(False)
 
@@ -402,6 +407,8 @@ class CommandesHistoriqueModule(QFrame):
 		parts = []
 		if f.get("status"):
 			parts.append(_STATUT_LABELS.get(f["status"], f["status"]))
+		if f.get("priority_only"):
+			parts.append("Prioritaire")
 		date_from, time_from = f.get("date_from", ""), f.get("time_from", "")
 		date_to, time_to = f.get("date_to", ""), f.get("time_to", "")
 		if date_from or date_to:
@@ -500,9 +507,13 @@ class CommandesHistoriqueModule(QFrame):
 		orders = get_all_history_orders()
 		f = self._filters
 
-		# Filtre statut
+		# Filtre statut commande
 		if f.get("status") is not None:
 			orders = [o for o in orders if o.get("status", "").lower() == f["status"]]
+
+		# Filtre commandes prioritaires
+		if f.get("priority_only"):
+			orders = [o for o in orders if o.get("priority", False)]
 
 		# Filtre période
 		dt_from = self._parse_filter_datetime(f.get("date_from", ""), f.get("time_from", ""), "00:00")
@@ -520,24 +531,22 @@ class CommandesHistoriqueModule(QFrame):
 				filtered.append(o)
 			orders = filtered
 
-		# Filtre type de plat
+		# Filtres plat (type et statut) : seuls les plats correspondants sont affichés
 		active_types: Set[str] = set(f.get("plat_types") or set())
-		if active_types:
-			orders = [
-				o for o in orders
-				if any(item.get("plat", "").strip() in active_types for item in o.get("items", []))
-			]
-
-		# Filtre statut de plat
 		active_plat_statuses: Set[str] = set(f.get("plat_statuses") or set())
-		if active_plat_statuses:
-			orders = [
-				o for o in orders
-				if any(
-					item.get("status", "").lower() in active_plat_statuses
-					for item in o.get("items", [])
-				)
-			]
+		if active_types or active_plat_statuses:
+			filtered_orders = []
+			for o in orders:
+				visible_items = [
+					item for item in o.get("items", [])
+					if (not active_types or item.get("plat", "").strip() in active_types)
+					and (not active_plat_statuses or item.get("status", "").lower() in active_plat_statuses)
+				]
+				if visible_items:
+					order_copy = dict(o)
+					order_copy["items"] = visible_items
+					filtered_orders.append(order_copy)
+			orders = filtered_orders
 
 		# Filtre recherche libre
 		query = self.search_field.text().strip().lower()
