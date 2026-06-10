@@ -61,6 +61,7 @@ _FILTRES_STATUT_PLAT: List[tuple] = [
 	("Prêt",    "prêt"),
 	("Livré",   "livré"),
 	("Annulé",  "annulé"),
+	("Non livré", "non livré"),
 ]
 
 # Statuts commande compatibles avec chaque statut plat (None = tous)
@@ -69,6 +70,7 @@ _COMPAT_STATUT_PLAT: Dict[str, Optional[FrozenSet[str]]] = {
 	"prêt":           frozenset({"validée", "annulée"}),
 	"livré":          None,
 	"annulé":         None,
+	"non livré":      frozenset({"validée", "terminée"}),
 }
 
 

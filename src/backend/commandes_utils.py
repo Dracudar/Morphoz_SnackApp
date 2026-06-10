@@ -13,7 +13,7 @@ Author :
     Dracudar
 
 Version:
-    3.1
+    3.2
 
 Date de création :
     2025.05.31
@@ -157,6 +157,120 @@ def decrementer_ID_commande(logs_path=None):
 def decrementer_ID_plat(type_plat: str, id_plat_val: str, logs_path=None):
     """Décrémente le compteur d'un type de plat si c'est le dernier assigné."""
     get_id_cache().decrementer_plat(type_plat, id_plat_val)
+
+
+# ── Utilitaires stock et annulation ───────────────────────────────────────────
+
+def restaurer_stock_plat(plat: dict) -> None:
+    """Restitue dans le cache les quantités consommées par un plat annulé."""
+    from src.backend.data_sources import get_stock_cache
+    cache = get_stock_cache()
+    plat_type = plat.get("Plat", "")
+    composition = plat.get("Composition", {})
+    if plat_type == "Pizza":
+        cache.incrementer(["Plats", "Pizza", "Pâte à pizza"])
+    elif plat_type == "Grillade":
+        for viande, qte in composition.get("Viandes", {}).items():
+            cache.incrementer(["Plats", "Grillades", viande], qte)
+
+
+def log_stock_restauration(plat: dict, id_commande: str) -> None:
+    """Log la restauration automatique de stock lors de l'annulation d'un plat."""
+    type_plat = plat.get("Plat", "")
+    if type_plat == "Pizza":
+        logger.log(logger.MODIFICATION_CACHE_STOCK, {
+            "raison": "annulation_plat",
+            "id_commande": id_commande,
+            "id_plat": plat.get("ID", ""),
+            "type_plat": "Pizza",
+            "nom_plat": plat.get("Nom", ""),
+            "modifications": [{"chemin": ["Plats", "Pizza", "Pâte à pizza"], "delta": +1}],
+        })
+    elif type_plat == "Grillade":
+        viandes = plat.get("Composition", {}).get("Viandes", {})
+        if viandes:
+            logger.log(logger.MODIFICATION_CACHE_STOCK, {
+                "raison": "annulation_plat",
+                "id_commande": id_commande,
+                "id_plat": plat.get("ID", ""),
+                "type_plat": "Grillade",
+                "nom_plat": plat.get("Nom", ""),
+                "modifications": [
+                    {"chemin": ["Plats", "Grillades", viande], "delta": +qte}
+                    for viande, qte in viandes.items()
+                ],
+            })
+
+
+def plats_identiques(plat_ref: dict, plat_candidat: dict) -> bool:
+    """Vérifie si deux plats sont strictement identiques (type → recette/nom → composition)."""
+    if plat_ref.get("Plat") != plat_candidat.get("Plat"):
+        return False
+    if plat_ref.get("Recette") != plat_candidat.get("Recette"):
+        return False
+    if plat_ref.get("Nom") != plat_candidat.get("Nom"):
+        return False
+    return plat_ref.get("Composition") == plat_candidat.get("Composition")
+
+
+def trouver_candidat_transfert(plat_ref: dict, chemin_commande_source: str):
+    """
+    Cherche un plat identique "En préparation" à qui transférer l'état "Prêt".
+
+    Ordre de priorité :
+    1. Même commande (en premier)
+    2. Autres commandes prioritaires (ordre ID croissant)
+    3. Autres commandes (ordre ID croissant)
+
+    Retourne (chemin_fichier, plat_id_complet) ou None si aucun candidat trouvé.
+    """
+    from src.backend.app_config import get_command_root
+
+    root_folder = get_command_root()
+    if root_folder is None:
+        return None
+
+    live_folder = None
+    for folder_name in ("en_cours", "en-cours"):
+        candidate = root_folder / folder_name
+        if candidate.exists():
+            live_folder = candidate
+            break
+
+    if live_folder is None:
+        return None
+
+    nom_source = os.path.basename(chemin_commande_source)
+    meme_commande = []
+    prioritaires = []
+    autres = []
+
+    for order_file in sorted(live_folder.glob("commande_*.json")):
+        try:
+            with open(str(order_file), "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            continue
+
+        infos = data.get("Informations", {})
+        est_prioritaire = bool(infos.get("Prioritaire", False))
+        est_meme_commande = (order_file.name == nom_source)
+
+        for plat in data.get("Commande", {}).values():
+            if plat.get("Statut") != "En préparation":
+                continue
+            if not plats_identiques(plat_ref, plat):
+                continue
+            entree = (str(order_file), plat.get("ID", ""))
+            if est_meme_commande:
+                meme_commande.append(entree)
+            elif est_prioritaire:
+                prioritaires.append(entree)
+            else:
+                autres.append(entree)
+
+    candidats = meme_commande + prioritaires + autres
+    return candidats[0] if candidats else None
 
 
 # ── Chargement JSON ────────────────────────────────────────────────────────────

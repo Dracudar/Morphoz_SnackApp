@@ -341,7 +341,7 @@ def get_live_orders_prep() -> List[Dict[str, Any]]:
                 continue
 
             status = str(line_data.get("Statut", "")).strip() or "Inconnu"
-            if status.lower() in ("annulé", "livré"):
+            if status.lower() in ("annulé", "livré", "non livré"):
                 continue
 
             plats.append({

@@ -130,6 +130,7 @@ _STATUTS_PLAT: Dict[str, tuple] = {
 	"prêt":           ("#5e4a00", "#d4a017", "Prêt"),
 	"livré":          ("#1a5e2a", "#4caf50", "Livré"),
 	"annulé":         ("#5e1a1a", "#c0392b", "Annulé"),
+	"non livré":      ("#3d1a5e", "#9b59b6", "Non livré"),
 }
 
 # ── Badges statut commande ───────────────────────────────────────────────────
