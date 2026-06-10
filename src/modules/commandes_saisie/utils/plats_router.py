@@ -22,6 +22,8 @@ Date de modification:
 import importlib
 from typing import Optional, Dict
 
+from src.backend import logger
+
 
 PLAT_HANDLERS = {
     "Pizza": "src.modules.plats.pizza.rooting",
@@ -48,6 +50,10 @@ def route_plat_selection(plat_name: str, context, command_path: str) -> Optional
     """
     if plat_name not in PLAT_HANDLERS:
         print(f"Unknown plat: {plat_name}")
+        logger.log(logger.ERREUR, {
+            "contexte": "routage_plat",
+            "message": f"Type de plat inconnu : {plat_name}",
+        })
         return None
 
     module_path = PLAT_HANDLERS[plat_name]
@@ -56,5 +62,11 @@ def route_plat_selection(plat_name: str, context, command_path: str) -> Optional
         return module.route_selection(context, command_path)
     except Exception as e:
         print(f"Error routing plat {plat_name}: {e}")
+        logger.log(logger.ERREUR, {
+            "contexte": "routage_plat",
+            "type_erreur": type(e).__name__,
+            "message": str(e),
+            "type_plat": plat_name,
+        })
         return None
 

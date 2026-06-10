@@ -43,6 +43,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.backend.data_sources import get_card_data, save_card_data
+from src.backend import logger
 
 
 class CarteModule(QFrame):
@@ -306,6 +307,22 @@ class CarteModule(QFrame):
 			QMessageBox.critical(self, "Carte", "Impossible d'enregistrer la carte.")
 			return
 
+		if recipe_name:
+			logger.log(logger.MODIFICATION_CARTE_MANUELLE, {
+				"action": "enregistrement_recette",
+				"categorie": category_name,
+				"recette": recipe_name,
+				"prix": price_value,
+				"etat": state_value,
+			})
+		else:
+			logger.log(logger.MODIFICATION_CARTE_MANUELLE, {
+				"action": "enregistrement_categorie",
+				"categorie": category_name,
+				"etat": state_value,
+				"prix": price_value,
+			})
+
 		self.status_label.setText(message)
 		self.reload_from_disk()
 
@@ -339,6 +356,18 @@ class CarteModule(QFrame):
 		if not save_card_data(self.card_data):
 			QMessageBox.critical(self, "Carte", "Impossible d'enregistrer la carte.")
 			return
+
+		if recipe_name:
+			logger.log(logger.MODIFICATION_CARTE_MANUELLE, {
+				"action": "suppression_recette",
+				"categorie": category_name,
+				"recette": recipe_name,
+			})
+		else:
+			logger.log(logger.MODIFICATION_CARTE_MANUELLE, {
+				"action": "suppression_categorie",
+				"categorie": category_name,
+			})
 
 		self.status_label.setText(message)
 		self.reload_from_disk()

@@ -41,6 +41,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.backend.data_sources import get_stock_data, save_stock_data
+from src.backend import logger
 
 
 class StockModule(QFrame):
@@ -250,13 +251,26 @@ class StockModule(QFrame):
 		if not isinstance(leaf_node, dict):
 			leaf_node = {}
 
-		leaf_node["Quantité"] = int(self.quantity_field.value())
-		leaf_node["OutOfStock"] = self.out_of_stock_field.isChecked()
+		ancienne_quantite = leaf_node.get("Quantité")
+		ancien_out_of_stock = leaf_node.get("OutOfStock", False)
+		nouvelle_quantite = int(self.quantity_field.value())
+		nouvel_out_of_stock = self.out_of_stock_field.isChecked()
+
+		leaf_node["Quantité"] = nouvelle_quantite
+		leaf_node["OutOfStock"] = nouvel_out_of_stock
 		parent_node[leaf_key] = leaf_node
 
 		if not save_stock_data(self.stock_data):
 			QMessageBox.critical(self, "Stock", "Impossible d'enregistrer le stock.")
 			return
+
+		logger.log(logger.MODIFICATION_STOCK_MANUELLE, {
+			"chemin": self.current_path,
+			"ancienne_quantite": ancienne_quantite,
+			"nouvelle_quantite": nouvelle_quantite,
+			"ancien_out_of_stock": ancien_out_of_stock,
+			"nouvel_out_of_stock": nouvel_out_of_stock,
+		})
 
 		self.status_label.setText("Stock enregistre.")
 		self.reload_from_disk()

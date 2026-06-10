@@ -23,6 +23,7 @@ import os
 import json
 from datetime import datetime
 from src.backend.commandes_utils import charger_fichier_commande
+from src.backend import logger
 
 
 def _trouver_cle_plat(commande_data: dict, plat_id_complet: str):
@@ -50,6 +51,7 @@ def plat_prêt(context, chemin_fichier, plat_id_complet, affichage_commandes_val
 
     plat_key = _trouver_cle_plat(commande_data, plat_id_complet)
     if plat_key and commande_data["Commande"][plat_key]["Statut"] == "En préparation":
+        plat_data = commande_data["Commande"][plat_key]
         commande_data["Commande"][plat_key]["Statut"] = "Prêt"
         commande_data["Commande"][plat_key]["Date de mise en livraison"] = [
             datetime.now().strftime("%d/%m/%Y"), datetime.now().strftime("%H:%M")
@@ -59,6 +61,13 @@ def plat_prêt(context, chemin_fichier, plat_id_complet, affichage_commandes_val
 
         with open(chemin_fichier, "w", encoding="utf-8") as fichier:
             json.dump(commande_data, fichier, indent=4, ensure_ascii=False)
+
+        logger.log(logger.PLAT_PRET, {
+            "id_commande": commande_data["Informations"]["ID"],
+            "id_plat": plat_id_complet,
+            "type_plat": plat_data.get("Plat", ""),
+            "nom_plat": plat_data.get("Nom", ""),
+        })
 
         affichage_commandes_validées(context)
 
@@ -77,6 +86,7 @@ def livrer_plat(context, chemin_fichier, plat_id_complet, affichage_commandes_va
 
     plat_key = _trouver_cle_plat(commande_data, plat_id_complet)
     if plat_key and commande_data["Commande"][plat_key]["Statut"] == "Prêt":
+        plat_data = commande_data["Commande"][plat_key]
         commande_data["Commande"][plat_key]["Statut"] = "Livré"
         commande_data["Commande"][plat_key]["Date de livraison"] = [
             datetime.now().strftime("%d/%m/%Y"), datetime.now().strftime("%H:%M")
@@ -84,6 +94,13 @@ def livrer_plat(context, chemin_fichier, plat_id_complet, affichage_commandes_va
 
         with open(chemin_fichier, "w", encoding="utf-8") as fichier:
             json.dump(commande_data, fichier, indent=4, ensure_ascii=False)
+
+        logger.log(logger.PLAT_LIVRE, {
+            "id_commande": commande_data["Informations"]["ID"],
+            "id_plat": plat_id_complet,
+            "type_plat": plat_data.get("Plat", ""),
+            "nom_plat": plat_data.get("Nom", ""),
+        })
 
         terminer_commande(chemin_fichier)
         affichage_commandes_validées(context)
@@ -98,7 +115,7 @@ def terminer_commande(chemin_fichier):
     if not commande:
         return
 
-    plats = commande["Commande"].values()
+    plats = list(commande["Commande"].values())
     if all(plat["Statut"] in ["Livré", "Annulé"] for plat in plats):
         commande["Informations"]["Statut"] = "Terminée"
 
@@ -110,6 +127,12 @@ def terminer_commande(chemin_fichier):
 
         with open(chemin_fichier, "w", encoding="utf-8") as fichier:
             json.dump(commande, fichier, indent=4, ensure_ascii=False)
+
+        logger.log(logger.COMMANDE_TERMINEE, {
+            "id_commande": commande["Informations"]["ID"],
+            "nb_plats_livres": sum(1 for p in plats if p["Statut"] == "Livré"),
+            "nb_plats_annules": sum(1 for p in plats if p["Statut"] == "Annulé"),
+        })
 
         dossier_terminee = os.path.join(
             os.path.dirname(os.path.dirname(chemin_fichier)), "terminee"

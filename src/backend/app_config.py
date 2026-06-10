@@ -168,10 +168,21 @@ def get_print_options() -> Dict[str, bool]:
 
 def _create_data_structure(data_folder: Path) -> bool:
     """Crée la structure de dossiers et les fichiers JSON vides si absents."""
+    from src.backend import logger
     try:
         data_folder.mkdir(parents=True, exist_ok=True)
-        (data_folder / COMMANDES_DIRNAME).mkdir(exist_ok=True)
-        (data_folder / LOGS_DIRNAME).mkdir(exist_ok=True)
+        for sous_dossier, type_dossier in [
+            (COMMANDES_DIRNAME, "commandes"),
+            (LOGS_DIRNAME, "logs"),
+        ]:
+            chemin = data_folder / sous_dossier
+            creation = not chemin.exists()
+            chemin.mkdir(exist_ok=True)
+            if creation:
+                logger.log(logger.CREATION_DOSSIER, {
+                    "chemin": str(chemin),
+                    "type": type_dossier,
+                })
         for filename in (STOCK_FILENAME, CARTE_ACTIVE_FILENAME, CARTE_ARCHIVE_FILENAME):
             file_path = data_folder / filename
             if not file_path.exists():

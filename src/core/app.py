@@ -49,10 +49,14 @@ def _build_dark_palette() -> QPalette:
 
 if __name__ == "__main__":
     import sys
+    from src.backend import logger
 
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
     app.setPalette(_build_dark_palette())
+
+    logger.log(logger.DEMARRAGE_APP, {})
+    app.aboutToQuit.connect(lambda: logger.log(logger.ARRET_APP, {}))
 
     window = MainWindow()
     window.show()
