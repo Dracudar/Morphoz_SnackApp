@@ -12,17 +12,18 @@ Author :
     Dracudar
 
 Version:
-    2.3
+    2.4
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.08
+    2026.06.10
 """
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import unicodedata
@@ -78,17 +79,61 @@ def save_stock_data(payload: Dict[str, Any]) -> bool:
 _stock_cache_instance = None
 
 
+def _reconcilier_brouillons(cache) -> None:
+    """
+    Décrémente le cache pour les plats "En attente" présents dans les brouillons
+    (commandes "En saisie" non encore validées).
+
+    Nécessaire au démarrage après un crash ou une coupure : le stock n'est sauvegardé
+    sur disque qu'à la validation, donc un brouillon laissé par un arrêt imprévu contient
+    des ingrédients qui ne sont pas reflétés dans le fichier stock.
+
+    Seuls les fichiers à la racine du dossier commandes sont examinés (pas les
+    sous-dossiers en_cours, terminee, annulee).
+    """
+    root_folder = get_command_root()
+    if root_folder is None or not root_folder.exists():
+        return
+
+    for order_file in sorted(root_folder.glob("commande_*.json")):
+        try:
+            with open(str(order_file), "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            continue
+
+        if data.get("Informations", {}).get("Statut") != "En saisie":
+            continue
+
+        for plat in data.get("Commande", {}).values():
+            if plat.get("Statut") != "En attente":
+                continue
+            plat_type = plat.get("Plat", "")
+            composition = plat.get("Composition", {})
+            if plat_type == "Pizza":
+                cache.decrementer(["Plats", "Pizza", "Pâte à pizza"])
+            elif plat_type == "Grillade":
+                for viande, qte in composition.get("Viandes", {}).items():
+                    cache.decrementer(["Plats", "Grillades", viande], qte)
+
+
 def get_stock_cache():
     """Retourne l'instance singleton du cache de stock pour la session en cours.
 
     Le cache est initialisé à partir du fichier JSON au premier appel, puis
     partagé entre tous les modules. Les modifications ne sont persistées sur
-    disque que via cache.save() (appelé à la validation d'une commande).
+    disque que via cache.save() (appelé à la validation d'une commande ou à
+    l'annulation d'un plat post-validation).
+
+    À l'initialisation, les brouillons existants (commandes "En saisie") sont
+    réconciliés : leurs plats "En attente" sont décrémentés du cache pour
+    refléter les ingrédients déjà réservés mais non encore persistés sur disque.
     """
     global _stock_cache_instance
     if _stock_cache_instance is None:
         from src.modules.stock.cache import StockCache
         _stock_cache_instance = StockCache(str(get_stock_file_path()))
+        _reconcilier_brouillons(_stock_cache_instance)
     return _stock_cache_instance
 
 
