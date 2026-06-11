@@ -18,7 +18,7 @@ Author :
     Dracudar
 
 Version:
-    2.2
+    2.3
 
 Date de création :
     2025.05.29
@@ -307,7 +307,7 @@ class StockModule(QFrame):
         right_frame = QFrame()
         right_frame.setObjectName("rightPanel")
         right_frame_lyt = QVBoxLayout(right_frame)
-        right_frame_lyt.setContentsMargins(0, 0, 0, 0)
+        right_frame_lyt.setContentsMargins(2, 2, 2, 2)
         right_frame_lyt.setSpacing(0)
         self.right_scroll = QScrollArea()
         self.right_scroll.setWidgetResizable(True)
@@ -339,6 +339,11 @@ class StockModule(QFrame):
                 background-color: {_BG_RIGHT};
                 border: 1px solid {_BORDER_SECTION};
                 border-radius: 6px;
+            }}
+            QFrame#subgroupFrame {{
+                background-color: {_BG_SECTION};
+                border: 1px solid {_BORDER_ITEM};
+                border-radius: 4px;
             }}
             QLabel#sectionTitle {{
                 color: {_TEXT_TITLE};
@@ -584,10 +589,11 @@ class StockModule(QFrame):
         )
         right_vbox.addWidget(update_title)
 
+        _BTN_H = 40  # hauteur commune boutons + saisie
         _btn_style = (
             f"QPushButton {{ background-color: #3b3f46; color: {_TEXT_TITLE};"
             f" border: 1px solid #676d79; border-radius: 4px;"
-            f" font-size: 12px; font-weight: 700; min-width: 36px; }}"
+            f" font-size: 12px; font-weight: 700; min-width: {_BTN_H}px; }}"
             f" QPushButton:hover {{ background-color: #4a4e57; }}"
             f" QPushButton:pressed {{ background-color: #555b66; }}"
         )
@@ -596,7 +602,7 @@ class StockModule(QFrame):
         stock_reel_spin.setRange(0, 999_999)
         stock_reel_spin.setValue(stock_reel_val if stock_reel_val is not None else fichier_qty)
         stock_reel_spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        stock_reel_spin.setFixedHeight(28)
+        stock_reel_spin.setFixedHeight(_BTN_H)
         stock_reel_spin.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
 
         btn_m100 = QPushButton("−100")
@@ -606,7 +612,7 @@ class StockModule(QFrame):
         btn_p10  = QPushButton("+10")
         btn_p100 = QPushButton("+100")
         for b in (btn_m100, btn_m10, btn_m1, btn_p1, btn_p10, btn_p100):
-            b.setFixedHeight(28)
+            b.setFixedHeight(_BTN_H)
             b.setStyleSheet(_btn_style)
 
         btn_m100.clicked.connect(lambda: stock_reel_spin.setValue(max(0, stock_reel_spin.value() - 100)))
@@ -739,7 +745,30 @@ class StockModule(QFrame):
         lyt.addStretch()
         lyt.addWidget(self._make_separator())
 
-        # ── Bouton Enregistrer ────────────────────────────────────────────
+        # ── Boutons Supprimer / Enregistrer ──────────────────────────────
+        bottom_row = QHBoxLayout()
+        bottom_row.setSpacing(8)
+
+        delete_btn = QPushButton("Supprimer")
+        delete_btn.setObjectName("deleteButton")
+        delete_btn.setMinimumHeight(38)
+        delete_btn.setStyleSheet(
+            f"""
+            QPushButton#deleteButton {{
+                background-color: #4a1a1a;
+                color: {_CLR_OOS};
+                border: 1px solid {_CLR_OOS};
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: 700;
+                padding: 6px 14px;
+            }}
+            QPushButton#deleteButton:hover {{ background-color: #5e1a1a; }}
+            """
+        )
+        delete_btn.clicked.connect(lambda: self._on_delete_item(path))
+        bottom_row.addWidget(delete_btn, 1)
+
         save_btn = QPushButton("Enregistrer")
         save_btn.setObjectName("saveButton")
         save_btn.setMinimumHeight(38)
@@ -760,7 +789,9 @@ class StockModule(QFrame):
         save_btn.clicked.connect(
             lambda: self._on_save_detail(path, cat_combo, name_edit, suivi_chk)
         )
-        lyt.addWidget(save_btn)
+        bottom_row.addWidget(save_btn, 2)
+
+        lyt.addLayout(bottom_row)
 
         self.right_scroll.setWidget(content)
         self._detail_widget = content
@@ -947,27 +978,33 @@ class StockModule(QFrame):
                 layout.addWidget(row)
                 has_content = True
             else:
-                sub_container = QWidget()
-                sub_layout    = QVBoxLayout(sub_container)
-                sub_layout.setContentsMargins(0, 0, 0, 0)
-                sub_layout.setSpacing(3)
+                sub_frame = QFrame()
+                sub_frame.setObjectName("subgroupFrame")
+                sub_frame_lyt = QVBoxLayout(sub_frame)
+                sub_frame_lyt.setContentsMargins(6, 0, 6, 6)
+                sub_frame_lyt.setSpacing(3)
+                sub_frame_lyt.addWidget(self._build_subgroup_label(key))
+
+                items_widget = QWidget()
+                items_layout = QVBoxLayout(items_widget)
+                items_layout.setContentsMargins(0, 0, 0, 0)
+                items_layout.setSpacing(3)
                 sub_has = self._populate_content(
-                    sub_layout, child_path, value, carte_set, query, depth + 1,
+                    items_layout, child_path, value, carte_set, query, depth + 1,
                 )
                 if sub_has:
-                    layout.addWidget(self._build_subgroup_label(key, depth))
-                    layout.addWidget(sub_container)
+                    sub_frame_lyt.addWidget(items_widget)
+                    layout.addWidget(sub_frame)
                     has_content = True
                 else:
-                    sub_container.deleteLater()
+                    sub_frame.deleteLater()
         return has_content
 
-    def _build_subgroup_label(self, name: str, depth: int) -> QLabel:
-        indent = 8 * depth
+    def _build_subgroup_label(self, name: str) -> QLabel:
         lbl = QLabel(name)
         lbl.setStyleSheet(
             f"color: {_TEXT_SUBGROUP}; font-size: 12px; font-weight: 600;"
-            f" padding: 5px 4px 2px {indent + 4}px;"
+            f" padding: 6px 4px 4px 6px;"
             f" border-bottom: 1px solid {_BORDER_ITEM};"
         )
         return lbl
@@ -1344,3 +1381,34 @@ class StockModule(QFrame):
         cache_data      = cache_obj.data if cache_obj is not None else {}
         by_nom, by_plat = _build_prep_data()
         self._build_detail_panel(new_path, file_data_fresh, cache_data, by_nom, by_plat)
+
+    # ── Suppression d'un article ─────────────────────────────────────────────
+
+    def _on_delete_item(self, path: List[str]) -> None:
+        """Supprime l'article après confirmation, puis revient à l'état vide."""
+        reply = QMessageBox.question(
+            self,
+            "Supprimer l'article",
+            f"Supprimer définitivement « {path[-1]} » ?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        file_data   = get_stock_data()
+        parent_node = _resolve_path(file_data, path[:-1])
+        if isinstance(parent_node, dict):
+            parent_node.pop(path[-1], None)
+
+        if not save_stock_data(file_data):
+            QMessageBox.critical(self, "Stock", "Impossible d'enregistrer le stock.")
+            return
+
+        logger.log(logger.MODIFICATION_STOCK_MANUELLE, {
+            "action": "suppression_article",
+            "chemin": path,
+        })
+
+        self._selected_path = None
+        self._show_empty_detail()
+        self.refresh()
