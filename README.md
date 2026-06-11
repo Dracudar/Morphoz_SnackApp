@@ -91,6 +91,7 @@ Morphoz_SnackApp/
 │       ├── commandes_historique/           # Historique avec filtres, tri et réimpression
 │       ├── carte/                          # Gestion de la carte (catégories, recettes, prix, états)
 │       ├── stock/                          # Gestion des stocks (liste hiérarchique + formulaire d'édition)
+│       ├── logs/                           # Consultation du journal d'événements avec filtres et tri
 │       ├── parametres/                     # Paramètres (dossier de données, imprimante, impression)
 │       └── plats/                          # Dialogues de personnalisation par type de plat
 │           ├── pizza/                      # Sélection de recette + personnalisation base/ingrédients
@@ -104,7 +105,7 @@ Morphoz_SnackApp/
 │   └── zadig-2.9.exe                       # Installateur de pilote USB pour l'imprimante
 │
 ├── scripts/
-│   └── printer_tickets_repas.py            # Utilitaire d'impression des tickets repas
+│   └── printer_tickets_repas.py            # Utilitaire d'impression des tickets pour repas gratuits
 │
 ├── requirements.txt                        # Fichier des dépendances Python
 ├── README.md
