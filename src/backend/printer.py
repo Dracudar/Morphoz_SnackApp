@@ -1,20 +1,34 @@
-'''
-Fonctions pour l'impression de tickets de commande et de cuisine après validation d'une commande.
-'''
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+printer.py
 
-import json
+Description:
+    Impression des tickets de commande récapitulatif et de cuisine après validation d'une commande.
+    Fournit également des fonctions de réimpression manuelle indépendantes des options
+    d'impression automatique.
+
+Author :
+    Dracudar
+
+Version:
+    2.2
+
+Date de création :
+    2025.06.04
+
+Date de modification:
+    2026.06.10
+"""
+
 import os
 from PIL import Image
 from escpos.printer import Usb
-from .commandes_utils import charger_fichier_commande
+from src.backend.commandes_utils import charger_fichier_commande
+from src.backend.app_config import get_printer_config, get_print_options
+from src.backend import logger
 
-from ..config_printer import (
-    IMPRIMANTE_USB_VENDOR_ID as VENDOR_ID, 
-    IMPRIMANTE_USB_PRODUCT_ID as PRODUCT_ID, 
-    IMPRIMANTE_USB_INTERFACE as INTERFACE
-)  # Import des paramètres de configuration de l'imprimante thermique
 
-# Fonction pour charger une image et la redimensionner pour l'impression thermique
 def charger_logo(nom_image, taille=()):
     """
     Charge et redimensionne une image PIL pour l'impression thermique.
@@ -22,215 +36,359 @@ def charger_logo(nom_image, taille=()):
     :param taille: Tuple (largeur, hauteur) pour redimensionner l'image.
     :return: PIL.Image.Image
     """
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Répertoire du fichier
-    chemin = os.path.abspath(os.path.join(BASE_DIR, '..', '..', 'assets', 'img', nom_image))
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    chemin = os.path.abspath(os.path.join(BASE_DIR, '..', '..', 'assets', 'imgs', nom_image))
     try:
         img = Image.open(chemin).convert("RGBA")
         if taille:
             img = img.resize(taille, Image.Resampling.LANCZOS)
-        # Remplacer la transparence par du blanc
         bg = Image.new("RGBA", img.size, (255, 255, 255, 255))
         img = Image.alpha_composite(bg, img)
-        img = img.convert("L")  # Niveaux de gris
-        img = img.point(lambda x: 0 if x < 128 else 255, "1")  # Seuillage manuel
+        img = img.convert("L")
+        img = img.point(lambda x: 0 if x < 128 else 255, "1")
         return img
     except FileNotFoundError:
-        raise FileNotFoundError(f"L'image '{nom_image}' est introuvable dans 'assets/img'.")
+        raise FileNotFoundError(f"L'image '{nom_image}' est introuvable dans 'assets/imgs'.")
     except Exception as e:
         raise RuntimeError(f"Erreur lors du chargement de l'image '{nom_image}': {e}")
 
-def print_ticket_recap(chemin_fichier):
-    """Imprime un ticket récapitulatif de la commande."""
-    # Charger l'imprimante USB
-    try:
-        p = Usb(VENDOR_ID, PRODUCT_ID, INTERFACE)
 
-        # Charger la commande depuis le fichier JSON
-        commande = charger_fichier_commande(chemin_fichier)
-        infos = commande["Informations"]
-        plats = commande["Commande"]
+def _get_printer():
+    """Instancie l'imprimante USB depuis la configuration."""
+    cfg = get_printer_config()
+    return Usb(cfg["vendor_id"], cfg["product_id"], cfg["interface"], profile=cfg["modele"])
 
-        # En-tête
-        logo = charger_logo("En-tete ticket V1.png", taille=(500, 107))  # Respecte le ratio 7:1.5
-        p.set(align='center')
-        p.image(logo)
-        p.set(align='left')
-        # Informations de la commande
-        p.set(align='center', width=2, height=2)
-        p.text(f"Date : {infos['Date de création'][0]} \n")  # Affiche la date de création (sans l'heure)
-        p.set(width=8, height=8)
-        p.text(f"{str(infos['ID'])[-3:]}\n")  # Affiche les 3 derniers chiffres de l'ID
-        p.set(align='left', width=1, height=1)
-        p.text(f"Montant : {infos['Montant']} €\n")  # Affiche le montant total avec la devise
-        p.text(f"Type de paiement : {infos['Type de paiement']}\n")
 
-        # Parcours des plats de la commande
-        for plat_id, plat in plats.items():
-            if plat["Statut"] == "En attente":  # Imprime uniquement les plats en attente
-                p.text("-" * 48 + "\n")  # Ligne de séparation
-                # Personnalisation selon le type de plat
-                if plat["Plat"] == "Frites" :
-                    p.text(f"{plat_id} - {plat['Nom']}\n")
-                    p.text(f"Prix : {plat['Prix']} €\n")  # Affiche le prix du plat
+# ── Helpers internes ──────────────────────────────────────────────────────────
 
-                elif plat["Plat"] == "Grillade" :
-                    p.text(f"{plat_id} - {plat['Plat']}\n")
-                    p.text(f"Prix : {plat['Prix']} €\n")  # Affiche le prix du plat
+def _do_print_recap(commande: dict, p, reprint: bool = False) -> None:
+    """Imprime sur p le ticket récapitulatif complet d'une commande (avec coupure finale).
 
-                    if isinstance(plat['Composition']['Viandes'], dict):
-                        if len(plat['Composition']['Viandes']) == 1:
-                            nom_viande, quantite = next(iter(plat['Composition']['Viandes'].items()))
+    Si reprint=True, imprime tous les plats quelle que soit leur statut.
+    """
+    infos = commande["Informations"]
+    plats = commande["Commande"]
+
+    logo = charger_logo("En-tete ticket V1.png", taille=(576, 123))
+    p.image(logo)
+
+    p.set(align='center', width=2, height=2)
+    p.text(f"Date : {infos['Date de création'][0]} \n")
+    p.set(width=8, height=8)
+    p.text(f"{str(infos['ID'])[-3:]}\n")
+    p.set(align='left', width=1, height=1)
+    p.text(f"Montant : {infos['Montant']} €\n")
+    p.text(f"Type de paiement : {infos['Type de paiement']}\n")
+
+    for plat_id, plat in plats.items():
+        if reprint or plat["Statut"] == "En attente":
+            p.text("-" * 48 + "\n")
+            if plat["Plat"] == "Frites":
+                p.text(f"{plat_id} - {plat['Nom']}\n")
+                p.text(f"Prix : {plat['Prix']} €\n")
+
+            elif plat["Plat"] == "Grillade":
+                p.text(f"{plat_id} - {plat['Plat']}\n")
+                p.text(f"Prix : {plat['Prix']} €\n")
+
+                if isinstance(plat['Composition']['Viandes'], dict):
+                    if len(plat['Composition']['Viandes']) == 1:
+                        nom_viande, quantite = next(iter(plat['Composition']['Viandes'].items()))
+                        if quantite > 1:
+                            p.text(f"Viandes : {nom_viande} x{quantite}\n")
+                        else:
+                            p.text(f"Viandes : {nom_viande}\n")
+                    elif len(plat['Composition']['Viandes']) > 1:
+                        p.text("Viandes :\n")
+                        for nom_viande, quantite in plat['Composition']['Viandes'].items():
                             if quantite > 1:
-                                p.text(f"Viandes : {nom_viande} x{quantite}\n")
+                                p.text(f"  - {nom_viande} x{quantite}\n")
                             else:
-                                p.text(f"Viandes : {nom_viande}\n")
-                        elif len(plat['Composition']['Viandes']) > 1:
-                            p.text("Viandes :\n")
-                            for nom_viande, quantite in plat['Composition']['Viandes'].items():
-                                if quantite > 1:
-                                    p.text(f"  - {nom_viande} x{quantite}\n")
-                                else:
-                                    p.text(f"  - {nom_viande}\n")
-                    if plat['Composition']['Accompagnement'] == "Sans" :
-                        p.text("Sans accompagnement\n")
-                    else:    
-                        p.text(f"Accompagnement : {plat['Composition']['Accompagnement']}\n")
-
-                elif plat["Plat"] == "Pizza" :
-                    p.text(f"{plat_id} - {plat['Plat']}\n")
-                    p.text(f"{plat['Recette']}\n")
-                    p.text(f"Prix : {plat['Prix']} €\n")  # Affiche le prix du plat
-                    p.text('\n')
-                    p.text(f"Base : {plat['Composition']['Base']}\n")
-                    p.text("Composition :\n")
-                    for ingredient in plat['Composition']['Ingrédients']:
-                        p.text(f"  - {ingredient}\n")
-                
-                elif plat["Plat"] == "Fish & Chips" :
-                    p.text(f"{plat_id} - {plat['Plat']}\n")
-                    p.text(f"Prix : {plat['Prix']} €\n")  # Affiche le prix du plat
-
-                elif plat["Plat"] == "Salade composée" :
-                    p.text(f"{plat_id} - {plat['Plat']}\n")
-                    p.text(f"Prix : {plat['Prix']} €\n")  # Affiche le prix du plat
-                    p.text('\n')
-                    p.text("Composition :\n")
-                    for ingredient in plat['Composition']['Ingrédients']:
-                        p.text(f"  - {ingredient}\n")
-
-                elif plat["Plat"] == "Pizza dessert" :
-                    p.text(f"{plat_id} - {plat['Plat']}\n")
-                    p.text(f"Prix : {plat['Prix']} €\n")  # Affiche le prix du plat
-                    p.text('\n')
-                    p.text("Composition :\n")
-                    for ingredient in plat['Composition']:
-                        p.text(f"  - {ingredient}\n")
-                
+                                p.text(f"  - {nom_viande}\n")
+                if plat['Composition']['Accompagnement'] == "Sans":
+                    p.text("Sans accompagnement\n")
                 else:
-                    p.text(f"{plat_id} - {plat['Plat']}\n")
-                    p.text(f"Prix : {plat['Prix']} €\n")  # Affiche le prix du plat
+                    p.text(f"Accompagnement : {plat['Composition']['Accompagnement']}\n")
 
-        p.cut()
+            elif plat["Plat"] == "Pizza":
+                p.text(f"{plat_id} - {plat['Plat']}\n")
+                p.text(f"{plat['Recette']}\n")
+                p.text(f"Prix : {plat['Prix']} €\n")
+                p.text('\n')
+                p.text(f"Base : {plat['Composition']['Base']}\n")
+                p.text("Composition :\n")
+                for ingredient in plat['Composition']['Ingrédients']:
+                    p.text(f"  - {ingredient}\n")
+
+            elif plat["Plat"] == "Fish & Chips":
+                p.text(f"{plat_id} - {plat['Plat']}\n")
+                p.text(f"Prix : {plat['Prix']} €\n")
+
+            elif plat["Plat"] == "Salade composée":
+                p.text(f"{plat_id} - {plat['Plat']}\n")
+                p.text(f"Prix : {plat['Prix']} €\n")
+                p.text('\n')
+                p.text("Composition :\n")
+                for ingredient in plat['Composition']['Ingrédients']:
+                    p.text(f"  - {ingredient}\n")
+
+            elif plat["Plat"] == "Crêpe":
+                p.text(f"{plat_id} - {plat['Nom']}\n")
+                p.text(f"Prix : {plat['Prix']} €\n")
+
+            elif plat["Plat"] == "Pizza dessert":
+                p.text(f"{plat_id} - {plat['Plat']}\n")
+                p.text(f"Prix : {plat['Prix']} €\n")
+                p.text('\n')
+                p.text("Composition :\n")
+                for ingredient in plat['Composition']:
+                    p.text(f"  - {ingredient}\n")
+
+            else:
+                p.text(f"{plat_id} - {plat['Plat']}\n")
+                p.text(f"Prix : {plat['Prix']} €\n")
+
+    p.cut()
+
+
+def _print_plat_ticket(plat: dict, infos: dict, p) -> None:
+    """Imprime sur p un ticket cuisine complet pour un seul plat (avec coupure finale)."""
+    id_parts = str(plat['ID']).split('-')
+    if len(id_parts) >= 3:
+        id_affiche = f"{id_parts[1]}-{id_parts[2]}"
+    else:
+        id_affiche = str(plat['ID'])
+
+    p.set(align='center', width=2, height=2)
+    p.text(f"Date : {infos['Date de création'][0]} \n")
+    p.set(width=8, height=8)
+    p.text(f"{id_affiche}\n")
+    p.set(align='left', width=1, height=1)
+
+    if plat["Plat"] == "Frites":
+        p.text(f"{plat['Nom']}\n")
+        p.text("\n" * 5)
+
+    elif plat["Plat"] == "Grillade":
+        p.text(f"{plat['Plat']}\n")
+
+        if isinstance(plat['Composition']['Viandes'], dict):
+            if len(plat['Composition']['Viandes']) == 1:
+                nom_viande, quantite = next(iter(plat['Composition']['Viandes'].items()))
+                if quantite > 1:
+                    p.text(f"Viandes : {nom_viande} x{quantite}\n")
+                else:
+                    p.text(f"Viandes : {nom_viande}\n")
+            elif len(plat['Composition']['Viandes']) > 1:
+                p.text("Viandes :\n")
+                for nom_viande, quantite in plat['Composition']['Viandes'].items():
+                    if quantite > 1:
+                        p.text(f"  - {nom_viande} x{quantite}\n")
+                    else:
+                        p.text(f"  - {nom_viande}\n")
+        if plat['Composition']['Accompagnement'] == "Sans":
+            p.text("Sans accompagnement\n")
+        else:
+            p.text(f"Accompagnement : {plat['Composition']['Accompagnement']}\n")
+
+    elif plat["Plat"] == "Pizza":
+        p.text(f"{plat['Plat']}\n")
+        p.text(f"{plat['Recette']}\n")
+        p.text("\n")
+        p.text(f"Base : {plat['Composition']['Base']}\n")
+        p.text("Composition :\n")
+        for ingredient in plat['Composition']['Ingrédients']:
+            p.text(f"  - {ingredient}\n")
+
+    elif plat["Plat"] == "Fish & Chips":
+        p.text(f"{plat['Plat']}\n")
+        p.text("\n")
+        p.text("Composition :\n")
+        p.text("  - Poisson pané\n")
+        p.text("  - Portion de frites\n")
+
+    elif plat["Plat"] == "Salade composée":
+        p.text(f"{plat['Plat']}\n")
+        p.text("\n")
+        p.text("Composition :\n")
+        for ingredient in plat['Composition']['Ingrédients']:
+            p.text(f"  - {ingredient}\n")
+
+    elif plat["Plat"] == "Crêpe":
+        p.text(f"{plat['Nom']}\n")
+        p.text("\n" * 3)
+
+    elif plat["Plat"] == "Pizza dessert":
+        p.text(f"{plat['Plat']}\n")
+        p.text("\n")
+        p.text("Composition :\n")
+        for ingredient in plat['Composition']:
+            p.text(f"  - {ingredient}\n")
+
+    else:
+        p.text(f"{plat['Plat']}\n")
+
+    p.text("\n")
+    p.cut()
+
+
+# ── Impression automatique (à la validation de commande) ─────────────────────
+
+def print_ticket_recap(chemin_fichier):
+    """Imprime un ticket récapitulatif de la commande (si activé dans la config)."""
+    options = get_print_options()
+    if not options["impression_active"] or not options["ticket_client"]:
+        return
+    try:
+        p = _get_printer()
+        commande = charger_fichier_commande(chemin_fichier)
+        _do_print_recap(commande, p)
         p.close()
-        
+        logger.log(logger.IMPRESSION_TICKET, {
+            "type": "recap",
+            "id_commande": commande["Informations"]["ID"],
+            "contexte": "auto",
+        })
     except Exception as e:
-        print(f"Imprimante non disponible : {e}")
-        return  # Arrête la fonction si l'imprimante n'est pas dispo
+        logger.log(logger.ERREUR, {
+            "contexte": "impression_recap_auto",
+            "id_commande": chemin_fichier,
+            "detail": str(e),
+        })
+
 
 def print_ticket_cuisine(chemin_fichier):
-    """Imprime un ticket personnalisé pour chaque plat de la commande."""
-    
-    # Charger l'imprimante USB
+    """Imprime un ticket de cuisine par plat (si activé dans la config)."""
+    options = get_print_options()
+    if not options["impression_active"] or not options["ticket_cuisine"]:
+        return
     try:
-        p = Usb(VENDOR_ID, PRODUCT_ID, INTERFACE)
-
-        # Charger la commande depuis le fichier JSON    
+        p = _get_printer()
         commande = charger_fichier_commande(chemin_fichier)
         infos = commande["Informations"]
         plats = commande["Commande"]
 
-        # Parcours des plats de la commande
+        nb_tickets = 0
         for plat_id, plat in plats.items():
-            if plat["Statut"] == "En attente":  # Imprime uniquement les plats en attente
+            if plat["Statut"] == "En attente":
+                _print_plat_ticket(plat, infos, p)
+                nb_tickets += 1
 
-                # Extraction de l'ID plat pour l'affichage
-                id_parts = str(plat['ID']).split('-')
-                if len(id_parts) >= 3:
-                    id_affiche = f"{id_parts[1]}-{id_parts[2]}"
-                else:
-                    id_affiche = str(plat['ID'])  # fallback si le format ne correspond pas
-
-                # En-tête du ticket cuisine (date et ID plat 000-00)
-                p.set(align='center', width=2, height=2)
-                p.text(f"Date : {infos['Date de création'][0]} \n")  # Affiche la date de création (sans l'heure)
-                p.set(width=8, height=8)
-                p.text(f"{id_affiche}\n")  # Affiche le 000-00
-                p.set(align='left', width=1, height=1)
-
-                # Personnalisation selon le type de plat
-                if plat["Plat"] == "Frites" :
-                    p.text(f"{plat['Nom']}\n")
-                    p.text("\n" * 5)  # Ligne vide
-
-                elif plat["Plat"] == "Grillade" :
-                    p.text(f"{plat['Plat']}\n")
-
-                    if isinstance(plat['Composition']['Viandes'], dict):
-                        if len(plat['Composition']['Viandes']) == 1:
-                            nom_viande, quantite = next(iter(plat['Composition']['Viandes'].items()))
-                            if quantite > 1:
-                                p.text(f"Viandes : {nom_viande} x{quantite}\n")
-                            else:
-                                p.text(f"Viandes : {nom_viande}\n")
-                        elif len(plat['Composition']['Viandes']) > 1:
-                            p.text("Viandes :\n")
-                            for nom_viande, quantite in plat['Composition']['Viandes'].items():
-                                if quantite > 1:
-                                    p.text(f"  - {nom_viande} x{quantite}\n")
-                                else:
-                                    p.text(f"  - {nom_viande}\n")
-                    if plat['Composition']['Accompagnement'] == "Sans" :
-                        p.text("Sans accompagnement\n")
-                    else:    
-                        p.text(f"Accompagnement : {plat['Composition']['Accompagnement']}\n")
-
-                elif plat["Plat"] == "Pizza" :
-                    p.text(f"{plat['Plat']}\n")
-                    p.text(f"{plat['Recette']}\n")
-                    p.text("\n") # Ligne vide
-                    p.text(f"Base : {plat['Composition']['Base']}\n")
-                    p.text("Composition :\n")
-                    for ingredient in plat['Composition']['Ingrédients']:
-                        p.text(f"  - {ingredient}\n")
-                
-                elif plat["Plat"] == "Fish & Chips" :
-                    p.text(f"{plat['Plat']}\n")
-                    p.text("\n") # Ligne vide
-                    p.text("Composition :\n")
-                    p.text("  - Poisson pané\n")
-                    p.text("  - Portion de frites\n")
-
-                elif plat["Plat"] == "Salade composée" :
-                    p.text(f"{plat['Plat']}\n")
-                    p.text("\n") # Ligne vide
-                    p.text("Composition :\n")
-                    for ingredient in plat['Composition']['Ingrédients']:
-                        p.text(f"  - {ingredient}\n")
-
-                elif plat["Plat"] == "Pizza dessert" :
-                    p.text(f"{plat['Plat']}\n")
-                    p.text("\n") # Ligne vide
-                    p.text("Composition :\n")
-                    for ingredient in plat['Composition']:
-                        p.text(f"  - {ingredient}\n")
-                
-                else:
-                    p.text(f"{plat['Plat']}\n")
-
-                p.text("\n") # Ligne vide
-                p.cut()
-                p.close()
-
+        p.close()
+        logger.log(logger.IMPRESSION_TICKET, {
+            "type": "cuisine",
+            "id_commande": infos["ID"],
+            "nb_tickets": nb_tickets,
+            "contexte": "auto",
+        })
     except Exception as e:
-        print(f"Imprimante non disponible : {e}")
-        return  # Arrête la fonction si l'imprimante n'est pas disponible
+        logger.log(logger.ERREUR, {
+            "contexte": "impression_cuisine_auto",
+            "id_commande": chemin_fichier,
+            "detail": str(e),
+        })
+
+
+# ── Réimpression manuelle (depuis l'historique) ───────────────────────────────
+
+def reprint_ticket_recap(chemin_fichier: str) -> None:
+    """Réimprime le ticket récapitulatif sans vérifier les options d'impression automatique.
+
+    Lève RuntimeError si l'impression échoue.
+    """
+    commande = charger_fichier_commande(chemin_fichier)
+    if not commande:
+        raise ValueError("Fichier commande introuvable")
+    try:
+        p = _get_printer()
+        _do_print_recap(commande, p, reprint=True)
+        p.close()
+        logger.log(logger.IMPRESSION_TICKET, {
+            "type": "recap",
+            "id_commande": commande["Informations"]["ID"],
+            "contexte": "reimpression",
+        })
+    except Exception as e:
+        logger.log(logger.ERREUR, {
+            "contexte": "reimpression_recap",
+            "id_commande": commande["Informations"]["ID"],
+            "detail": str(e),
+        })
+        raise RuntimeError(f"Erreur d'impression : {e}") from e
+
+
+def reprint_ticket_cuisine_plat(chemin_fichier: str, plat_id: str) -> None:
+    """Réimprime le ticket cuisine d'un plat spécifique sans vérifier les options d'impression automatique.
+
+    :param plat_id: Identifiant complet du plat (ex. 20260610-001-G001).
+    Lève RuntimeError si l'impression échoue.
+    """
+    commande = charger_fichier_commande(chemin_fichier)
+    if not commande:
+        raise ValueError("Fichier commande introuvable")
+    plat = next((v for v in commande["Commande"].values() if v.get("ID") == plat_id), None)
+    if plat is None:
+        raise ValueError(f"Plat {plat_id} introuvable dans la commande")
+    try:
+        p = _get_printer()
+        _print_plat_ticket(plat, commande["Informations"], p)
+        p.close()
+        logger.log(logger.IMPRESSION_TICKET, {
+            "type": "cuisine",
+            "id_commande": commande["Informations"]["ID"],
+            "id_plat": plat_id,
+            "contexte": "reimpression",
+        })
+    except Exception as e:
+        logger.log(logger.ERREUR, {
+            "contexte": "reimpression_cuisine_plat",
+            "id_commande": commande["Informations"]["ID"],
+            "id_plat": plat_id,
+            "detail": str(e),
+        })
+        raise RuntimeError(f"Erreur d'impression : {e}") from e
+
+
+def reprint_all_active_cuisine() -> int:
+    """Réimprime les tickets cuisine de tous les plats en préparation ou prêts dans les commandes actives.
+
+    Retourne le nombre de tickets imprimés.
+    Lève RuntimeError si l'impression échoue.
+    """
+    from src.backend.data_sources import get_live_orders_prep
+
+    plats_actifs = [
+        plat for plat in get_live_orders_prep()
+        if plat["status"].lower() in ("en préparation", "prêt")
+    ]
+    if not plats_actifs:
+        return 0
+
+    try:
+        p = _get_printer()
+        count = 0
+        for plat_item in plats_actifs:
+            commande = charger_fichier_commande(str(plat_item["file"]))
+            if not commande:
+                continue
+            plat = next(
+                (v for v in commande["Commande"].values() if v.get("ID") == plat_item["id"]),
+                None,
+            )
+            if plat is None:
+                continue
+            _print_plat_ticket(plat, commande["Informations"], p)
+            count += 1
+        p.close()
+        logger.log(logger.IMPRESSION_TICKET, {
+            "type": "cuisine",
+            "nb_tickets": count,
+            "contexte": "reimpression_globale",
+        })
+        return count
+    except Exception as e:
+        logger.log(logger.ERREUR, {
+            "contexte": "reimpression_cuisine_globale",
+            "detail": str(e),
+        })
+        raise RuntimeError(f"Erreur d'impression : {e}") from e

@@ -1,5 +1,50 @@
+# Fichiers Python compilés
 __pycache__/
-assets/config.json
-tests/data/
+*.py[cod]
+*$py.class
+
+# Environnements virtuels
 .env
-proto/
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Fichiers de build/distribution
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+MANIFEST
+
+# Caches et rapports de tests
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+cover/
+
+# Fichiers de logs
+*.log
+
+# Dossiers spécifiques au projet
+assets/config.json
+data/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# VS Code
+.vscode/
+
+# Ruff
+.ruff_cache/

@@ -2,104 +2,143 @@
 
 Application de gestion de snack pour événements (ex : MégaSouye), développée pour l'association Morphoz.
 
-## Fonctionnalités principales
+## Fonctionnalités
 
-- **Prise de commande** (pizzas, grillades, frites, fish & chips, salades composées, etc.)
-- **Personnalisation des plats** (choix des ingrédients, accompagnements, etc.)
-- **Gestion des stocks** (mise à jour automatique selon les commandes)
-- **Suivi des commandes** (statuts : en attente, en préparation, prêt, livré)
-- **Gestion des paiements** (CB, espèces, repas gratuits)
-- **Impression de tickets** (pour chaque plat et pour la commande globale)
-- **Archivage automatique** des commandes terminées
+- **Prise de commande** — navigation par catégories, personnalisation par type de plat (pizzas, grillades, salades composées, crêpes, frites, etc.)
+- **Gestion des stocks** — inventaire hiérarchique avec déduction automatique à la validation et restauration à l'annulation
+- **Suivi des commandes** — statuts en temps réel (En attente → En préparation → Prêt → Livré)
+- **Poste de préparation** — affichage plein écran pour la cuisine, filtrable par type de plat
+- **Gestion des paiements** — CB, espèces, repas gratuits
+- **Impression de tickets** — tickets client et cuisine via imprimante thermique USB (ESC-POS), réimpression depuis l'historique
+- **Gestion de la carte** — édition des catégories, recettes, prix et états (Disponible / Rupture / Retiré / Archivé)
+- **Historique des commandes** — recherche, filtres (statut, date, priorité), tri, réimpression
+- **Journal d'événements** — traçabilité complète au format JSON Lines (commandes, stock, paiements, paramètres, erreurs)
+- **Affichage extérieur** — fenêtre secondaire pour le suivi des commandes côté client
 
-## Installation
+## Utilisation
 
-1. **Cloner le dépôt**  
+Au lancement, l'application charge automatiquement la configuration (dossier de données, imprimante). La vue principale est divisée en deux panneaux : saisie des commandes à gauche et suivi en temps réel à droite.
+
+Pour les paramètres (dossier de données, imprimante, options d'impression), accéder au module Paramètres via la barre de navigation.
+
+## Développement & maintenance
+
+### Installation
+
+1. **Cloner le dépôt**
    ```bash
-   git clone <url_du_repo>
+   git clone https://github.com/Dracudar/Morphoz_SnackApp
    cd Morphoz_SnackApp
    ```
 
-2. **Installer les dépendances**  
-   Python 3.10+ recommandé.  
+2. **Créer et activer un environnement virtuel**
+
+   Python 3.14 ou supérieur recommandé.
+   ```bash
+   python -m venv .venv
+   .\.venv\Scripts\activate
+   ```
+
+3. **Installer les dépendances**
    ```bash
    pip install -r requirements.txt
    ```
-   Les dépendances principales sont :
-   - `tkinter`
-   - `Pillow`
-   - `python-escpos` (pour l'impression de tickets)
-   - `pytest` (pour les tests)
 
-3. **Lancer l'application**  
+   | Dépendance | Rôle |
+   |------------|------|
+   | **PySide6** | Interface graphique Qt6 |
+   | **Pillow** | Traitement de l'image d'en-tête des tickets |
+   | **pyusb** | Communication USB avec l'imprimante |
+   | **python-escpos** | Protocole ESC-POS pour imprimantes thermiques |
+
+4. **Lancer l'application**
    ```bash
-   python -m src.UI.app
+   python -m src.core.app
    ```
 
-## Structure détaillée du projet
+### Structure du projet
 
 ```
 Morphoz_SnackApp/
 │
+├── assets/
+│   ├── config.json                         # Configuration (dossier données, imprimante, options impression)
+│   ├── icons/                              # Icônes SVG (annuler, filtrer, trier, imprimer, sauvegarder)
+│   └── imgs/                               # Images (en-tête ticket)
+│
 ├── src/
-│   ├── UI/
-│   │   ├── app.py                      # Point d'entrée de l'interface graphique
-│   │   ├── styles.py                   # Définition des styles graphiques (Tkinter)
-│   │   ├── ui_utils                    # Gestion de systèmes d'affichages
-│   │   └── views/
-│   │       └── init_view.py            # Vue d'initialisation (sélection fichiers, etc.)
-│   │       └── main_view.py            # Vue principale (prise et suivi des commandes)
+│   ├── core/
+│   │   └── app.py                          # Point d'entrée, initialisation Qt (thème sombre Fusion)
 │   │
-│   ├── frontend/
-│   │   ├── boutons_utilitaires.py      # Boutons utilitaires (retour, exit, gestion stock, etc.)
-│   │   ├── commandes_saisie.py         # Affichage et gestion de la commande en cours
-│   │   ├── commandes_suivi.py          # Suivi des commandes validées et en préparation
-│   │   ├── explorateurs_fichiers.py    # Sélection des fichiers/dossiers via dialogues
-│   │   └── temp/
-│   │       ├── frites.py               # UI pour ajout de frites à la commande
-│   │       ├── fish_and_chips.py       # UI pour ajout de fish & chips
-│   │       ├── grillade.py             # UI pour personnalisation des grillades
-│   │       ├── salade_composée.py      # UI pour personnalisation des salades composées
-│   │       └── stock.py                # UI de gestion des stocks (onglets, quantités, ruptures)
+│   ├── UI/
+│   │   ├── main_window.py                  # Fenêtre principale (menus, raccourcis F11/Ctrl+Q)
+│   │   ├── suivi_exterieur_window.py       # Fenêtre d'affichage extérieur client
+│   │   ├── module_registry.py              # Registre des modules chargés
+│   │   └── view/
+│   │       └── interface_principale.py     # Assemblage vue principale (panneau gauche + droite)
 │   │
 │   ├── backend/
-│   │   ├── chemins_exploitation.py     # Chargement des fichiers JSON, initialisation des dossiers
-│   │   ├── chemins_gestion.py          # Gestion et sauvegarde des chemins de fichiers
-│   │   ├── commandes_saisie_save.py    # Création/mise à jour des fichiers de commande
-│   │   ├── commandes_saisie_gestion.py # Validation, annulation, gestion des statuts de commande
-│   │   ├── commandes_suivi_gestion.py  # Changement de statut des plats (prêt, livré, terminé)
-│   │   ├── commandes_utils.py          # Utilitaires : génération d'ID, chargement JSON sécurisé
-│   │   └── printer.py                  # Impression des tickets (plats et commandes)
+│   │   ├── app_config.py                   # Gestion de la configuration (dossier, imprimante, options)
+│   │   ├── commandes_utils.py              # Génération d'ID, réconciliation du stock, chargement JSON
+│   │   ├── data_sources.py                 # Chargement/sauvegarde centralisé (carte, stock, commandes)
+│   │   ├── logger.py                       # Journal d'événements (JSON Lines, fichier quotidien)
+│   │   └── printer.py                      # Impression des tickets (ESC-POS, USB)
 │   │
-│   └── utils/                          # (optionnel) Fonctions utilitaires partagées
+│   └── modules/
+│       ├── commandes_saisie/               # Saisie des commandes (UI + backend + dialogue paiement)
+│       ├── commandes_suivi/                # Suivi en temps réel des commandes (panneau droit)
+│       ├── commandes_poste_preparation/    # Poste de préparation cuisine (plein écran)
+│       ├── commandes_historique/           # Historique avec filtres, tri et réimpression
+│       ├── carte/                          # Gestion de la carte (catégories, recettes, prix, états)
+│       ├── stock/                          # Gestion des stocks (liste hiérarchique + formulaire d'édition)
+│       ├── logs/                           # Consultation du journal d'événements avec filtres et tri
+│       ├── parametres/                     # Paramètres (dossier de données, imprimante, impression)
+│       └── plats/                          # Dialogues de personnalisation par type de plat
+│           ├── pizza/                      # Sélection de recette + personnalisation base/ingrédients
+│           ├── grillade/                   # Choix de viande et accompagnement
+│           ├── salade_composee/            # Sélection des ingrédients
+│           ├── crepe/                      # Choix du type de crêpe
+│           └── frites/                     # Choix de la taille
 │
-├── tests/
-│   ├── printer.py                      # Tests d'impression de tickets
-│   └── ...                             # Autres tests unitaires
+├── archive/
+│   ├── libusb-1.0.dll                      # Bibliothèque USB (requis Windows)
+│   └── zadig-2.9.exe                       # Installateur de pilote USB pour l'imprimante
 │
-├── requirements.txt                    # Dépendances Python du projet
-├── README.md                           # Documentation du projet
-└── .gitignore                          # Fichiers à ignorer par git
+├── scripts/
+│   └── printer_tickets_repas.py            # Utilitaire d'impression des tickets pour repas gratuits
+│
+├── requirements.txt                        # Fichier des dépendances Python
+├── README.md
+└── CLAUDE.md
 ```
-
-## Utilisation
-
-Au lancement, l'application propose de sélectionner les fichiers de stock et de menu, puis permet la prise de commandes, la personnalisation des plats, la validation et le suivi en temps réel.
-
-Les tickets sont imprimés automatiquement à chaque validation de commande.
-
-## Développement
-
-- **Ajouter une fonctionnalité** : Créer un module dans `src/frontend/temp/` ou `src/backend/` selon le besoin.
-- **Tests** : Ajouter vos tests dans le dossier `tests/` et lancer avec `pytest`.
 
 ## Auteurs
 
-- Projet développé par Dracudar pour l'association Morphoz.
+- Dracudar
 
 ## Licence
 
 Projet open-source sous licence MIT.
+
+## Historique des versions
+
+<table>
+  <tr>
+    <th>Version</th>
+    <th>Date de sortie</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>1.2.2</td>
+    <td>17/06/2025</td>
+    <td>Première version de production (Tkinter)</td>
+  </tr>
+  <tr>
+    <td>2.0.0</td>
+    <td>11/06/2026</td>
+    <td>Réécriture complète en Qt (PySide6) — version actuelle</td>
+  </tr>
+</table>
 
 ---
 
