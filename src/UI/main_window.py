@@ -114,6 +114,9 @@ class MainWindow(QMainWindow):
         self.suivi_ext_action.setCheckable(True)
         self.suivi_ext_action.toggled.connect(self._toggle_suivi_exterieur)
 
+        self.logs_action = QAction("Journal", self)
+        self.logs_action.triggered.connect(lambda: self.interface_widget.set_left_page("logs"))
+
         view_menu.addAction(self.saisie_action)
         view_menu.addAction(self.poste_prep_action)
         view_menu.addSeparator()
@@ -124,6 +127,8 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.suivi_ext_action)
         view_menu.addSeparator()
         view_menu.addAction(self.parametres_action)
+        view_menu.addSeparator()
+        view_menu.addAction(self.logs_action)
         
     
     def _toggle_suivi_exterieur(self, checked: bool):

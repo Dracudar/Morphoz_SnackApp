@@ -30,6 +30,7 @@ from src.modules.commandes_historique.UI import CommandesHistoriqueModule
 from src.modules.commandes_poste_preparation.UI.poste_preparation import PostePreparationModule
 from src.modules.commandes_saisie.UI.commande_saisie import SaisieCommandeModule
 from src.modules.commandes_suivi.UI.UI import SuiviCommandesModule
+from src.modules.logs.UI import LogsModule
 from src.modules.parametres.UI import ParametresModule
 from src.modules.stock.UI import StockModule
 
@@ -82,6 +83,7 @@ class InterfacePrincipaleWidget(QWidget):
         self.page_stock = StockModule()
         self.page_carte = CarteModule()
         self.page_historique = CommandesHistoriqueModule()
+        self.page_logs = LogsModule()
         self.page_parametres = ParametresModule()
         self.page_poste_prep = PostePreparationModule()
 
@@ -89,6 +91,7 @@ class InterfacePrincipaleWidget(QWidget):
         self.left_stack.addWidget(self.page_stock)
         self.left_stack.addWidget(self.page_carte)
         self.left_stack.addWidget(self.page_historique)
+        self.left_stack.addWidget(self.page_logs)
         self.left_stack.addWidget(self.page_parametres)
         self.left_stack.addWidget(self.page_poste_prep)
 
@@ -98,6 +101,7 @@ class InterfacePrincipaleWidget(QWidget):
         self.page_parametres.go_back.connect(lambda: self.set_left_page("saisie"))
         self.page_parametres.go_to_poste_prep.connect(lambda: self.set_left_page("poste_preparation"))
         self.page_historique.go_back.connect(lambda: self.set_left_page("saisie"))
+        self.page_logs.go_back.connect(lambda: self.set_left_page("saisie"))
         self.page_saisie.command_changed.connect(self.refresh_all_pages)
 
         root_layout.addWidget(self.left_stack, 2)
@@ -118,6 +122,7 @@ class InterfacePrincipaleWidget(QWidget):
             "stock": self.page_stock,
             "carte": self.page_carte,
             "historique": self.page_historique,
+            "logs": self.page_logs,
             "parametres": self.page_parametres,
             "poste_preparation": self.page_poste_prep,
         }
