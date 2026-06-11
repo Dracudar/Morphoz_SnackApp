@@ -18,13 +18,13 @@ Author :
     Dracudar
 
 Version:
-    2.1
+    2.2
 
 Date de création :
     2025.05.29
 
 Date de modification:
-    2026.06.10
+    2026.06.11
 """
 
 from __future__ import annotations
@@ -36,6 +36,8 @@ from PySide6.QtWidgets import (
     QAbstractSpinBox,
     QCheckBox,
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QFormLayout,
     QFrame,
     QHBoxLayout,
@@ -258,16 +260,32 @@ class StockModule(QFrame):
         splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # ── Panneau gauche : recherche + liste ─────────────────────────────
-        left_widget = QWidget()
-        left_layout = QVBoxLayout(left_widget)
-        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_frame = QFrame()
+        left_frame.setObjectName("leftPanel")
+        left_layout = QVBoxLayout(left_frame)
+        left_layout.setContentsMargins(6, 6, 6, 6)
         left_layout.setSpacing(6)
 
+        search_row = QHBoxLayout()
+        search_row.setSpacing(6)
         self.search_field = QLineEdit()
         self.search_field.setPlaceholderText("Rechercher un article…")
         self.search_field.setClearButtonEnabled(True)
         self.search_field.textChanged.connect(self.refresh)
-        left_layout.addWidget(self.search_field)
+        search_row.addWidget(self.search_field, 1)
+        add_btn = QPushButton("+")
+        add_btn.setFixedSize(32, 32)
+        add_btn.setToolTip("Ajouter un article")
+        add_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        add_btn.setStyleSheet(
+            f"QPushButton {{ background-color: #1a4a2a; color: {_CLR_IN_STOCK};"
+            f" border: 1px solid {_CLR_IN_STOCK}; border-radius: 4px;"
+            f" font-size: 18px; font-weight: 700; }}"
+            f" QPushButton:hover {{ background-color: #1e5e32; }}"
+        )
+        add_btn.clicked.connect(self._on_add_item_clicked)
+        search_row.addWidget(add_btn)
+        left_layout.addLayout(search_row)
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -283,18 +301,24 @@ class StockModule(QFrame):
         self.scroll_area.setWidget(self.list_container)
         left_layout.addWidget(self.scroll_area, 1)
 
-        splitter.addWidget(left_widget)
+        splitter.addWidget(left_frame)
 
         # ── Panneau droit : détail / édition ───────────────────────────────
+        right_frame = QFrame()
+        right_frame.setObjectName("rightPanel")
+        right_frame_lyt = QVBoxLayout(right_frame)
+        right_frame_lyt.setContentsMargins(0, 0, 0, 0)
+        right_frame_lyt.setSpacing(0)
         self.right_scroll = QScrollArea()
         self.right_scroll.setWidgetResizable(True)
         self.right_scroll.setFrameShape(QFrame.Shape.NoFrame)
         self.right_scroll.setStyleSheet(
             f"QScrollArea, QScrollArea > QWidget > QWidget {{ background-color: {_BG_RIGHT}; }}"
         )
+        right_frame_lyt.addWidget(self.right_scroll)
         self._detail_widget: Optional[QWidget] = None
         self._show_empty_detail()
-        splitter.addWidget(self.right_scroll)
+        splitter.addWidget(right_frame)
 
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 1)
@@ -305,6 +329,16 @@ class StockModule(QFrame):
             QFrame#stockModule {{
                 background-color: {_BG_MAIN};
                 border: 1px solid {_BORDER_MAIN};
+            }}
+            QFrame#leftPanel {{
+                background-color: {_BG_MAIN};
+                border: 1px solid {_BORDER_SECTION};
+                border-radius: 6px;
+            }}
+            QFrame#rightPanel {{
+                background-color: {_BG_RIGHT};
+                border: 1px solid {_BORDER_SECTION};
+                border-radius: 6px;
             }}
             QLabel#sectionTitle {{
                 color: {_TEXT_TITLE};
@@ -393,7 +427,7 @@ class StockModule(QFrame):
         """Affiche l'état vide dans le panneau de détail."""
         if self._detail_widget is not None:
             self._detail_widget.deleteLater()
-        empty = QWidget()
+        empty = QWidget(self)
         lyt = QVBoxLayout(empty)
         lbl = QLabel("Sélectionner un article\npour afficher son détail")
         lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -437,17 +471,20 @@ class StockModule(QFrame):
 
         oos_state = [out_of_stock]
 
-        content = QWidget()
+        content = QWidget(self)
         lyt = QVBoxLayout(content)
         lyt.setContentsMargins(16, 14, 16, 14)
         lyt.setSpacing(10)
 
         # ── Titre ────────────────────────────────────────────────────────
         title_lbl = QLabel(path[-1])
+        title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_lbl.setStyleSheet(
             f"color: {_TEXT_TITLE}; font-size: 15px; font-weight: 700; border: none;"
+            f" text-decoration: underline;"
         )
         cat_lbl = QLabel(" > ".join(path[:-1]))
+        cat_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         cat_lbl.setStyleSheet(f"color: {_TEXT_DIM}; font-size: 11px; border: none;")
         lyt.addWidget(title_lbl)
         lyt.addWidget(cat_lbl)
@@ -492,7 +529,7 @@ class StockModule(QFrame):
         fichier_qty    = int(node.get("Quantité", 0) or 0)
         stock_reel_val = (cache_qty + prep) if cache_qty is not None else None
 
-        qty_block = QWidget()
+        qty_block = QWidget(content)
         qty_hbox  = QHBoxLayout(qty_block)
         qty_hbox.setContentsMargins(4, 4, 4, 4)
         qty_hbox.setSpacing(16)
@@ -559,29 +596,35 @@ class StockModule(QFrame):
         stock_reel_spin.setRange(0, 999_999)
         stock_reel_spin.setValue(stock_reel_val if stock_reel_val is not None else fichier_qty)
         stock_reel_spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        stock_reel_spin.setFixedHeight(32)
+        stock_reel_spin.setFixedHeight(28)
         stock_reel_spin.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
 
-        btn_m10 = QPushButton("−10")
-        btn_m1  = QPushButton("−1")
-        btn_p1  = QPushButton("+1")
-        btn_p10 = QPushButton("+10")
-        for b in (btn_m10, btn_m1, btn_p1, btn_p10):
-            b.setFixedHeight(32)
+        btn_m100 = QPushButton("−100")
+        btn_m10  = QPushButton("−10")
+        btn_m1   = QPushButton("−1")
+        btn_p1   = QPushButton("+1")
+        btn_p10  = QPushButton("+10")
+        btn_p100 = QPushButton("+100")
+        for b in (btn_m100, btn_m10, btn_m1, btn_p1, btn_p10, btn_p100):
+            b.setFixedHeight(28)
             b.setStyleSheet(_btn_style)
 
+        btn_m100.clicked.connect(lambda: stock_reel_spin.setValue(max(0, stock_reel_spin.value() - 100)))
         btn_m10.clicked.connect(lambda: stock_reel_spin.setValue(max(0, stock_reel_spin.value() - 10)))
         btn_m1.clicked.connect(lambda: stock_reel_spin.setValue(max(0, stock_reel_spin.value() - 1)))
         btn_p1.clicked.connect(lambda: stock_reel_spin.setValue(stock_reel_spin.value() + 1))
         btn_p10.clicked.connect(lambda: stock_reel_spin.setValue(stock_reel_spin.value() + 10))
+        btn_p100.clicked.connect(lambda: stock_reel_spin.setValue(stock_reel_spin.value() + 100))
 
         btn_row = QHBoxLayout()
         btn_row.setSpacing(4)
+        btn_row.addWidget(btn_m100)
         btn_row.addWidget(btn_m10)
         btn_row.addWidget(btn_m1)
         btn_row.addWidget(stock_reel_spin, 1)
         btn_row.addWidget(btn_p1)
         btn_row.addWidget(btn_p10)
+        btn_row.addWidget(btn_p100)
         right_vbox.addLayout(btn_row)
 
         formula_lbl = QLabel("= Fichier + En préparation")
@@ -605,13 +648,21 @@ class StockModule(QFrame):
         right_vbox.addWidget(valider_btn)
         right_vbox.addStretch()
 
-        qty_hbox.addWidget(left_col, 1)
+        # Centrage vertical de la colonne indicateurs
+        left_wrapper = QWidget(content)
+        lw_lyt = QVBoxLayout(left_wrapper)
+        lw_lyt.setContentsMargins(0, 0, 0, 0)
+        lw_lyt.addStretch()
+        lw_lyt.addWidget(left_col)
+        lw_lyt.addStretch()
+        qty_hbox.addWidget(left_wrapper, 1)
         qty_hbox.addWidget(vsep)
         qty_hbox.addWidget(right_col, 1)
 
+        # Ajouter au layout avant setVisible pour éviter un flash de fenêtre flottante
+        lyt.addWidget(qty_block)
         qty_block.setVisible(has_qty)
         suivi_chk.toggled.connect(qty_block.setVisible)
-        lyt.addWidget(qty_block)
 
         # Stocker les refs pour mise à jour par le timer
         self._detail_fichier_lbl    = fichier_lbl
@@ -1185,12 +1236,109 @@ class StockModule(QFrame):
             "action": "modification_article",
             "ancien_chemin": old_path,
             "nouveau_chemin": new_path,
-            "out_of_stock": new_oos,
+            "out_of_stock": new_node.get("OutOfStock", False),
         })
 
         self._selected_path = new_path
         self.refresh()
         # Reconstruire le détail avec les données fraîches
+        file_data_fresh = get_stock_data()
+        cache_obj       = get_stock_cache()
+        cache_data      = cache_obj.data if cache_obj is not None else {}
+        by_nom, by_plat = _build_prep_data()
+        self._build_detail_panel(new_path, file_data_fresh, cache_data, by_nom, by_plat)
+
+    # ── Ajout d'un nouvel article ────────────────────────────────────────────
+
+    def _on_add_item_clicked(self) -> None:
+        """Ouvre une boîte de dialogue pour ajouter un nouvel article au stock."""
+        file_data = get_stock_data()
+        all_cats  = _collect_container_paths(file_data)
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Ajouter un article")
+        dialog.setMinimumWidth(380)
+        dialog.setStyleSheet(
+            f"QDialog {{ background-color: {_BG_MAIN}; }}"
+        )
+
+        dlg_lyt = QVBoxLayout(dialog)
+        dlg_lyt.setSpacing(12)
+        dlg_lyt.setContentsMargins(16, 16, 16, 16)
+
+        form = QFormLayout()
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        form.setHorizontalSpacing(12)
+        form.setVerticalSpacing(8)
+
+        cat_combo = QComboBox()
+        cat_combo.addItems(all_cats)
+        form.addRow(self._form_label("Catégorie :"), cat_combo)
+
+        name_edit = QLineEdit()
+        name_edit.setPlaceholderText("Nom de l'article")
+        form.addRow(self._form_label("Nom :"), name_edit)
+
+        suivi_chk = QCheckBox("Activer le suivi unitaire (quantité)")
+        suivi_chk.setStyleSheet(f"color: {_TEXT_ITEM}; font-size: 13px;")
+        form.addRow("", suivi_chk)
+
+        dlg_lyt.addLayout(form)
+
+        btn_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        btn_box.button(QDialogButtonBox.StandardButton.Ok).setText("Ajouter")
+        btn_box.button(QDialogButtonBox.StandardButton.Cancel).setText("Annuler")
+        btn_box.accepted.connect(dialog.accept)
+        btn_box.rejected.connect(dialog.reject)
+        dlg_lyt.addWidget(btn_box)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        new_name    = name_edit.text().strip()
+        new_cat_str = cat_combo.currentText().strip()
+        if not new_name:
+            QMessageBox.warning(self, "Stock", "Le nom ne peut pas être vide.")
+            return
+        if not new_cat_str:
+            QMessageBox.warning(self, "Stock", "Sélectionner une catégorie.")
+            return
+
+        new_cat  = [p.strip() for p in new_cat_str.split(" > ")]
+        new_path = new_cat + [new_name]
+
+        file_data = get_stock_data()
+        if _resolve_path(file_data, new_path) is not None:
+            QMessageBox.warning(
+                self, "Stock",
+                f"Un article « {new_name} » existe déjà dans « {new_cat_str} »."
+            )
+            return
+
+        new_node: Dict[str, Any] = {"OutOfStock": False}
+        if suivi_chk.isChecked():
+            new_node["Quantité"] = 0
+
+        target = file_data
+        for key in new_cat:
+            if key not in target or not isinstance(target[key], dict):
+                target[key] = {}
+            target = target[key]
+        target[new_name] = new_node
+
+        if not save_stock_data(file_data):
+            QMessageBox.critical(self, "Stock", "Impossible d'enregistrer le stock.")
+            return
+
+        logger.log(logger.MODIFICATION_STOCK_MANUELLE, {
+            "action": "ajout_article",
+            "chemin": new_path,
+        })
+
+        self._selected_path = new_path
+        self.refresh()
         file_data_fresh = get_stock_data()
         cache_obj       = get_stock_cache()
         cache_data      = cache_obj.data if cache_obj is not None else {}
