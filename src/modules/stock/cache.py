@@ -110,6 +110,23 @@ class StockCache:
             ref = ref[key]
         return ref.get("OutOfStock", False)
 
+    def set_out_of_stock(self, chemin, valeur):
+        """
+        Définit directement l'état OutOfStock d'un article dans le cache en mémoire.
+
+        :param chemin: Liste de clés JSON vers l'article.
+        :param valeur: True = rupture, False = en stock.
+        :return: True si l'opération a réussi, False sinon.
+        """
+        try:
+            ref = self._stock_cache
+            for key in chemin:
+                ref = ref[key]
+            ref["OutOfStock"] = valeur
+            return True
+        except (KeyError, TypeError):
+            return False
+
     def set_quantite(self, chemin, valeur):
         """
         Définit directement la quantité d'un article dans le cache en mémoire.

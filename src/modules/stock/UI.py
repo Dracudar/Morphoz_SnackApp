@@ -33,6 +33,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 from PySide6.QtCore import QTimer, Qt, Signal
 from PySide6.QtWidgets import (
+    QAbstractSpinBox,
     QCheckBox,
     QComboBox,
     QFormLayout,
@@ -231,10 +232,10 @@ class StockModule(QFrame):
         self._selected_path: Optional[List[str]] = None
 
         # Références vers les labels lecture seule du panneau de détail
-        self._detail_cache_lbl:       Optional[QLabel]  = None
-        self._detail_prep_lbl:        Optional[QLabel]  = None
-        self._detail_stock_reel_lbl:  Optional[QLabel]  = None
-        self._detail_stock_reel_spin: Optional[QSpinBox] = None
+        self._detail_fichier_lbl:    Optional[QLabel] = None
+        self._detail_cache_lbl:      Optional[QLabel] = None
+        self._detail_prep_lbl:       Optional[QLabel] = None
+        self._detail_stock_reel_lbl: Optional[QLabel] = None
 
         self._build_ui()
         self._build_timer()
@@ -401,11 +402,11 @@ class StockModule(QFrame):
         lyt.addWidget(lbl)
         lyt.addStretch()
         self.right_scroll.setWidget(empty)
-        self._detail_widget           = empty
-        self._detail_cache_lbl        = None
-        self._detail_prep_lbl         = None
-        self._detail_stock_reel_lbl   = None
-        self._detail_stock_reel_spin  = None
+        self._detail_widget         = empty
+        self._detail_fichier_lbl    = None
+        self._detail_cache_lbl      = None
+        self._detail_prep_lbl       = None
+        self._detail_stock_reel_lbl = None
 
     def _build_detail_panel(
         self,
@@ -418,10 +419,10 @@ class StockModule(QFrame):
         """Construit le formulaire de détail pour l'article sélectionné."""
         if self._detail_widget is not None:
             self._detail_widget.deleteLater()
-        self._detail_cache_lbl        = None
-        self._detail_prep_lbl         = None
-        self._detail_stock_reel_lbl   = None
-        self._detail_stock_reel_spin  = None
+        self._detail_fichier_lbl    = None
+        self._detail_cache_lbl      = None
+        self._detail_prep_lbl       = None
+        self._detail_stock_reel_lbl = None
 
         node = _resolve_path(file_data, path)
         if not isinstance(node, dict):
@@ -433,9 +434,7 @@ class StockModule(QFrame):
         cache_node   = _resolve_path(cache_data, path) or {}
         cache_qty    = cache_node.get("Quantité")
         prep         = _get_prep_count(path, node, by_nom, by_plat)
-        estim        = (cache_qty + prep) if cache_qty is not None else None
 
-        # État OutOfStock mutable pour le toggle dans le formulaire
         oos_state = [out_of_stock]
 
         content = QWidget()
@@ -464,6 +463,7 @@ class StockModule(QFrame):
         # Catégorie
         all_cats = _collect_container_paths(file_data)
         cat_combo = QComboBox()
+        cat_combo.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         cat_combo.addItems(all_cats)
         current_cat = " > ".join(path[:-1])
         idx = next((i for i, c in enumerate(all_cats) if c == current_cat), -1)
@@ -493,88 +493,131 @@ class StockModule(QFrame):
         stock_reel_val = (cache_qty + prep) if cache_qty is not None else None
 
         qty_block = QWidget()
-        qty_vbox  = QVBoxLayout(qty_block)
-        qty_vbox.setContentsMargins(8, 4, 0, 4)
-        qty_vbox.setSpacing(6)
+        qty_hbox  = QHBoxLayout(qty_block)
+        qty_hbox.setContentsMargins(4, 4, 4, 4)
+        qty_hbox.setSpacing(16)
 
-        # ── Quantités actuelles (lecture seule + fichier éditable) ────────
-        info_form = QFormLayout()
-        info_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
-        info_form.setHorizontalSpacing(12)
-        info_form.setVerticalSpacing(6)
-        info_form.setContentsMargins(0, 0, 0, 0)
+        # ── Colonne gauche : compteurs (lecture seule) ─────────────────────
+        left_col  = QWidget()
+        left_form = QFormLayout(left_col)
+        left_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        left_form.setHorizontalSpacing(10)
+        left_form.setVerticalSpacing(6)
+        left_form.setContentsMargins(0, 0, 0, 0)
 
-        qty_spin = QSpinBox()
-        qty_spin.setRange(0, 999_999)
-        qty_spin.setValue(fichier_qty)
-        info_form.addRow(self._form_label("Fichier (théorique) :"), qty_spin)
+        fichier_lbl    = QLabel(str(fichier_qty))
+        cache_val_lbl  = QLabel("—" if cache_qty is None else str(cache_qty))
+        prep_val_lbl   = QLabel(str(prep))
+        stock_reel_lbl = QLabel("—" if stock_reel_val is None else str(stock_reel_val))
 
-        cache_val_lbl    = QLabel("—" if cache_qty is None else str(cache_qty))
-        prep_val_lbl     = QLabel(str(prep))
-        stock_reel_lbl   = QLabel("—" if stock_reel_val is None else str(stock_reel_val))
+        fichier_lbl.setStyleSheet(
+            "color: #9b9fa7; font-size: 13px; font-weight: 600; border: none;"
+        )
         for lbl, clr in (
-            (cache_val_lbl,  "#7ab8e0"),   # bleu  – cache utilisé pour la saisie
-            (prep_val_lbl,   "#d4a017"),   # jaune – quantité en préparation
-            (stock_reel_lbl, "#c97a30"),   # orange – stock réel (= cache + en prépa)
+            (cache_val_lbl,  "#7ab8e0"),
+            (prep_val_lbl,   "#d4a017"),
+            (stock_reel_lbl, "#c97a30"),
         ):
             lbl.setStyleSheet(
                 f"color: {clr}; font-size: 13px; font-weight: 600; border: none;"
             )
 
-        info_form.addRow(self._form_label("Cache (saisie) :"),   cache_val_lbl)
-        info_form.addRow(self._form_label("En préparation :"),   prep_val_lbl)
-        info_form.addRow(self._form_label("Stock réel :"),       stock_reel_lbl)
-        qty_vbox.addLayout(info_form)
+        left_form.addRow(self._form_label("Fichier :"),         fichier_lbl)
+        left_form.addRow(self._form_label("Cache (saisie) :"),  cache_val_lbl)
+        left_form.addRow(self._form_label("En préparation :"),  prep_val_lbl)
+        left_form.addRow(self._form_label("Stock réel :"),      stock_reel_lbl)
 
-        # ── Mise à jour manuelle du stock réel ───────────────────────────
-        qty_vbox.addWidget(self._make_separator())
+        # ── Séparateur vertical ────────────────────────────────────────────
+        vsep = QFrame()
+        vsep.setFrameShape(QFrame.Shape.VLine)
+        vsep.setStyleSheet(
+            f"border: none; border-left: 1px solid {_BORDER_SECTION};"
+        )
 
-        manual_title = QLabel("Mise à jour manuelle du stock réel")
-        manual_title.setStyleSheet(
+        # ── Colonne droite : modification manuelle du stock réel ───────────
+        right_col  = QWidget()
+        right_vbox = QVBoxLayout(right_col)
+        right_vbox.setContentsMargins(0, 0, 0, 0)
+        right_vbox.setSpacing(6)
+
+        update_title = QLabel("Modifier le stock réel")
+        update_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        update_title.setStyleSheet(
             f"color: {_TEXT_DIM}; font-size: 11px; font-style: italic; border: none;"
         )
-        qty_vbox.addWidget(manual_title)
+        right_vbox.addWidget(update_title)
 
-        manual_form = QFormLayout()
-        manual_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
-        manual_form.setHorizontalSpacing(12)
-        manual_form.setVerticalSpacing(4)
-        manual_form.setContentsMargins(0, 0, 0, 0)
+        _btn_style = (
+            f"QPushButton {{ background-color: #3b3f46; color: {_TEXT_TITLE};"
+            f" border: 1px solid #676d79; border-radius: 4px;"
+            f" font-size: 12px; font-weight: 700; min-width: 36px; }}"
+            f" QPushButton:hover {{ background-color: #4a4e57; }}"
+            f" QPushButton:pressed {{ background-color: #555b66; }}"
+        )
 
         stock_reel_spin = QSpinBox()
         stock_reel_spin.setRange(0, 999_999)
         stock_reel_spin.setValue(stock_reel_val if stock_reel_val is not None else fichier_qty)
-        manual_form.addRow(self._form_label("Nouveau stock réel :"), stock_reel_spin)
-        qty_vbox.addLayout(manual_form)
+        stock_reel_spin.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        stock_reel_spin.setFixedHeight(32)
+        stock_reel_spin.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
 
-        formula_lbl = QLabel("Fichier mis à jour : stock réel − en préparation")
+        btn_m10 = QPushButton("−10")
+        btn_m1  = QPushButton("−1")
+        btn_p1  = QPushButton("+1")
+        btn_p10 = QPushButton("+10")
+        for b in (btn_m10, btn_m1, btn_p1, btn_p10):
+            b.setFixedHeight(32)
+            b.setStyleSheet(_btn_style)
+
+        btn_m10.clicked.connect(lambda: stock_reel_spin.setValue(max(0, stock_reel_spin.value() - 10)))
+        btn_m1.clicked.connect(lambda: stock_reel_spin.setValue(max(0, stock_reel_spin.value() - 1)))
+        btn_p1.clicked.connect(lambda: stock_reel_spin.setValue(stock_reel_spin.value() + 1))
+        btn_p10.clicked.connect(lambda: stock_reel_spin.setValue(stock_reel_spin.value() + 10))
+
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(4)
+        btn_row.addWidget(btn_m10)
+        btn_row.addWidget(btn_m1)
+        btn_row.addWidget(stock_reel_spin, 1)
+        btn_row.addWidget(btn_p1)
+        btn_row.addWidget(btn_p10)
+        right_vbox.addLayout(btn_row)
+
+        formula_lbl = QLabel("= Fichier + En préparation")
+        formula_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         formula_lbl.setStyleSheet(
             f"color: {_TEXT_DIM}; font-size: 10px; font-style: italic; border: none;"
         )
-        qty_vbox.addWidget(formula_lbl)
+        right_vbox.addWidget(formula_lbl)
 
-        valider_btn = QPushButton("Valider le stock réel")
-        valider_btn.setFixedHeight(28)
+        valider_btn = QPushButton("Valider")
+        valider_btn.setFixedHeight(30)
         valider_btn.setStyleSheet(
             f"QPushButton {{ background-color: #1a3a4a; color: #7ab8e0;"
             f" border: 1px solid #7ab8e0; border-radius: 4px;"
-            f" font-size: 12px; font-weight: 600; padding: 2px 12px; }}"
+            f" font-size: 12px; font-weight: 600; }}"
             f" QPushButton:hover {{ background-color: #1e4a5e; }}"
         )
         valider_btn.clicked.connect(
             lambda: self._on_valider_stock_reel(path, stock_reel_spin)
         )
-        qty_vbox.addWidget(valider_btn)
+        right_vbox.addWidget(valider_btn)
+        right_vbox.addStretch()
+
+        qty_hbox.addWidget(left_col, 1)
+        qty_hbox.addWidget(vsep)
+        qty_hbox.addWidget(right_col, 1)
 
         qty_block.setVisible(has_qty)
         suivi_chk.toggled.connect(qty_block.setVisible)
         lyt.addWidget(qty_block)
 
         # Stocker les refs pour mise à jour par le timer
-        self._detail_cache_lbl       = cache_val_lbl
-        self._detail_prep_lbl        = prep_val_lbl
-        self._detail_stock_reel_lbl  = stock_reel_lbl
-        self._detail_stock_reel_spin = stock_reel_spin
+        self._detail_fichier_lbl    = fichier_lbl
+        self._detail_cache_lbl      = cache_val_lbl
+        self._detail_prep_lbl       = prep_val_lbl
+        self._detail_stock_reel_lbl = stock_reel_lbl
 
         lyt.addWidget(self._make_separator())
 
@@ -619,18 +662,24 @@ class StockModule(QFrame):
                     f" QPushButton:hover {{ background-color: #444950; }}"
                 )
 
-        def _toggle_to_en_stock():
-            oos_state[0] = False
+        def _save_oos(new_oos: bool) -> None:
+            oos_state[0] = new_oos
             _apply_status_style()
+            file_data_oos = get_stock_data()
+            node_oos = _resolve_path(file_data_oos, path)
+            if isinstance(node_oos, dict):
+                node_oos["OutOfStock"] = new_oos
+                save_stock_data(file_data_oos)
+                cache_oos = get_stock_cache()
+                if cache_oos is not None:
+                    cache_oos.set_out_of_stock(path, new_oos)
+            self.refresh()
 
-        def _toggle_to_rupture():
-            oos_state[0] = True
-            _apply_status_style()
-
-        badge_en_stock.clicked.connect(_toggle_to_en_stock)
-        badge_rupture.clicked.connect(_toggle_to_rupture)
+        badge_en_stock.clicked.connect(lambda: _save_oos(False))
+        badge_rupture.clicked.connect(lambda: _save_oos(True))
         _apply_status_style()
 
+        status_row.addStretch()
         status_row.addWidget(badge_en_stock)
         status_row.addWidget(badge_rupture)
         status_row.addStretch()
@@ -658,14 +707,13 @@ class StockModule(QFrame):
             """
         )
         save_btn.clicked.connect(
-            lambda: self._on_save_detail(
-                path, cat_combo, name_edit, suivi_chk, qty_spin, oos_state
-            )
+            lambda: self._on_save_detail(path, cat_combo, name_edit, suivi_chk)
         )
         lyt.addWidget(save_btn)
 
         self.right_scroll.setWidget(content)
         self._detail_widget = content
+        self.right_scroll.setFocus()
 
     def _update_detail_readonly(
         self,
@@ -678,6 +726,7 @@ class StockModule(QFrame):
         if (
             self._selected_path is None
             or self._detail_cache_lbl is None
+            or self._detail_fichier_lbl is None
         ):
             return
         path = self._selected_path
@@ -689,6 +738,8 @@ class StockModule(QFrame):
         prep         = _get_prep_count(path, node, by_nom, by_plat)
         stock_reel   = (cache_qty + prep) if cache_qty is not None else None
 
+        fichier_qty = int(node.get("Quantité", 0) or 0)
+        self._detail_fichier_lbl.setText(str(fichier_qty))
         self._detail_cache_lbl.setText("—" if cache_qty is None else str(cache_qty))
         self._detail_prep_lbl.setText(str(prep))
         self._detail_stock_reel_lbl.setText("—" if stock_reel is None else str(stock_reel))
@@ -1068,13 +1119,10 @@ class StockModule(QFrame):
         cat_combo: QComboBox,
         name_edit: QLineEdit,
         suivi_chk: QCheckBox,
-        qty_spin: QSpinBox,
-        oos_state: List[bool],
     ) -> None:
         new_name    = name_edit.text().strip()
         new_cat_str = cat_combo.currentText().strip()
         suivi_on    = suivi_chk.isChecked()
-        new_oos     = oos_state[0]
 
         if not new_name:
             QMessageBox.warning(self, "Stock", "Le nom ne peut pas être vide.")
@@ -1090,11 +1138,11 @@ class StockModule(QFrame):
             QMessageBox.warning(self, "Stock", "Article introuvable dans le fichier.")
             return
 
-        # Construire le nœud mis à jour
+        # OutOfStock déjà persisté immédiatement via le toggle — on préserve ce qui est dans le fichier
         new_node = dict(old_node)
-        new_node["OutOfStock"] = new_oos
         if suivi_on:
-            new_node["Quantité"] = qty_spin.value()
+            if "Quantité" not in new_node:
+                new_node["Quantité"] = 0  # suivi activé : initialisation à 0, régler via Valider
         else:
             new_node.pop("Quantité", None)
 
