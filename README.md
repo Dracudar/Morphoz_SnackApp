@@ -135,7 +135,7 @@ Projet open-source sous licence MIT.
   </tr>
   <tr>
     <td>2.0.0</td>
-    <td>—</td>
+    <td>11/06/2026</td>
     <td>Réécriture complète en Qt (PySide6) — version actuelle</td>
   </tr>
 </table>
