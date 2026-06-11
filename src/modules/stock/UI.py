@@ -231,9 +231,10 @@ class StockModule(QFrame):
         self._selected_path: Optional[List[str]] = None
 
         # Références vers les labels lecture seule du panneau de détail
-        self._detail_cache_lbl: Optional[QLabel] = None
-        self._detail_prep_lbl:  Optional[QLabel] = None
-        self._detail_estim_lbl: Optional[QLabel] = None
+        self._detail_cache_lbl:       Optional[QLabel]  = None
+        self._detail_prep_lbl:        Optional[QLabel]  = None
+        self._detail_stock_reel_lbl:  Optional[QLabel]  = None
+        self._detail_stock_reel_spin: Optional[QSpinBox] = None
 
         self._build_ui()
         self._build_timer()
@@ -400,10 +401,11 @@ class StockModule(QFrame):
         lyt.addWidget(lbl)
         lyt.addStretch()
         self.right_scroll.setWidget(empty)
-        self._detail_widget = empty
-        self._detail_cache_lbl = None
-        self._detail_prep_lbl  = None
-        self._detail_estim_lbl = None
+        self._detail_widget           = empty
+        self._detail_cache_lbl        = None
+        self._detail_prep_lbl         = None
+        self._detail_stock_reel_lbl   = None
+        self._detail_stock_reel_spin  = None
 
     def _build_detail_panel(
         self,
@@ -416,9 +418,10 @@ class StockModule(QFrame):
         """Construit le formulaire de détail pour l'article sélectionné."""
         if self._detail_widget is not None:
             self._detail_widget.deleteLater()
-        self._detail_cache_lbl = None
-        self._detail_prep_lbl  = None
-        self._detail_estim_lbl = None
+        self._detail_cache_lbl        = None
+        self._detail_prep_lbl         = None
+        self._detail_stock_reel_lbl   = None
+        self._detail_stock_reel_spin  = None
 
         node = _resolve_path(file_data, path)
         if not isinstance(node, dict):
@@ -486,42 +489,92 @@ class StockModule(QFrame):
         suivi_chk.setChecked(has_qty)
         lyt.addWidget(suivi_chk)
 
+        fichier_qty    = int(node.get("Quantité", 0) or 0)
+        stock_reel_val = (cache_qty + prep) if cache_qty is not None else None
+
         qty_block = QWidget()
-        qty_form  = QFormLayout(qty_block)
-        qty_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
-        qty_form.setHorizontalSpacing(12)
-        qty_form.setVerticalSpacing(6)
-        qty_form.setContentsMargins(8, 4, 0, 4)
+        qty_vbox  = QVBoxLayout(qty_block)
+        qty_vbox.setContentsMargins(8, 4, 0, 4)
+        qty_vbox.setSpacing(6)
+
+        # ── Quantités actuelles (lecture seule + fichier éditable) ────────
+        info_form = QFormLayout()
+        info_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        info_form.setHorizontalSpacing(12)
+        info_form.setVerticalSpacing(6)
+        info_form.setContentsMargins(0, 0, 0, 0)
 
         qty_spin = QSpinBox()
         qty_spin.setRange(0, 999_999)
-        qty_spin.setValue(int(node.get("Quantité", 0) or 0))
-        qty_form.addRow(self._form_label("Fichier :"), qty_spin)
+        qty_spin.setValue(fichier_qty)
+        info_form.addRow(self._form_label("Fichier (théorique) :"), qty_spin)
 
-        cache_val_lbl = QLabel("—" if cache_qty is None else str(cache_qty))
-        prep_val_lbl  = QLabel(str(prep))
-        estim_val_lbl = QLabel("—" if estim is None else str(estim))
+        cache_val_lbl    = QLabel("—" if cache_qty is None else str(cache_qty))
+        prep_val_lbl     = QLabel(str(prep))
+        stock_reel_lbl   = QLabel("—" if stock_reel_val is None else str(stock_reel_val))
         for lbl, clr in (
-            (cache_val_lbl, "#7ab8e0"),
-            (prep_val_lbl,  "#d4a017"),
-            (estim_val_lbl, "#c97a30"),
+            (cache_val_lbl,  "#7ab8e0"),   # bleu  – cache utilisé pour la saisie
+            (prep_val_lbl,   "#d4a017"),   # jaune – quantité en préparation
+            (stock_reel_lbl, "#c97a30"),   # orange – stock réel (= cache + en prépa)
         ):
             lbl.setStyleSheet(
                 f"color: {clr}; font-size: 13px; font-weight: 600; border: none;"
             )
 
-        qty_form.addRow(self._form_label("Cache :"),          cache_val_lbl)
-        qty_form.addRow(self._form_label("En préparation :"), prep_val_lbl)
-        qty_form.addRow(self._form_label("Estimation act. :"), estim_val_lbl)
+        info_form.addRow(self._form_label("Cache (saisie) :"),   cache_val_lbl)
+        info_form.addRow(self._form_label("En préparation :"),   prep_val_lbl)
+        info_form.addRow(self._form_label("Stock réel :"),       stock_reel_lbl)
+        qty_vbox.addLayout(info_form)
+
+        # ── Mise à jour manuelle du stock réel ───────────────────────────
+        qty_vbox.addWidget(self._make_separator())
+
+        manual_title = QLabel("Mise à jour manuelle du stock réel")
+        manual_title.setStyleSheet(
+            f"color: {_TEXT_DIM}; font-size: 11px; font-style: italic; border: none;"
+        )
+        qty_vbox.addWidget(manual_title)
+
+        manual_form = QFormLayout()
+        manual_form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        manual_form.setHorizontalSpacing(12)
+        manual_form.setVerticalSpacing(4)
+        manual_form.setContentsMargins(0, 0, 0, 0)
+
+        stock_reel_spin = QSpinBox()
+        stock_reel_spin.setRange(0, 999_999)
+        stock_reel_spin.setValue(stock_reel_val if stock_reel_val is not None else fichier_qty)
+        manual_form.addRow(self._form_label("Nouveau stock réel :"), stock_reel_spin)
+        qty_vbox.addLayout(manual_form)
+
+        formula_lbl = QLabel("Fichier mis à jour : stock réel − en préparation")
+        formula_lbl.setStyleSheet(
+            f"color: {_TEXT_DIM}; font-size: 10px; font-style: italic; border: none;"
+        )
+        qty_vbox.addWidget(formula_lbl)
+
+        valider_btn = QPushButton("Valider le stock réel")
+        valider_btn.setFixedHeight(28)
+        valider_btn.setStyleSheet(
+            f"QPushButton {{ background-color: #1a3a4a; color: #7ab8e0;"
+            f" border: 1px solid #7ab8e0; border-radius: 4px;"
+            f" font-size: 12px; font-weight: 600; padding: 2px 12px; }}"
+            f" QPushButton:hover {{ background-color: #1e4a5e; }}"
+        )
+        valider_btn.clicked.connect(
+            lambda: self._on_valider_stock_reel(path, stock_reel_spin)
+        )
+        qty_vbox.addWidget(valider_btn)
 
         qty_block.setVisible(has_qty)
         suivi_chk.toggled.connect(qty_block.setVisible)
         lyt.addWidget(qty_block)
 
         # Stocker les refs pour mise à jour par le timer
-        self._detail_cache_lbl = cache_val_lbl
-        self._detail_prep_lbl  = prep_val_lbl
-        self._detail_estim_lbl = estim_val_lbl
+        self._detail_cache_lbl       = cache_val_lbl
+        self._detail_prep_lbl        = prep_val_lbl
+        self._detail_stock_reel_lbl  = stock_reel_lbl
+        self._detail_stock_reel_spin = stock_reel_spin
 
         lyt.addWidget(self._make_separator())
 
@@ -631,14 +684,14 @@ class StockModule(QFrame):
         node = _resolve_path(file_data, path)
         if not isinstance(node, dict):
             return
-        cache_node = _resolve_path(cache_data, path) or {}
-        cache_qty  = cache_node.get("Quantité")
-        prep       = _get_prep_count(path, node, by_nom, by_plat)
-        estim      = (cache_qty + prep) if cache_qty is not None else None
+        cache_node   = _resolve_path(cache_data, path) or {}
+        cache_qty    = cache_node.get("Quantité")
+        prep         = _get_prep_count(path, node, by_nom, by_plat)
+        stock_reel   = (cache_qty + prep) if cache_qty is not None else None
 
         self._detail_cache_lbl.setText("—" if cache_qty is None else str(cache_qty))
         self._detail_prep_lbl.setText(str(prep))
-        self._detail_estim_lbl.setText("—" if estim is None else str(estim))
+        self._detail_stock_reel_lbl.setText("—" if stock_reel is None else str(stock_reel))
 
     def _make_separator(self) -> QFrame:
         sep = QFrame()
@@ -953,6 +1006,59 @@ class StockModule(QFrame):
         text   = " ".join(str(p) for p in path).lower()
         status = "rupture" if node.get("OutOfStock", False) else "en stock"
         return query in text or query in status
+
+    # ── Validation du stock réel ────────────────────────────────────────────
+
+    def _on_valider_stock_reel(self, path: List[str], stock_reel_spin: QSpinBox) -> None:
+        """
+        Met à jour le fichier et le cache à partir du stock réel saisi manuellement.
+
+        Calcule : fichier (théorique) = stock_réel_saisi − en_préparation
+        Met à jour le JSON et le cache en mémoire, puis rafraîchit le panneau.
+        """
+        stock_reel_saisi = stock_reel_spin.value()
+
+        # Recalculer en préparation au moment du clic (données fraîches)
+        file_data       = get_stock_data()
+        by_nom, by_plat = _build_prep_data()
+        node = _resolve_path(file_data, path)
+        if not isinstance(node, dict):
+            return
+
+        en_prepa    = _get_prep_count(path, node, by_nom, by_plat)
+        new_fichier = max(0, stock_reel_saisi - en_prepa)
+
+        # Mettre à jour le nœud
+        node["Quantité"] = new_fichier
+        if new_fichier == 0:
+            node["OutOfStock"] = True
+        elif node.get("OutOfStock", False):
+            node["OutOfStock"] = False
+
+        if not save_stock_data(file_data):
+            QMessageBox.critical(self, "Stock", "Impossible d'enregistrer le stock.")
+            return
+
+        # Mettre à jour le cache en mémoire pour cohérence immédiate
+        cache_obj = get_stock_cache()
+        if cache_obj is not None:
+            cache_obj.set_quantite(path, new_fichier)
+
+        logger.log(logger.MODIFICATION_STOCK_MANUELLE, {
+            "action":            "mise_a_jour_stock_reel",
+            "chemin":            path,
+            "stock_reel_saisi":  stock_reel_saisi,
+            "en_prepa":          en_prepa,
+            "nouveau_fichier":   new_fichier,
+        })
+
+        self._selected_path = path
+        self.refresh()
+        file_data_fresh = get_stock_data()
+        cache_obj       = get_stock_cache()
+        cache_data      = cache_obj.data if cache_obj is not None else {}
+        by_nom, by_plat = _build_prep_data()
+        self._build_detail_panel(path, file_data_fresh, cache_data, by_nom, by_plat)
 
     # ── Sauvegarde du détail ────────────────────────────────────────────────
 

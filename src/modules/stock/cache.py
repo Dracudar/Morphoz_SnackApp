@@ -110,6 +110,32 @@ class StockCache:
             ref = ref[key]
         return ref.get("OutOfStock", False)
 
+    def set_quantite(self, chemin, valeur):
+        """
+        Définit directement la quantité d'un article dans le cache en mémoire.
+
+        Utilisé lors d'une mise à jour manuelle du stock réel depuis l'UI.
+
+        :param chemin: Liste de clés JSON vers l'article.
+        :param valeur: Nouvelle valeur entière de la quantité.
+        :return: True si l'opération a réussi, False sinon.
+        """
+        try:
+            ref = self._stock_cache
+            for key in chemin[:-1]:
+                ref = ref[key]
+            elem = ref[chemin[-1]]
+            if "Quantité" not in elem:
+                return False
+            elem["Quantité"] = valeur
+            if valeur == 0:
+                elem["OutOfStock"] = True
+            elif valeur > 0 and elem.get("OutOfStock", False):
+                elem["OutOfStock"] = False
+            return True
+        except (KeyError, TypeError):
+            return False
+
     @property
     def data(self):
         """Retourne le dict de stock en mémoire (lecture directe, non copié)."""
