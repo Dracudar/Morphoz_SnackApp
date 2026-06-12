@@ -184,9 +184,9 @@ class SuiviExterieurWindow(QMainWindow):
 
         self._clear_content()
 
-        # Colonne gauche : prêts — Colonne droite : en préparation
-        self._content_layout.addWidget(self._build_section_prêts(prêts), 1)
+        # Colonne gauche : en préparation — Colonne droite : prêts
         self._content_layout.addWidget(self._build_section_prep(prep_par_type), 1)
+        self._content_layout.addWidget(self._build_section_prêts(prêts), 1)
 
     # ── Utilitaires ───────────────────────────────────────────────────────────
 
@@ -267,11 +267,11 @@ class SuiviExterieurWindow(QMainWindow):
         type_label.setStyleSheet(f"color: {_TEXT_TYPE}; font-size: 15px; border: none;")
         h.addWidget(type_label)
 
-        chip = QLabel(f"Commande {num_cmd}  ·  {id_plat}")
+        chip = QLabel(f"{num_cmd} · {id_plat}")
         chip.setStyleSheet(
-            f"color: {_CHIP_PRET_FG}; font-size: 17px; font-weight: 700; "
+            f"color: {_CHIP_PRET_FG}; font-size: 15px; font-weight: 700; "
             f"background-color: {_CHIP_PRET_BG}; border: 1px solid {_CHIP_PRET_BD}; "
-            f"border-radius: 5px; padding: 3px 12px;"
+            f"border-radius: 4px; padding: 2px 10px;"
         )
         h.addWidget(chip)
         h.addStretch()
