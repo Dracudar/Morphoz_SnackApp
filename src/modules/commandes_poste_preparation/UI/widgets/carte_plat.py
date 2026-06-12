@@ -44,8 +44,8 @@ CARD_H = 250   # hauteur fixe pour uniformité de la grille
 _BG_CARD      = "#3a3d43"
 _BORDER       = "#60646c"
 _TEXT_ID      = "#f5f5f5"   # ID : le plus visible
-_TEXT_NOM     = "#7a7f87"   # Nom : discret (information secondaire)
-_TEXT_COMP    = "#a8acb3"   # Composition
+_TEXT_NOM     = "#a8acb3"   # Nom : intermédiaire
+_TEXT_COMP    = "#c5c8ce"   # Composition : éclaircie pour lisibilité
 _AJOUT_CLR    = "#4caf50"
 _RETRAIT_CLR  = "#e05c5c"
 _PRIORITY_CLR = "#e53e3e"
@@ -103,16 +103,16 @@ class CartePlatWidget(QFrame):
 
         layout.addLayout(id_row)
 
-        # ── Composition (avant le nom) ────────────────────────────────────────
-        self._add_composition(layout)
-
-        # ── Nom du plat (discret, information secondaire) ─────────────────────
+        # ── Nom du plat ───────────────────────────────────────────────────────
         nom_label = QLabel(self._plat["nom"])
         nom_label.setWordWrap(True)
         nom_label.setStyleSheet(
-            f"color: {_TEXT_NOM}; font-size: 12px;"
+            f"color: {_TEXT_NOM}; font-size: 13px;"
         )
         layout.addWidget(nom_label)
+
+        # ── Composition ───────────────────────────────────────────────────────
+        self._add_composition(layout)
 
         layout.addStretch(1)
 
