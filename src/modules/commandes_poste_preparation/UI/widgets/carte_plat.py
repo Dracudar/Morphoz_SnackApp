@@ -192,17 +192,16 @@ class CartePlatWidget(QFrame):
             lbl.setStyleSheet(f"color: {_TEXT_COMP}; {_COMP_FONT}")
             layout.addWidget(lbl)
 
+        # Retraits dans le bloc ingrédients (rouge, sans barré)
+        for item in sorted(retraits):
+            lbl = QLabel(f"− {item}")
+            lbl.setStyleSheet(f"color: {_RETRAIT_CLR}; {_COMP_FONT} font-weight: 700;")
+            layout.addWidget(lbl)
+
+        # Ajouts après (vert)
         for item in sorted(ajouts):
             lbl = QLabel(f"+ {item}")
             lbl.setStyleSheet(f"color: {_AJOUT_CLR}; {_COMP_FONT} font-weight: 700;")
-            layout.addWidget(lbl)
-
-        for item in sorted(retraits):
-            lbl = QLabel(f"− {item}")
-            font = lbl.font()
-            font.setStrikeOut(True)
-            lbl.setFont(font)
-            lbl.setStyleSheet(f"color: {_RETRAIT_CLR}; {_COMP_FONT} font-weight: 700;")
             layout.addWidget(lbl)
 
     def _add_salade_composition(self, layout: QVBoxLayout, comp: dict):
