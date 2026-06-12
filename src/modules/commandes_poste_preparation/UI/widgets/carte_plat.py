@@ -179,38 +179,42 @@ class CartePlatWidget(QFrame):
         ingredients = comp.get("Ingrédients", [])
         ajouts      = set(comp.get("Ajouts", []))
         retraits    = set(comp.get("Retraits", []))
+        standard    = [i for i in ingredients if i not in ajouts]
+
+        sub = QVBoxLayout()
+        sub.setSpacing(2)
+        sub.setContentsMargins(0, 0, 0, 0)
 
         if base:
-            lbl = QLabel(f"Base : {base}")
-            lbl.setStyleSheet(f"color: {_TEXT_COMP}; {_COMP_FONT}")
-            layout.addWidget(lbl)
+            sub.addWidget(self._comp_label(f"Base : {base}", _TEXT_COMP))
 
-        standard = [i for i in ingredients if i not in ajouts]
-        if standard:
-            lbl = QLabel("\n".join(f"• {i}" for i in standard))
-            lbl.setWordWrap(True)
-            lbl.setStyleSheet(f"color: {_TEXT_COMP}; {_COMP_FONT}")
-            layout.addWidget(lbl)
+        for item in standard:
+            sub.addWidget(self._comp_label(f"• {item}", _TEXT_COMP))
 
-        # Retraits dans le bloc ingrédients (rouge, sans barré)
         for item in sorted(retraits):
-            lbl = QLabel(f"− {item}")
-            lbl.setStyleSheet(f"color: {_RETRAIT_CLR}; {_COMP_FONT} font-weight: 700;")
-            layout.addWidget(lbl)
+            sub.addWidget(self._comp_label(f"− {item}", _RETRAIT_CLR, bold=True))
 
-        # Ajouts après (vert)
         for item in sorted(ajouts):
-            lbl = QLabel(f"+ {item}")
-            lbl.setStyleSheet(f"color: {_AJOUT_CLR}; {_COMP_FONT} font-weight: 700;")
-            layout.addWidget(lbl)
+            sub.addWidget(self._comp_label(f"+ {item}", _AJOUT_CLR, bold=True))
+
+        layout.addLayout(sub)
 
     def _add_salade_composition(self, layout: QVBoxLayout, comp: dict):
         ingredients = comp.get("Ingrédients", [])
-        if ingredients:
-            lbl = QLabel("\n".join(f"• {i}" for i in ingredients))
-            lbl.setWordWrap(True)
-            lbl.setStyleSheet(f"color: {_TEXT_COMP}; {_COMP_FONT}")
-            layout.addWidget(lbl)
+        if not ingredients:
+            return
+        sub = QVBoxLayout()
+        sub.setSpacing(2)
+        sub.setContentsMargins(0, 0, 0, 0)
+        for item in ingredients:
+            sub.addWidget(self._comp_label(f"• {item}", _TEXT_COMP))
+        layout.addLayout(sub)
+
+    def _comp_label(self, text: str, color: str, bold: bool = False) -> QLabel:
+        lbl = QLabel(text)
+        weight = "font-weight: 700;" if bold else ""
+        lbl.setStyleSheet(f"color: {color}; {_COMP_FONT} {weight}")
+        return lbl
 
     def _format_other(self, plat_type: str, comp: dict) -> str:
         if plat_type == "Grillade":
