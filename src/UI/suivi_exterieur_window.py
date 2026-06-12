@@ -6,20 +6,21 @@ suivi_exterieur_window.py - Fenêtre de suivi extérieur
 Description:
     Fenêtre indépendante (lecture seule) destinée à l'affichage public des commandes.
     Montre les plats prêts à récupérer et les prochains plats en préparation
-    (2 au maximum par type). Aucune interaction possible.
+    (3 au maximum par type). Les IDs des plats sont affichés sous forme de chips
+    pour que les clients puissent suivre leur progression. Aucune interaction possible.
     Peut être déplacée sur un écran secondaire et mise en plein écran indépendamment.
 
 Author :
     Dracudar
 
 Version:
-    1.1
+    1.2
 
 Date de création :
     2026.06.08
 
 Date de modification:
-    2026.06.10
+    2026.06.12
 """
 
 from PySide6.QtCore import Qt, QTimer, Signal
@@ -37,23 +38,27 @@ from PySide6.QtWidgets import (
 from src.backend.data_sources import get_live_orders_prep
 
 # Nombre maximum de plats "En préparation" affichés par type
-_MAX_EN_PREP_PAR_TYPE = 2
+_MAX_EN_PREP_PAR_TYPE = 3
 
 # ── Palette ──────────────────────────────────────────────────────────────────
 _BG             = "#23262b"
-_BG_SECTION     = "#2f3136"
 _BG_PRET        = "#1a2e1a"
 _BG_PREP        = "#2e1f0a"
 _BORDER_PRET    = "#4caf50"
 _BORDER_PREP    = "#c97a30"
 _TEXT_TITRE     = "#f5f5f5"
-_TEXT_SECTION   = "#d6d6d6"
-_TEXT_ID        = "#ffffff"
 _TEXT_TYPE      = "#a8acb3"
 _TEXT_VIDE      = "#555a63"
 
-_STYLE_PRET = f"color: #4caf50; font-size: 14px; font-weight: 700;"
-_STYLE_PREP = f"color: #c97a30; font-size: 14px; font-weight: 700;"
+# Chips "En préparation"
+_CHIP_PREP_BG   = "#3a2a0f"
+_CHIP_PREP_FG   = "#e89540"
+_CHIP_PREP_BD   = "#c97a30"
+
+# Chips "Prêt"
+_CHIP_PRET_BG   = "#122212"
+_CHIP_PRET_FG   = "#5dcc5d"
+_CHIP_PRET_BD   = "#4caf50"
 
 
 class SuiviExterieurWindow(QMainWindow):
@@ -87,7 +92,6 @@ class SuiviExterieurWindow(QMainWindow):
         main_layout.setContentsMargins(20, 16, 20, 16)
         main_layout.setSpacing(16)
 
-        # Titre
         titre = QLabel("Suivi des commandes")
         titre.setAlignment(Qt.AlignmentFlag.AlignCenter)
         titre.setStyleSheet(
@@ -168,7 +172,7 @@ class SuiviExterieurWindow(QMainWindow):
         prêts   = [p for p in plats if p["status"].lower() == "prêt"]
         en_prep = [p for p in plats if p["status"].lower() == "en préparation"]
 
-        # Regrouper les plats en préparation par type, garder les 2 premiers par type
+        # Regrouper les plats en préparation par type, garder les 3 premiers par type
         prep_par_type: dict[str, list[dict]] = {}
         for plat in en_prep:
             t = plat["plat"]
@@ -178,17 +182,28 @@ class SuiviExterieurWindow(QMainWindow):
 
         self._clear_content()
 
-        # Section "Prêts"
         self._content_layout.insertWidget(
             self._content_layout.count() - 1,
             self._build_section_prêts(prêts),
         )
 
-        # Section "En préparation"
         self._content_layout.insertWidget(
             self._content_layout.count() - 1,
             self._build_section_prep(prep_par_type),
         )
+
+    # ── Utilitaires ───────────────────────────────────────────────────────────
+
+    def _get_short_ids(self, plat: dict) -> tuple[str, str]:
+        """Retourne (numéro de commande, identifiant court du plat)."""
+        order_id = plat.get("order_id", "")
+        parts = order_id.split("-")
+        num_commande = parts[-1] if len(parts) >= 2 else order_id
+
+        full_id = plat.get("id", "")
+        plat_short = full_id.rsplit("-", 1)[-1] if "-" in full_id else full_id
+
+        return num_commande, plat_short
 
     # ── Construction des sections ──────────────────────────────────────────────
 
@@ -197,7 +212,7 @@ class SuiviExterieurWindow(QMainWindow):
         layout = section.layout()
 
         titre = QLabel("✓  Prêts à récupérer")
-        titre.setStyleSheet(f"color: #4caf50; font-size: 18px; font-weight: 700;")
+        titre.setStyleSheet("color: #4caf50; font-size: 18px; font-weight: 700;")
         layout.addWidget(titre)
 
         if not prêts:
@@ -206,7 +221,7 @@ class SuiviExterieurWindow(QMainWindow):
             layout.addWidget(vide)
         else:
             for plat in prêts:
-                layout.addWidget(self._build_plat_row(plat, _STYLE_PRET))
+                layout.addWidget(self._build_pret_row(plat))
 
         return section
 
@@ -215,7 +230,7 @@ class SuiviExterieurWindow(QMainWindow):
         layout = section.layout()
 
         titre = QLabel("⏳  En préparation")
-        titre.setStyleSheet(f"color: #c97a30; font-size: 18px; font-weight: 700;")
+        titre.setStyleSheet("color: #c97a30; font-size: 18px; font-weight: 700;")
         layout.addWidget(titre)
 
         if not prep_par_type:
@@ -224,8 +239,7 @@ class SuiviExterieurWindow(QMainWindow):
             layout.addWidget(vide)
         else:
             for plat_type, plats in prep_par_type.items():
-                for plat in plats:
-                    layout.addWidget(self._build_plat_row(plat, _STYLE_PREP))
+                layout.addWidget(self._build_prep_type_row(plat_type, plats))
 
         return section
 
@@ -239,25 +253,54 @@ class SuiviExterieurWindow(QMainWindow):
         layout.setSpacing(8)
         return frame
 
-    def _build_plat_row(self, plat: dict, label_style: str) -> QWidget:
-        """Construit une ligne affichant le type et l'ID court (numéro de commande) d'un plat."""
+    def _build_pret_row(self, plat: dict) -> QWidget:
+        """Ligne d'un plat prêt : type + chip avec numéro de commande et ID court du plat."""
+        num_cmd, id_plat = self._get_short_ids(plat)
+
         row = QWidget()
         row.setStyleSheet("QWidget { background: transparent; border: none; }")
         h = QHBoxLayout(row)
         h.setContentsMargins(4, 2, 4, 2)
         h.setSpacing(16)
 
-        # Type du plat
         type_label = QLabel(plat["plat"])
-        type_label.setFixedWidth(160)
+        type_label.setFixedWidth(120)
         type_label.setStyleSheet(f"color: {_TEXT_TYPE}; font-size: 15px; border: none;")
         h.addWidget(type_label)
 
-        # Numéro de commande (partie centrale de l'ID, ex. "004" depuis "20260607-004-P005")
-        order_id = plat.get("order_id", "")
-        num_commande = order_id.split("-")[-1] if "-" in order_id else order_id
-        id_label = QLabel(f"Commande n° {num_commande}")
-        id_label.setStyleSheet(f"color: {_TEXT_ID}; font-size: 17px; font-weight: 700; border: none;")
-        h.addWidget(id_label, 1)
+        chip = QLabel(f"Commande {num_cmd}  ·  {id_plat}")
+        chip.setStyleSheet(
+            f"color: {_CHIP_PRET_FG}; font-size: 17px; font-weight: 700; "
+            f"background-color: {_CHIP_PRET_BG}; border: 1px solid {_CHIP_PRET_BD}; "
+            f"border-radius: 5px; padding: 3px 12px;"
+        )
+        h.addWidget(chip)
+        h.addStretch()
 
+        return row
+
+    def _build_prep_type_row(self, plat_type: str, plats: list[dict]) -> QWidget:
+        """Ligne par type de plat en préparation : nom du type + chips d'IDs."""
+        row = QWidget()
+        row.setStyleSheet("QWidget { background: transparent; border: none; }")
+        h = QHBoxLayout(row)
+        h.setContentsMargins(4, 2, 4, 2)
+        h.setSpacing(10)
+
+        type_label = QLabel(plat_type)
+        type_label.setFixedWidth(120)
+        type_label.setStyleSheet(f"color: {_TEXT_TYPE}; font-size: 15px; border: none;")
+        h.addWidget(type_label)
+
+        for plat in plats:
+            num_cmd, id_plat = self._get_short_ids(plat)
+            chip = QLabel(f"{num_cmd} · {id_plat}")
+            chip.setStyleSheet(
+                f"color: {_CHIP_PREP_FG}; font-size: 15px; font-weight: 700; "
+                f"background-color: {_CHIP_PREP_BG}; border: 1px solid {_CHIP_PREP_BD}; "
+                f"border-radius: 4px; padding: 2px 10px;"
+            )
+            h.addWidget(chip)
+
+        h.addStretch()
         return row
