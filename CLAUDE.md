@@ -10,6 +10,12 @@ Application de gestion de snack pour événements, développée pour l'associati
 
 Toute la documentation, les commentaires, les noms de variables, de fonctions et de classes sont rédigés **en français**.
 
+## Workflow Git
+
+- Ne jamais travailler directement sur `main` ou `develop`.
+- Toute nouvelle branche se base sur `develop`, sauf indication contraire explicite.
+- Après toute modification de l'UI, lancer l'application et fournir des captures d'écran du résultat avant de considérer la tâche terminée.
+
 ## Commandes de développement
 
 ```bash
