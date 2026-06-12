@@ -521,6 +521,8 @@ class PizzaDialog(QDialog):
             "Composition": {
                 "Base": base,
                 "Ingrédients": ingredients,
+                "Ajouts": sorted(ingr_supplementaires),
+                "Retraits": sorted(ingr_retires),
             },
         }
 
