@@ -16,6 +16,26 @@ Toute la documentation, les commentaires, les noms de variables, de fonctions et
 - Toute nouvelle branche se base sur `develop`, sauf indication contraire explicite.
 - Après toute modification de l'UI, lancer l'application et fournir des captures d'écran du résultat avant de considérer la tâche terminée.
 
+### Conventions de commit
+
+Les messages de commit suivent la convention [Conventional Commits](https://www.conventionalcommits.org/) :
+
+```
+<type>(<scope>): <description courte>
+```
+
+Types autorisés : `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
+
+Quand le commit couvre plusieurs points distincts, les détailler en liste dans le corps du message :
+
+```
+feat(stock): refonte de l'interface d'édition
+
+- Ajout du bouton de suppression d'article
+- Correction du popup flottant
+- Amélioration des sous-cadres de liste
+```
+
 ## Commandes de développement
 
 ```bash
