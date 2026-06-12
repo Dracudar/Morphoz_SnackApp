@@ -7,14 +7,16 @@ Description:
     Fenêtre indépendante (lecture seule) destinée à l'affichage public des commandes.
     Montre les plats prêts à récupérer et les prochains plats en préparation
     (3 au maximum par type). Les IDs des plats sont affichés sous forme de chips
-    pour que les clients puissent suivre leur progression. Aucune interaction possible.
-    Peut être déplacée sur un écran secondaire et mise en plein écran indépendamment.
+    pour que les clients puissent suivre leur progression.
+    Mise en page deux colonnes côte à côte, optimisée pour un écran horizontal.
+    Aucune interaction possible. Peut être déplacée sur un écran secondaire et
+    mise en plein écran indépendamment.
 
 Author :
     Dracudar
 
 Version:
-    1.2
+    1.3
 
 Date de création :
     2026.06.08
@@ -31,6 +33,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMainWindow,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -108,10 +111,9 @@ class SuiviExterieurWindow(QMainWindow):
         main_layout.addWidget(scroll)
 
         self._content = QWidget()
-        self._content_layout = QVBoxLayout(self._content)
+        self._content_layout = QHBoxLayout(self._content)  # deux colonnes côte à côte
         self._content_layout.setContentsMargins(0, 0, 0, 0)
         self._content_layout.setSpacing(16)
-        self._content_layout.addStretch()
         scroll.setWidget(self._content)
 
     def _setup_shortcuts(self):
@@ -159,7 +161,7 @@ class SuiviExterieurWindow(QMainWindow):
     # ── Données ───────────────────────────────────────────────────────────────
 
     def _clear_content(self):
-        while self._content_layout.count() > 1:
+        while self._content_layout.count() > 0:
             item = self._content_layout.takeAt(0)
             widget = item.widget()
             if widget is not None:
@@ -182,15 +184,9 @@ class SuiviExterieurWindow(QMainWindow):
 
         self._clear_content()
 
-        self._content_layout.insertWidget(
-            self._content_layout.count() - 1,
-            self._build_section_prêts(prêts),
-        )
-
-        self._content_layout.insertWidget(
-            self._content_layout.count() - 1,
-            self._build_section_prep(prep_par_type),
-        )
+        # Colonne gauche : prêts — Colonne droite : en préparation
+        self._content_layout.addWidget(self._build_section_prêts(prêts), 1)
+        self._content_layout.addWidget(self._build_section_prep(prep_par_type), 1)
 
     # ── Utilitaires ───────────────────────────────────────────────────────────
 
@@ -223,6 +219,7 @@ class SuiviExterieurWindow(QMainWindow):
             for plat in prêts:
                 layout.addWidget(self._build_pret_row(plat))
 
+        layout.addStretch()
         return section
 
     def _build_section_prep(self, prep_par_type: dict[str, list[dict]]) -> QFrame:
@@ -241,10 +238,12 @@ class SuiviExterieurWindow(QMainWindow):
             for plat_type, plats in prep_par_type.items():
                 layout.addWidget(self._build_prep_type_row(plat_type, plats))
 
+        layout.addStretch()
         return section
 
     def _make_section_frame(self, bg: str, border_color: str) -> QFrame:
         frame = QFrame()
+        frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         frame.setStyleSheet(
             f"QFrame {{ background-color: {bg}; border: 1px solid {border_color}; border-radius: 10px; }}"
         )
