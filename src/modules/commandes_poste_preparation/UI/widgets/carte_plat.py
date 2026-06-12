@@ -43,9 +43,9 @@ CARD_H = 250   # hauteur fixe pour uniformité de la grille
 # ── Palette ───────────────────────────────────────────────────────────────────
 _BG_CARD      = "#3a3d43"
 _BORDER       = "#60646c"
-_TEXT_ID      = "#f5f5f5"   # ID : le plus visible
+_TEXT_ID      = "#f5f5f5"   # ID : le plus visible (souligné)
 _TEXT_NOM     = "#a8acb3"   # Nom : intermédiaire
-_TEXT_COMP    = "#c5c8ce"   # Composition : éclaircie pour lisibilité
+_TEXT_COMP    = "#f0f0f0"   # Composition : blanc cassé
 _AJOUT_CLR    = "#4caf50"
 _RETRAIT_CLR  = "#e05c5c"
 _PRIORITY_CLR = "#e53e3e"
@@ -90,6 +90,7 @@ class CartePlatWidget(QFrame):
         id_label = QLabel(self._plat["id"])
         id_label.setStyleSheet(
             f"color: {_TEXT_ID}; font-size: 15px; font-weight: 700; font-family: monospace;"
+            f"text-decoration: underline;"
         )
         id_row.addWidget(id_label, 1)
 
@@ -189,13 +190,13 @@ class CartePlatWidget(QFrame):
             sub.addWidget(self._comp_label(f"Base : {base}", _TEXT_COMP))
 
         for item in standard:
-            sub.addWidget(self._comp_label(f"• {item}", _TEXT_COMP))
+            sub.addLayout(self._comp_row("•", item, _TEXT_COMP))
 
         for item in sorted(retraits):
-            sub.addWidget(self._comp_label(f"− {item}", _RETRAIT_CLR, bold=True))
+            sub.addLayout(self._comp_row("−", item, _RETRAIT_CLR, bold=True))
 
         for item in sorted(ajouts):
-            sub.addWidget(self._comp_label(f"+ {item}", _AJOUT_CLR, bold=True))
+            sub.addLayout(self._comp_row("+", item, _AJOUT_CLR, bold=True))
 
         layout.addLayout(sub)
 
@@ -207,14 +208,37 @@ class CartePlatWidget(QFrame):
         sub.setSpacing(2)
         sub.setContentsMargins(0, 0, 0, 0)
         for item in ingredients:
-            sub.addWidget(self._comp_label(f"• {item}", _TEXT_COMP))
+            sub.addLayout(self._comp_row("•", item, _TEXT_COMP))
         layout.addLayout(sub)
 
     def _comp_label(self, text: str, color: str, bold: bool = False) -> QLabel:
+        """Label pleine largeur (sans marqueur) pour Base et lignes sans puce."""
         lbl = QLabel(text)
         weight = "font-weight: 700;" if bold else ""
         lbl.setStyleSheet(f"color: {color}; {_COMP_FONT} {weight}")
         return lbl
+
+    def _comp_row(self, marker: str, text: str, color: str, bold: bool = False) -> QHBoxLayout:
+        """Ligne avec marqueur à largeur fixe pour un alignement parfait du texte."""
+        row = QHBoxLayout()
+        row.setSpacing(4)
+        row.setContentsMargins(0, 0, 0, 0)
+
+        weight = "font-weight: 700;" if bold else ""
+        style  = f"color: {color}; {_COMP_FONT} {weight}"
+
+        m_lbl = QLabel(marker)
+        m_lbl.setFixedWidth(14)      # largeur fixe : tous les textes s'alignent
+        m_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        m_lbl.setStyleSheet(style)
+        row.addWidget(m_lbl)
+
+        t_lbl = QLabel(text)
+        t_lbl.setWordWrap(True)
+        t_lbl.setStyleSheet(style)
+        row.addWidget(t_lbl, 1)
+
+        return row
 
     def _format_other(self, plat_type: str, comp: dict) -> str:
         if plat_type == "Grillade":
