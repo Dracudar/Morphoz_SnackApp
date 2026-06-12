@@ -40,7 +40,7 @@ from PySide6.QtWidgets import (
 from src.modules.commandes_suivi.backend.commandes_suivi_gestion import livrer_plat, plat_prêt
 
 # ── Dimensions ────────────────────────────────────────────────────────────────
-CARD_H = 220   # hauteur fixe pour uniformité de la grille
+CARD_H = 250   # hauteur fixe pour uniformité de la grille
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 _BG_CARD      = "#3a3d43"
@@ -85,7 +85,7 @@ class CartePlatWidget(QFrame):
     def _build_ui(self):
         status_lower = self._plat["status"].lower()
         prioritaire   = self._plat.get("prioritaire", False)
-        accent = _PRIORITY_CLR if prioritaire else _STATUS_BORDER.get(status_lower, _BORDER)
+        accent = _PRIORITY_CLR if prioritaire else _BORDER
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 8, 12, 8)
