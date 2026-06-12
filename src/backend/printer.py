@@ -21,6 +21,7 @@ Date de modification:
     2026.06.10
 """
 
+import io
 import os
 from PIL import Image
 from escpos.printer import Usb
@@ -32,16 +33,24 @@ from src.backend import logger
 def charger_logo(nom_image, taille=()):
     """
     Charge et redimensionne une image PIL pour l'impression thermique.
-    :param nom_image: Nom du fichier image (ex. "image.png").
+    Accepte les formats PNG et SVG.
+    :param nom_image: Nom du fichier image (ex. "image.png" ou "image.svg").
     :param taille: Tuple (largeur, hauteur) pour redimensionner l'image.
-    :return: PIL.Image.Image
+    :return: PIL.Image.Image en mode 1-bit pour l'imprimante thermique
     """
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     chemin = os.path.abspath(os.path.join(BASE_DIR, '..', '..', 'assets', 'imgs', nom_image))
     try:
-        img = Image.open(chemin).convert("RGBA")
-        if taille:
-            img = img.resize(taille, Image.Resampling.LANCZOS)
+        if nom_image.lower().endswith('.svg'):
+            import cairosvg
+            w, h = taille if taille else (None, None)
+            png_bytes = cairosvg.svg2png(url=chemin, output_width=w, output_height=h,
+                                         background_color="white")
+            img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
+        else:
+            img = Image.open(chemin).convert("RGBA")
+            if taille:
+                img = img.resize(taille, Image.Resampling.LANCZOS)
         bg = Image.new("RGBA", img.size, (255, 255, 255, 255))
         img = Image.alpha_composite(bg, img)
         img = img.convert("L")
@@ -69,7 +78,7 @@ def _do_print_recap(commande: dict, p, reprint: bool = False) -> None:
     infos = commande["Informations"]
     plats = commande["Commande"]
 
-    logo = charger_logo("En-tete ticket V1.png", taille=(576, 123))
+    logo = charger_logo("En-tete ticket V2.svg", taille=(576, 123))
     p.image(logo)
 
     p.set(align='center', width=2, height=2)
