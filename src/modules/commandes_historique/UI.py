@@ -690,7 +690,7 @@ class CommandesHistoriqueModule(QFrame):
 		amount = order.get("amount")
 		payment = order.get("payment_type") or ""
 		created = self._format_date(order.get("created_at", ["", ""]))
-		delivery = self._format_date(order.get("delivery_at", ["", ""]))
+		delivery = self._format_date(order.get("finalization_at", ["", ""]))
 		cancelled = self._format_date(order.get("cancelled_at", ["", ""]))
 
 		infos = [
@@ -702,7 +702,7 @@ class CommandesHistoriqueModule(QFrame):
 		if created:
 			infos.append(("Créé", created))
 		if status == "terminée" and delivery:
-			infos.append(("Livré", delivery))
+			infos.append(("Finalisé", delivery))
 		if status == "annulée" and cancelled:
 			infos.append(("Annulé", cancelled))
 
