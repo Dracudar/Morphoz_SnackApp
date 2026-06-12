@@ -5,14 +5,17 @@ carte_plat.py - Widget carte d'un plat pour le poste de préparation
 
 Description:
     Affiche un plat (ID, nom, composition, bouton contextuel) sous forme de
-    carte compacte conçue pour écran tactile 10".
-    Structure (haut → bas) : ID · Nom · Composition · Bouton unique.
+    carte à hauteur fixe conçue pour écran tactile 10".
+    Structure (haut → bas) : badge priorité · ID · Nom · Composition · Bouton unique.
+    - Bord rouge  = commande prioritaire
+    - Bord orange = en préparation (non prioritaire)
+    - Bord or     = prêt (non prioritaire)
 
 Author :
     Dracudar
 
 Version:
-    2.0
+    2.1
 
 Date de création :
     2026.06.08
@@ -36,14 +39,18 @@ from PySide6.QtWidgets import (
 
 from src.modules.commandes_suivi.backend.commandes_suivi_gestion import livrer_plat, plat_prêt
 
+# ── Dimensions ────────────────────────────────────────────────────────────────
+CARD_H = 220   # hauteur fixe pour uniformité de la grille
+
 # ── Palette ───────────────────────────────────────────────────────────────────
-_BG_CARD     = "#3a3d43"
-_BORDER      = "#60646c"
-_TEXT_ID     = "#6b7280"
-_TEXT_NOM    = "#f5f5f5"
-_TEXT_COMP   = "#a8acb3"
-_AJOUT_CLR   = "#4caf50"
-_RETRAIT_CLR = "#e05c5c"
+_BG_CARD      = "#3a3d43"
+_BORDER       = "#60646c"
+_TEXT_ID      = "#6b7280"
+_TEXT_NOM     = "#f5f5f5"
+_TEXT_COMP    = "#a8acb3"
+_AJOUT_CLR    = "#4caf50"
+_RETRAIT_CLR  = "#e05c5c"
+_PRIORITY_CLR = "#e53e3e"
 
 _STATUS_BORDER = {
     "en préparation": "#c97a30",
@@ -60,25 +67,37 @@ _BTN_LABEL = {
     "prêt":           "⬆  Livré",
 }
 
+_COMP_FONT = "font-size: 13px;"
+
 
 class CartePlatWidget(QFrame):
-    """Carte tactile affichant un plat avec composition et bouton d'action unique."""
+    """Carte tactile à hauteur fixe affichant un plat avec son bouton d'action unique."""
 
     def __init__(self, plat: dict, on_action: Callable[[], None], parent=None):
         super().__init__(parent)
         self._plat = plat
         self._on_action = on_action
         self.setObjectName("cartePlat")
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.setFixedHeight(CARD_H)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self._build_ui()
 
     def _build_ui(self):
         status_lower = self._plat["status"].lower()
-        accent = _STATUS_BORDER.get(status_lower, _BORDER)
+        prioritaire   = self._plat.get("prioritaire", False)
+        accent = _PRIORITY_CLR if prioritaire else _STATUS_BORDER.get(status_lower, _BORDER)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 10, 12, 10)
-        layout.setSpacing(5)
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(4)
+
+        # ── Badge prioritaire ─────────────────────────────────────────────────
+        if prioritaire:
+            badge = QLabel("⚡ PRIORITAIRE")
+            badge.setStyleSheet(
+                f"color: {_PRIORITY_CLR}; font-size: 11px; font-weight: 700;"
+            )
+            layout.addWidget(badge)
 
         # ── ID ────────────────────────────────────────────────────────────────
         id_label = QLabel(self._plat["id"])
@@ -135,7 +154,7 @@ class CartePlatWidget(QFrame):
     # ── Composition ───────────────────────────────────────────────────────────
 
     def _add_composition(self, layout: QVBoxLayout):
-        comp = self._plat.get("composition", {})
+        comp      = self._plat.get("composition", {})
         plat_type = self._plat.get("plat", "")
 
         if not comp:
@@ -143,39 +162,39 @@ class CartePlatWidget(QFrame):
 
         if plat_type == "Pizza":
             self._add_pizza_composition(layout, comp)
+        elif plat_type == "Salade composée":
+            self._add_salade_composition(layout, comp)
         else:
             text = self._format_other(plat_type, comp)
             if text:
                 lbl = QLabel(text)
                 lbl.setWordWrap(True)
-                lbl.setStyleSheet(f"color: {_TEXT_COMP}; font-size: 12px;")
+                lbl.setStyleSheet(f"color: {_TEXT_COMP}; {_COMP_FONT}")
                 layout.addWidget(lbl)
 
     def _add_pizza_composition(self, layout: QVBoxLayout, comp: dict):
-        base = comp.get("Base", "")
+        base       = comp.get("Base", "")
         ingredients = comp.get("Ingrédients", [])
-        ajouts = set(comp.get("Ajouts", []))
-        retraits = set(comp.get("Retraits", []))
+        ajouts     = set(comp.get("Ajouts", []))
+        retraits   = set(comp.get("Retraits", []))
 
         if base:
             lbl = QLabel(f"Base : {base}")
-            lbl.setStyleSheet(f"color: {_TEXT_COMP}; font-size: 12px;")
+            lbl.setStyleSheet(f"color: {_TEXT_COMP}; {_COMP_FONT}")
             layout.addWidget(lbl)
 
-        # Ingrédients standards (ni ajout déclaré, ni retrait)
+        # Ingrédients standards en puces
         standard = [i for i in ingredients if i not in ajouts]
         if standard:
-            lbl = QLabel(", ".join(standard))
+            lbl = QLabel("\n".join(f"• {i}" for i in standard))
             lbl.setWordWrap(True)
-            lbl.setStyleSheet(f"color: {_TEXT_COMP}; font-size: 12px;")
+            lbl.setStyleSheet(f"color: {_TEXT_COMP}; {_COMP_FONT}")
             layout.addWidget(lbl)
 
         # Ajouts (vert)
         for item in sorted(ajouts):
             lbl = QLabel(f"+ {item}")
-            lbl.setStyleSheet(
-                f"color: {_AJOUT_CLR}; font-size: 12px; font-weight: 700;"
-            )
+            lbl.setStyleSheet(f"color: {_AJOUT_CLR}; {_COMP_FONT} font-weight: 700;")
             layout.addWidget(lbl)
 
         # Retraits (rouge barré)
@@ -184,14 +203,20 @@ class CartePlatWidget(QFrame):
             font = lbl.font()
             font.setStrikeOut(True)
             lbl.setFont(font)
-            lbl.setStyleSheet(
-                f"color: {_RETRAIT_CLR}; font-size: 12px; font-weight: 700;"
-            )
+            lbl.setStyleSheet(f"color: {_RETRAIT_CLR}; {_COMP_FONT} font-weight: 700;")
+            layout.addWidget(lbl)
+
+    def _add_salade_composition(self, layout: QVBoxLayout, comp: dict):
+        ingredients = comp.get("Ingrédients", [])
+        if ingredients:
+            lbl = QLabel("\n".join(f"• {i}" for i in ingredients))
+            lbl.setWordWrap(True)
+            lbl.setStyleSheet(f"color: {_TEXT_COMP}; {_COMP_FONT}")
             layout.addWidget(lbl)
 
     def _format_other(self, plat_type: str, comp: dict) -> str:
         if plat_type == "Grillade":
-            viandes = comp.get("Viandes", {})
+            viandes        = comp.get("Viandes", {})
             accompagnement = comp.get("Accompagnement", "")
             parts = []
             if isinstance(viandes, dict) and viandes:

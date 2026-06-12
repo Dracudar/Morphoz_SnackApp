@@ -37,7 +37,7 @@ from src.backend.data_sources import get_live_orders_prep
 from src.modules.commandes_poste_preparation.UI.widgets.carte_plat import CartePlatWidget
 
 _ALL_TYPES = ["Pizza", "Grillade", "Frites", "Salade composée", "Crêpe"]
-_COLUMNS   = 3  # colonnes en grille (adapté à l'écran 10")
+_COLUMNS   = 4  # colonnes en grille (adapté à l'écran 10")
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 _BG           = "#2f3136"
@@ -162,6 +162,9 @@ class PostePreparationModule(QFrame):
         plats = get_live_orders_prep()
         if self._active_filters:
             plats = [p for p in plats if p["plat"] in self._active_filters]
+
+        # Prioritaires en tête, puis ordre naturel (ID croissant)
+        plats.sort(key=lambda p: (0 if p.get("prioritaire") else 1, p["id"]))
 
         self._clear_grid()
 
