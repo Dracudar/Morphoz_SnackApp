@@ -26,7 +26,7 @@ Les messages de commit suivent la convention [Conventional Commits](https://www.
 
 Types autorisés : `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
 
-Quand le commit couvre plusieurs points distincts, les détailler en liste dans le corps du message :
+Le scope dans l'en-tête s'utilise uniquement quand le commit ne touche qu'un seul périmètre, ou quand la liste de points ne concerne que ce périmètre. Quand le commit couvre plusieurs périmètres distincts, on omet le scope de l'en-tête et on le préfixe sur chaque entrée de la liste :
 
 ```
 feat(stock): refonte de l'interface d'édition
@@ -35,6 +35,16 @@ feat(stock): refonte de l'interface d'édition
 - Correction du popup flottant
 - Amélioration des sous-cadres de liste
 ```
+
+```
+feat: refonte de la navigation et du stock
+
+- navigation : ajout du raccourci clavier Ctrl+M
+- stock : boutons carrés et sous-cadres de liste
+- stock : correction du popup flottant
+```
+
+Ne pas insérer de retours à la ligne manuels dans les descriptions — GitHub et VSCode gèrent eux-mêmes les retours à la ligne.
 
 ## Commandes de développement
 
