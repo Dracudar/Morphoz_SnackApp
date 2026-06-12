@@ -45,13 +45,13 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QScrollArea,
     QSpinBox,
     QSplitter,
     QVBoxLayout,
     QWidget,
 )
 
+from src.utils.tactile import ScrollAreaTactile
 from src.backend import logger
 from src.backend.data_sources import (
     get_card_data,
@@ -287,12 +287,7 @@ class StockModule(QFrame):
         search_row.addWidget(add_btn)
         left_layout.addLayout(search_row)
 
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        self.scroll_area.setStyleSheet(
-            f"QScrollArea, QScrollArea > QWidget > QWidget {{ background-color: {_BG_MAIN}; }}"
-        )
+        self.scroll_area = ScrollAreaTactile(_BG_MAIN)
         self.list_container = QWidget()
         self.list_layout = QVBoxLayout(self.list_container)
         self.list_layout.setContentsMargins(0, 0, 4, 0)
@@ -309,12 +304,7 @@ class StockModule(QFrame):
         right_frame_lyt = QVBoxLayout(right_frame)
         right_frame_lyt.setContentsMargins(2, 2, 2, 2)
         right_frame_lyt.setSpacing(0)
-        self.right_scroll = QScrollArea()
-        self.right_scroll.setWidgetResizable(True)
-        self.right_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        self.right_scroll.setStyleSheet(
-            f"QScrollArea, QScrollArea > QWidget > QWidget {{ background-color: {_BG_RIGHT}; }}"
-        )
+        self.right_scroll = ScrollAreaTactile(_BG_RIGHT)
         right_frame_lyt.addWidget(self.right_scroll)
         self._detail_widget: Optional[QWidget] = None
         self._show_empty_detail()

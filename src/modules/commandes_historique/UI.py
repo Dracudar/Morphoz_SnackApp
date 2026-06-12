@@ -42,11 +42,11 @@ from PySide6.QtWidgets import (
 	QLineEdit,
 	QMessageBox,
 	QPushButton,
-	QScrollArea,
 	QVBoxLayout,
 	QWidget,
 )
 
+from src.utils.tactile import ScrollAreaTactile
 from src.backend.app_config import get_print_options
 from src.backend.data_sources import get_all_history_orders
 from src.backend.printer import reprint_all_active_cuisine, reprint_ticket_cuisine_plat, reprint_ticket_recap
@@ -210,12 +210,7 @@ class CommandesHistoriqueModule(QFrame):
 		main_layout.addWidget(self.filter_indicator)
 
 		# Zone scrollable
-		self.scroll_area = QScrollArea()
-		self.scroll_area.setWidgetResizable(True)
-		self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-		self.scroll_area.setStyleSheet(
-			f"QScrollArea, QScrollArea > QWidget > QWidget {{ background-color: {_BG_MAIN}; }}"
-		)
+		self.scroll_area = ScrollAreaTactile(_BG_MAIN)
 		main_layout.addWidget(self.scroll_area, 1)
 
 		self.list_container = QWidget()

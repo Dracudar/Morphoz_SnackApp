@@ -27,18 +27,18 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QButtonGroup,
     QDialog,
-    QFrame,
     QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
     QRadioButton,
-    QScrollArea,
     QSizePolicy,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
+
+from src.utils.tactile import ScrollAreaTactile
 
 
 # ── Feuilles de style ──────────────────────────────────────────────────────────
@@ -397,9 +397,7 @@ class PizzaDialog(QDialog):
         lbl.setStyleSheet(_SECTION_STYLE)
         layout.addWidget(lbl)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll = ScrollAreaTactile()
 
         scroll_widget = QWidget()
         scroll_layout = QVBoxLayout(scroll_widget)

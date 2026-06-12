@@ -25,14 +25,14 @@ from typing import Dict, List, Optional
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog,
-    QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
+
+from src.utils.tactile import ScrollAreaTactile
 
 
 # ── Feuilles de style ──────────────────────────────────────────────────────────
@@ -213,9 +213,7 @@ class SaladeDialog(QDialog):
         lbl.setStyleSheet(_SECTION_STYLE)
         layout.addWidget(lbl)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll = ScrollAreaTactile()
 
         scroll_widget = QWidget()
         scroll_layout = QVBoxLayout(scroll_widget)
