@@ -46,6 +46,17 @@ feat: refonte de la navigation et du stock
 
 Ne pas insérer de retours à la ligne manuels dans les descriptions — GitHub et VSCode gèrent eux-mêmes les retours à la ligne.
 
+Le message de commit doit être **aussi détaillé que possible** : ne pas hésiter à lister chaque changement significatif sur sa propre ligne, en reprenant le format `type(scope): description` pour chaque point. Un commit qui couvre plusieurs modifications doit les énumérer toutes, même si cela donne un message long. Exemple :
+
+```
+chore(navigation): supprime la barre de menus QMenuBar
+fix(tactile): remplace le filtre global par suivi d'état QScroller (latence)
+feat(navigation/tactile): volet de navigation latéral avec icônes
+feat(tactile): 
+- en-têtes commandes cliquables sur toute la largeur
+- BoutonTactile pour les boutons préparation
+```
+
 ## Commandes de développement
 
 ```bash
