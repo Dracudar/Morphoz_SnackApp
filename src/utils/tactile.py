@@ -15,8 +15,16 @@ Version : 1.1.0
 from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtWidgets import QApplication, QFrame, QScrollArea, QScroller, QScrollerProperties, QWidget
 
-# Distance manhattan minimale (en pixels) pour distinguer un tap d'un scroll
-_SEUIL_SCROLL_PX = 8
+# Distance manhattan minimale (en pixels) pour distinguer un tap d'un scroll.
+# Un tap naturel peut dériver de 10-15px ; un scroll intentionnel dépasse typiquement 30px.
+_SEUIL_SCROLL_PX = 25
+
+# Types d'événements souris à surveiller (vérification rapide avant isAncestorOf)
+_TYPES_SOURIS = frozenset({
+    QEvent.Type.MouseButtonPress,
+    QEvent.Type.MouseMove,
+    QEvent.Type.MouseButtonRelease,
+})
 
 
 class _FiltreAntiClickScroll(QObject):
@@ -34,10 +42,14 @@ class _FiltreAntiClickScroll(QObject):
         QApplication.instance().installEventFilter(self)
 
     def eventFilter(self, obj, event):
-        if not self._est_enfant(obj):
+        t = event.type()
+
+        # Sortie rapide pour les événements non-souris (la majorité des appels)
+        if t not in _TYPES_SOURIS:
             return False
 
-        t = event.type()
+        if not self._est_enfant(obj):
+            return False
 
         if t == QEvent.Type.MouseButtonPress:
             self._pos_pression = event.globalPosition()
