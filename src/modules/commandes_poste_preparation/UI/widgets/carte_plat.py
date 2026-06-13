@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    2.2
+    2.3
 
 Date de création :
     2026.06.08
 
 Date de modification:
-    2026.06.12
+    2026.06.13
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ CARD_H = 250   # hauteur fixe pour uniformité de la grille
 # ── Palette ───────────────────────────────────────────────────────────────────
 _BG_CARD      = "#3a3d43"
 _BORDER       = "#60646c"
-_TEXT_ID      = "#f5f5f5"   # ID : le plus visible (souligné)
+_TEXT_ID      = "#f5f5f5"   # ID : le plus visible (numéro souligné)
 _TEXT_NOM     = "#a8acb3"   # Nom : intermédiaire
 _TEXT_COMP    = "#f0f0f0"   # Composition : blanc cassé
 _AJOUT_CLR    = "#4caf50"
@@ -87,10 +87,20 @@ class CartePlatWidget(QFrame):
         id_row = QHBoxLayout()
         id_row.setSpacing(6)
 
-        id_label = QLabel(self._plat["id"])
+        id_val = self._plat["id"]
+        parts  = id_val.split("-", 1)
+        if len(parts) == 2:
+            id_html = (
+                f'{parts[0]}-'
+                f'<span style="text-decoration: underline;">{parts[1]}</span>'
+            )
+        else:
+            id_html = id_val
+
+        id_label = QLabel(id_html)
+        id_label.setTextFormat(Qt.TextFormat.RichText)
         id_label.setStyleSheet(
             f"color: {_TEXT_ID}; font-size: 15px; font-weight: 700; font-family: monospace;"
-            f"text-decoration: underline;"
         )
         id_row.addWidget(id_label, 1)
 
