@@ -218,7 +218,7 @@ class InterfacePrincipaleWidget(QWidget):
 
     def _on_nav_page(self, page_id: str):
         self.set_left_page(page_id)
-        # Le volet se ferme lui-même après navigation (géré dans VoletNavigation._naviguer)
+        self._fermer_volet()  # ferme aussi l'overlay (le volet se cache lui-même en parallèle)
 
     def maj_etat_volet(self, cle: str, actif: bool):
         """Mise à jour d'un état dans le volet (plein_ecran, suivi_ext)."""
