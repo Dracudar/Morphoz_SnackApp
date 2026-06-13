@@ -63,10 +63,11 @@ class ScrollAreaTactile(QScrollArea):
         return self._en_scroll
 
 
-class BoutonIngredientTactile(QPushButton):
+class BoutonTactile(QPushButton):
     """
-    QPushButton checkable qui ignore le relâchement si la ScrollAreaTactile
-    parente est en train de défiler, évitant les coches involontaires au scroll.
+    QPushButton qui ignore le relâchement si la ScrollAreaTactile associée est
+    en train de défiler, évitant les actions involontaires au scroll.
+    Fonctionne pour les boutons checkables (ingrédients) et les boutons d'action.
     """
 
     def __init__(self, texte: str, scroll_area: ScrollAreaTactile, parent=None):
@@ -77,3 +78,7 @@ class BoutonIngredientTactile(QPushButton):
         if self._scroll_area.est_en_scroll():
             return
         super().mouseReleaseEvent(event)
+
+
+# Alias conservé pour rétrocompatibilité interne
+BoutonIngredientTactile = BoutonTactile
