@@ -18,7 +18,7 @@ Author :
     Dracudar
 
 Version:
-    1.5
+    1.6
 
 Date de création :
     2026.06.08
@@ -231,18 +231,27 @@ class SuiviExterieurWindow(QMainWindow):
         prêts   = [p for p in plats if p["status"].lower() == "prêt"]
         en_prep = [p for p in plats if p["status"].lower() == "en préparation"]
 
-        # Regrouper les plats en préparation par type, garder les 3 premiers par type
+        # Regrouper les prêts par type (tous affichés, sans limite), tri alphabétique
+        prêts_par_type: dict[str, list[dict]] = {}
+        for plat in prêts:
+            t = plat["plat"]
+            prêts_par_type.setdefault(t, [])
+            prêts_par_type[t].append(plat)
+        prêts_par_type = dict(sorted(prêts_par_type.items()))
+
+        # Regrouper les plats en préparation par type, garder les 3 premiers, tri alphabétique
         prep_par_type: dict[str, list[dict]] = {}
         for plat in en_prep:
             t = plat["plat"]
             prep_par_type.setdefault(t, [])
             if len(prep_par_type[t]) < _MAX_EN_PREP_PAR_TYPE:
                 prep_par_type[t].append(plat)
+        prep_par_type = dict(sorted(prep_par_type.items()))
 
         self._clear_content()
 
         # Prêts en haut (affichage intégral), En préparation en bas
-        self._content_layout.addWidget(self._build_section_prêts(prêts))
+        self._content_layout.addWidget(self._build_section_prêts(prêts_par_type))
         self._content_layout.addWidget(self._build_section_prep(prep_par_type))
         # Pousse le contenu vers le haut si la fenêtre est plus grande que le contenu
         self._content_layout.addStretch()
@@ -262,7 +271,7 @@ class SuiviExterieurWindow(QMainWindow):
 
     # ── Construction des sections ──────────────────────────────────────────────
 
-    def _build_section_prêts(self, prêts: list[dict]) -> QFrame:
+    def _build_section_prêts(self, prêts_par_type: dict[str, list[dict]]) -> QFrame:
         section = self._make_section_frame(_BG_PRET, _BORDER_PRET)
         layout = section.layout()
 
@@ -272,15 +281,15 @@ class SuiviExterieurWindow(QMainWindow):
         )
         layout.addWidget(titre)
 
-        if not prêts:
+        if not prêts_par_type:
             vide = QLabel("Aucune commande prête pour le moment")
             vide.setStyleSheet(
                 f"color: {_TEXT_VIDE}; font-size: {self._sz(15)}px; font-style: italic;"
             )
             layout.addWidget(vide)
         else:
-            for plat in prêts:
-                layout.addWidget(self._build_pret_row(plat))
+            for plat_type, plats in prêts_par_type.items():
+                layout.addWidget(self._build_pret_type_row(plat_type, plats))
 
         return section
 
@@ -320,37 +329,8 @@ class SuiviExterieurWindow(QMainWindow):
         layout.setSpacing(sz(8))
         return frame
 
-    def _build_pret_row(self, plat: dict) -> QWidget:
-        """Ligne d'un plat prêt : type + chip avec numéro de commande et ID court du plat."""
-        num_cmd, id_plat = self._get_short_ids(plat)
-        sz = self._sz
-
-        row = QWidget()
-        row.setStyleSheet("QWidget { background: transparent; border: none; }")
-        h = QHBoxLayout(row)
-        h.setContentsMargins(sz(4), sz(2), sz(4), sz(2))
-        h.setSpacing(sz(16))
-
-        type_label = QLabel(plat["plat"])
-        type_label.setFixedWidth(sz(120))
-        type_label.setStyleSheet(
-            f"color: {_TEXT_TYPE}; font-size: {sz(15)}px; border: none;"
-        )
-        h.addWidget(type_label)
-
-        chip = QLabel(f"{num_cmd} · {id_plat}")
-        chip.setStyleSheet(
-            f"color: {_CHIP_PRET_FG}; font-size: {sz(15)}px; font-weight: 700; "
-            f"background-color: {_CHIP_PRET_BG}; border: 1px solid {_CHIP_PRET_BD}; "
-            f"border-radius: {sz(4)}px; padding: {sz(2)}px {sz(10)}px;"
-        )
-        h.addWidget(chip)
-        h.addStretch()
-
-        return row
-
-    def _build_prep_type_row(self, plat_type: str, plats: list[dict]) -> QWidget:
-        """Ligne par type de plat en préparation : nom du type + chips d'IDs."""
+    def _build_pret_type_row(self, plat_type: str, plats: list[dict]) -> QWidget:
+        """Ligne par type de plat prêt : nom du type (aligné droite) + chips d'IDs."""
         sz = self._sz
 
         row = QWidget()
@@ -361,6 +341,38 @@ class SuiviExterieurWindow(QMainWindow):
 
         type_label = QLabel(plat_type)
         type_label.setFixedWidth(sz(120))
+        type_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        type_label.setStyleSheet(
+            f"color: {_TEXT_TYPE}; font-size: {sz(15)}px; border: none;"
+        )
+        h.addWidget(type_label)
+
+        for plat in plats:
+            num_cmd, id_plat = self._get_short_ids(plat)
+            chip = QLabel(f"{num_cmd} · {id_plat}")
+            chip.setStyleSheet(
+                f"color: {_CHIP_PRET_FG}; font-size: {sz(15)}px; font-weight: 700; "
+                f"background-color: {_CHIP_PRET_BG}; border: 1px solid {_CHIP_PRET_BD}; "
+                f"border-radius: {sz(4)}px; padding: {sz(2)}px {sz(10)}px;"
+            )
+            h.addWidget(chip)
+
+        h.addStretch()
+        return row
+
+    def _build_prep_type_row(self, plat_type: str, plats: list[dict]) -> QWidget:
+        """Ligne par type de plat en préparation : nom du type (aligné droite) + chips d'IDs."""
+        sz = self._sz
+
+        row = QWidget()
+        row.setStyleSheet("QWidget { background: transparent; border: none; }")
+        h = QHBoxLayout(row)
+        h.setContentsMargins(sz(4), sz(2), sz(4), sz(2))
+        h.setSpacing(sz(10))
+
+        type_label = QLabel(plat_type)
+        type_label.setFixedWidth(sz(120))
+        type_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         type_label.setStyleSheet(
             f"color: {_TEXT_TYPE}; font-size: {sz(15)}px; border: none;"
         )
