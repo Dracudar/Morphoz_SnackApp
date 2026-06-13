@@ -8,9 +8,9 @@ Description:
     Montre les plats prêts à récupérer et les prochains plats en préparation
     (3 au maximum par type). Les IDs des plats sont affichés sous forme de chips
     pour que les clients puissent suivre leur progression.
-    Mise en page deux colonnes côte à côte, optimisée pour un écran horizontal.
-    Les tailles de police et d'espacement s'adaptent automatiquement à la taille
-    de la fenêtre (ou de l'écran en plein écran).
+    Mise en page verticale : "Prêts" en haut (affichage intégral), "En préparation"
+    en bas. Chaque section occupe toute la largeur disponible. Les tailles de
+    police et d'espacement s'adaptent automatiquement à la taille de la fenêtre.
     Aucune interaction possible. Peut être déplacée sur un écran secondaire et
     mise en plein écran indépendamment.
 
@@ -18,7 +18,7 @@ Author :
     Dracudar
 
 Version:
-    1.4
+    1.5
 
 Date de création :
     2026.06.08
@@ -109,16 +109,20 @@ class SuiviExterieurWindow(QMainWindow):
         self._titre_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._main_layout.addWidget(self._titre_label)
 
+        # Zone de défilement vertical uniquement — jamais de défilement horizontal
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll.setStyleSheet(
             f"QScrollArea, QScrollArea > QWidget > QWidget {{ background-color: {_BG}; }}"
         )
-        self._main_layout.addWidget(scroll)
+        self._main_layout.addWidget(scroll, 1)
 
+        # Deux sections empilées verticalement : Prêts en haut, En préparation en bas
         self._content = QWidget()
-        self._content_layout = QHBoxLayout(self._content)  # deux colonnes côte à côte
+        self._content_layout = QVBoxLayout(self._content)
         self._content_layout.setContentsMargins(0, 0, 0, 0)
         self._content_layout.setSpacing(16)
         scroll.setWidget(self._content)
@@ -237,9 +241,11 @@ class SuiviExterieurWindow(QMainWindow):
 
         self._clear_content()
 
-        # Colonne gauche : en préparation — Colonne droite : prêts
-        self._content_layout.addWidget(self._build_section_prep(prep_par_type), 1)
-        self._content_layout.addWidget(self._build_section_prêts(prêts), 1)
+        # Prêts en haut (affichage intégral), En préparation en bas
+        self._content_layout.addWidget(self._build_section_prêts(prêts))
+        self._content_layout.addWidget(self._build_section_prep(prep_par_type))
+        # Pousse le contenu vers le haut si la fenêtre est plus grande que le contenu
+        self._content_layout.addStretch()
 
     # ── Utilitaires ───────────────────────────────────────────────────────────
 
@@ -276,7 +282,6 @@ class SuiviExterieurWindow(QMainWindow):
             for plat in prêts:
                 layout.addWidget(self._build_pret_row(plat))
 
-        layout.addStretch()
         return section
 
     def _build_section_prep(self, prep_par_type: dict[str, list[dict]]) -> QFrame:
@@ -299,13 +304,13 @@ class SuiviExterieurWindow(QMainWindow):
             for plat_type, plats in prep_par_type.items():
                 layout.addWidget(self._build_prep_type_row(plat_type, plats))
 
-        layout.addStretch()
         return section
 
     def _make_section_frame(self, bg: str, border_color: str) -> QFrame:
         sz = self._sz
         frame = QFrame()
-        frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        # La section s'étire en largeur mais n'occupe que la hauteur de son contenu
+        frame.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         frame.setStyleSheet(
             f"QFrame {{ background-color: {bg}; border: 1px solid {border_color}; "
             f"border-radius: {sz(10)}px; }}"
