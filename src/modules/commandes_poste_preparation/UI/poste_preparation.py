@@ -28,11 +28,11 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
+from src.utils.tactile import ScrollAreaTactile
 from src.backend.data_sources import get_live_orders_prep
 from src.modules.commandes_poste_preparation.UI.widgets.carte_plat import CartePlatWidget
 
@@ -71,12 +71,7 @@ class PostePreparationModule(QFrame):
 
         main_layout.addLayout(self._build_header())
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setStyleSheet(
-            f"QScrollArea, QScrollArea > QWidget > QWidget {{ background-color: {_BG}; }}"
-        )
+        scroll = ScrollAreaTactile(_BG)
 
         # Contenu scrollable : grille + stretch pour coller en haut
         scroll_content = QWidget()

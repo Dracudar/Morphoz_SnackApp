@@ -29,11 +29,11 @@ from PySide6.QtWidgets import (
 	QHBoxLayout,
 	QLabel,
 	QPushButton,
-	QScrollArea,
 	QVBoxLayout,
 	QWidget,
 )
 
+from src.utils.tactile import ScrollAreaTactile
 from src.backend.data_sources import get_live_orders
 
 
@@ -85,12 +85,7 @@ class ConteneurSuiviCommande(QFrame):
 		self.title_label.setObjectName("suiviTitle")
 		main_layout.addWidget(self.title_label)
 
-		self.scroll_area = QScrollArea()
-		self.scroll_area.setWidgetResizable(True)
-		self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-		self.scroll_area.setStyleSheet(
-			f"QScrollArea, QScrollArea > QWidget > QWidget {{ background-color: {_BG_MAIN}; }}"
-		)
+		self.scroll_area = ScrollAreaTactile(_BG_MAIN)
 		main_layout.addWidget(self.scroll_area)
 
 		self.list_container = QWidget()

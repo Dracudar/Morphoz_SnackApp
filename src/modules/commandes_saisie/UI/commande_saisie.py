@@ -34,11 +34,11 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
+from src.utils.tactile import ScrollAreaTactile
 from src.backend.data_sources import get_draft_orders, get_menu_categories
 from src.backend.app_config import get_archive_folder_path, get_logs_folder_path
 from src.modules.commandes_saisie.UI.widgets.bouton_menu import BoutonMenu
@@ -127,13 +127,8 @@ class SaisieCommandeModule(QFrame):
         menu_layout.addWidget(menu_title)
 
         # Scrollable menu grid
-        self.menu_scroll = QScrollArea()
-        self.menu_scroll.setWidgetResizable(True)
-        self.menu_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.menu_scroll = ScrollAreaTactile()
         self.menu_scroll.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.menu_scroll.setStyleSheet(
-            "QScrollArea, QScrollArea > QWidget > QWidget { background-color: #2f3136; }"
-        )
 
         self.menu_container = QWidget()
         self.menu_grid = QGridLayout(self.menu_container)
@@ -175,12 +170,7 @@ class SaisieCommandeModule(QFrame):
 
     def _build_items_section(self, parent_layout):
         """Construit la zone scrollable qui contient les lignes d'articles."""
-        items_scroll = QScrollArea()
-        items_scroll.setWidgetResizable(True)
-        items_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        items_scroll.setStyleSheet(
-            "QScrollArea, QScrollArea > QWidget > QWidget { background-color: #2f3136; }"
-        )
+        items_scroll = ScrollAreaTactile()
 
         self.items_container = QWidget()
         self.items_layout = QVBoxLayout(self.items_container)
