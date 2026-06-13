@@ -41,15 +41,16 @@ Consultation avec filtres avancés (statut, date, priorité, type de plat), tri 
 
 ### Personnalisation des plats étendue
 
-En V1, seules les pizzas disposaient d'un dialog de personnalisation. V2.0.0 ajoute des dialogs dédiés pour :
-- Grillade (choix de la viande, accompagnement)
-- Salade composée (sélection des ingrédients)
+V2.0.0 ajoute des dialogs de personnalisation pour :
 - Crêpe (type)
 - Frites (taille)
+
+Et améliore les dialogs existants :
 - Pizza : calcul de prix dynamique selon les viandes ajoutées/retirées
 
-### Gestion du stock améliorée
+### Gestion du stock : ajout d'une interface dédiée
 
+En V1, le stock était géré uniquement en arrière-plan (cache mémoire sans UI). V2.0.0 introduit un module de gestion du stock à part entière :
 - Sections repliables par famille d'articles avec compteurs et indicateurs de rupture
 - Barre de recherche rapide
 - Panneau de détail (valeurs Fichier / Cache / En préparation / Estimation)
