@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    1.4
+    1.5
 
 Date de création :
     2026.06.05
 
 Date de modification:
-    2026.06.09
+    2026.06.13
 """
 
 from typing import Dict, List, Optional
@@ -38,7 +38,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from src.utils.tactile import ScrollAreaTactile
+from src.utils.tactile import BoutonIngredientTactile, ScrollAreaTactile
 
 
 # ── Feuilles de style ──────────────────────────────────────────────────────────
@@ -412,7 +412,7 @@ class PizzaDialog(QDialog):
             cat_lbl.setStyleSheet(_CATEGORY_STYLE)
             scroll_layout.addWidget(cat_lbl)
             for ingr in sorted(recette_only):
-                btn = QPushButton(ingr)
+                btn = BoutonIngredientTactile(ingr, scroll)
                 btn.setStyleSheet(_INGREDIENT_BTN_STYLE)
                 btn.setCheckable(True)
                 btn.setChecked(True)
@@ -427,7 +427,7 @@ class PizzaDialog(QDialog):
             cat_lbl.setStyleSheet(_CATEGORY_STYLE)
             scroll_layout.addWidget(cat_lbl)
             for ingr in items:
-                btn = QPushButton(ingr)
+                btn = BoutonIngredientTactile(ingr, scroll)
                 btn.setStyleSheet(_INGREDIENT_BTN_STYLE)
                 btn.setCheckable(True)
                 btn.setChecked(ingr in recette_ingr)

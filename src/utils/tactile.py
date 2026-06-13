@@ -9,75 +9,11 @@ Description:
 Author :
     Dracudar
 Modified : 2026-06-13
-Version : 1.1.0
+Version : 1.2.0
 """
 
-from PySide6.QtCore import QEvent, QObject, Qt
-from PySide6.QtWidgets import QApplication, QFrame, QScrollArea, QScroller, QScrollerProperties, QWidget
-
-# Distance manhattan minimale (en pixels) pour distinguer un tap d'un scroll.
-# Un tap naturel peut dériver de 10-15px ; un scroll intentionnel dépasse typiquement 30px.
-_SEUIL_SCROLL_PX = 25
-
-# Types d'événements souris à surveiller (vérification rapide avant isAncestorOf)
-_TYPES_SOURIS = frozenset({
-    QEvent.Type.MouseButtonPress,
-    QEvent.Type.MouseMove,
-    QEvent.Type.MouseButtonRelease,
-})
-
-
-class _FiltreAntiClickScroll(QObject):
-    """
-    Filtre global qui consomme le MouseButtonRelease sur les widgets enfants
-    d'un ScrollAreaTactile quand le doigt a scrollé, évitant ainsi le
-    déclenchement involontaire des boutons cochables pendant le défilement.
-    """
-
-    def __init__(self, scroll_area: "ScrollAreaTactile"):
-        super().__init__(scroll_area)
-        self._scroll_area = scroll_area
-        self._pos_pression = None
-        self._a_scrolle = False
-        QApplication.instance().installEventFilter(self)
-
-    def eventFilter(self, obj, event):
-        t = event.type()
-
-        # Sortie rapide pour les événements non-souris (la majorité des appels)
-        if t not in _TYPES_SOURIS:
-            return False
-
-        if not self._est_enfant(obj):
-            return False
-
-        if t == QEvent.Type.MouseButtonPress:
-            self._pos_pression = event.globalPosition()
-            self._a_scrolle = False
-
-        elif t == QEvent.Type.MouseMove and self._pos_pression is not None:
-            delta = event.globalPosition() - self._pos_pression
-            dist = abs(delta.x()) + abs(delta.y())
-            if dist > _SEUIL_SCROLL_PX:
-                self._a_scrolle = True
-
-        elif t == QEvent.Type.MouseButtonRelease:
-            avait_scrolle = self._a_scrolle
-            self._pos_pression = None
-            self._a_scrolle = False
-            if avait_scrolle:
-                return True  # Consommer — empêche le clic involontaire
-
-        return False
-
-    def _est_enfant(self, obj) -> bool:
-        if not isinstance(obj, QWidget):
-            return False
-        try:
-            return obj is self._scroll_area or self._scroll_area.isAncestorOf(obj)
-        except RuntimeError:
-            # Widget peut avoir été détruit entre-temps
-            return False
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtWidgets import QFrame, QPushButton, QScrollArea, QScroller, QScrollerProperties
 
 
 class ScrollAreaTactile(QScrollArea):
@@ -92,8 +28,14 @@ class ScrollAreaTactile(QScrollArea):
         self.setStyleSheet(
             f"QScrollArea, QScrollArea > QWidget > QWidget {{ background-color: {couleur_fond}; }}"
         )
+        self._en_scroll = False
+        # Maintient _en_scroll=True un court instant après la fin du scroll pour
+        # que le MouseButtonRelease synthétisé soit encore intercepté par les boutons
+        self._timer_reset_scroll = QTimer(self)
+        self._timer_reset_scroll.setSingleShot(True)
+        self._timer_reset_scroll.setInterval(150)
+        self._timer_reset_scroll.timeout.connect(self._reset_scroll)
         self._activer_scroll_tactile()
-        self._filtre_click = _FiltreAntiClickScroll(self)
 
     def _activer_scroll_tactile(self):
         scroller = QScroller.scroller(self.viewport())
@@ -105,3 +47,33 @@ class ScrollAreaTactile(QScrollArea):
             self.viewport(),
             QScroller.ScrollerGestureType.TouchGesture,
         )
+        scroller.stateChanged.connect(self._on_etat_scroller)
+
+    def _on_etat_scroller(self, etat):
+        if etat == QScroller.State.Dragging:
+            self._en_scroll = True
+            self._timer_reset_scroll.stop()
+        elif etat == QScroller.State.Inactive and self._en_scroll:
+            self._timer_reset_scroll.start()
+
+    def _reset_scroll(self):
+        self._en_scroll = False
+
+    def est_en_scroll(self) -> bool:
+        return self._en_scroll
+
+
+class BoutonIngredientTactile(QPushButton):
+    """
+    QPushButton checkable qui ignore le relâchement si la ScrollAreaTactile
+    parente est en train de défiler, évitant les coches involontaires au scroll.
+    """
+
+    def __init__(self, texte: str, scroll_area: ScrollAreaTactile, parent=None):
+        super().__init__(texte, parent)
+        self._scroll_area = scroll_area
+
+    def mouseReleaseEvent(self, event):
+        if self._scroll_area.est_en_scroll():
+            return
+        super().mouseReleaseEvent(event)
