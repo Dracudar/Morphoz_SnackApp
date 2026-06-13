@@ -39,21 +39,17 @@ Consultation avec filtres avancés (statut, date, priorité, type de plat), tri 
 
 ## Modifications majeures
 
-### Personnalisation des plats étendue
+### Nouveau type de plat : la crêpe
 
-V2.0.0 ajoute un dialog de personnalisation pour :
-- Crêpe (type)
+Ajout de la crêpe avec son dialog de personnalisation (choix de la garniture, calcul de prix dynamique). Les dialogs existants (pizza, grillade, salade composée) sont reportés sous Qt ; la pizza gagne un calcul de prix dynamique selon les viandes ajoutées/retirées.
 
-Et améliore les dialogs existants :
-- Pizza : calcul de prix dynamique selon les viandes ajoutées/retirées
+### Gestion du stock : refonte de l'interface
 
-### Gestion du stock : ajout d'une interface dédiée
-
-En V1, le stock était géré uniquement en arrière-plan (cache mémoire sans UI). V2.0.0 introduit un module de gestion du stock à part entière :
+L'écran de stock à onglets de la V1 est remplacé par un module complet :
 - Sections repliables par famille d'articles avec compteurs et indicateurs de rupture
 - Barre de recherche rapide
 - Panneau de détail (valeurs Fichier / Cache / En préparation / Estimation)
-- Suppression d'articles depuis l'interface
+- Ajustement manuel du stock et suppression d'articles depuis l'interface
 - Réconciliation du cache au démarrage si un brouillon est en suspens
 - Statut *Hors service* pour les annulations post-validation
 

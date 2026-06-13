@@ -13,9 +13,18 @@ La V1.2.2 est la première version stabilisée de l'application, basée sur **Tk
 ## Gestion des commandes
 
 - Saisie des commandes par plat avec statuts : *En attente → En préparation → Prêt → Livré*
+- Panneau de suivi des commandes (boutons *Prêt* / *Livrer*) intégré à l'interface principale
 - Annulation groupée de tous les plats d'une commande
-- Personnalisation des pizzas avec champ recette (imprimé si modifié)
 - Suivi du type de plat (Pizza, Grillade, Frites…)
+
+---
+
+## Personnalisation des plats
+
+- Pizza : choix de la recette puis personnalisation des ingrédients (sauce de base, ajout/retrait), champ recette imprimé si modifié
+- Grillade : choix des viandes (2 portions max) et de l'accompagnement
+- Salade composée : sélection des ingrédients par catégorie
+- Ajout direct (sans popup) pour les frites, le fish & chips et la pizza dessert
 
 ---
 
@@ -35,9 +44,10 @@ La V1.2.2 est la première version stabilisée de l'application, basée sur **Tk
 
 ---
 
-## Gestion du stock (cache)
+## Gestion du stock
 
-- Classe `StockCache` pour le suivi en temps réel
+- Écran de stock à onglets (Plats / Accompagnement / Ingrédients) avec bascule de l'état *rupture* par article
+- Cache mémoire `StockCache` pour le suivi en temps réel
 - Décrémentation automatique à la validation des commandes
 - Vérification de disponibilité avant prise de commande
 
