@@ -33,7 +33,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
-from src.utils.tactile import ScrollAreaTactile
+from src.utils.tactile import EnTeteCliquable, ScrollAreaTactile
 from src.backend.data_sources import get_live_orders
 
 
@@ -179,9 +179,9 @@ class ConteneurSuiviCommande(QFrame):
 
 		self.list_layout.insertWidget(self.list_layout.count() - 1, card)
 
-	def _build_card_header(self, order: dict, plats_container: QWidget, is_collapsed: bool) -> QFrame:
-		"""Construit le bandeau d'en-tête avec l'ID de commande, le nombre de plats et le bouton de réduction."""
-		header = QFrame()
+	def _build_card_header(self, order: dict, plats_container: QWidget, is_collapsed: bool) -> EnTeteCliquable:
+		"""Construit le bandeau d'en-tête cliquable sur toute sa largeur."""
+		header = EnTeteCliquable()
 		header.setObjectName("commandeCardHeader")
 		header_layout = QHBoxLayout(header)
 		header_layout.setContentsMargins(0, 0, 0, 0)
@@ -191,13 +191,13 @@ class ConteneurSuiviCommande(QFrame):
 
 		toggle_btn = QPushButton("▶" if is_collapsed else "▼")
 		toggle_btn.setFixedSize(20, 20)
-		toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+		toggle_btn.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 		toggle_btn.setStyleSheet(
 			f"QPushButton {{ color: {_TEXT_CARD_CNT}; background: transparent; border: none; font-size: 11px; }}"
-			f"QPushButton:hover {{ color: {_TEXT_CARD_ID}; }}"
 		)
-		toggle_btn.clicked.connect(lambda: self._toggle_order(order_id, plats_container, toggle_btn))
 		header_layout.addWidget(toggle_btn)
+
+		header.clicked.connect(lambda: self._toggle_order(order_id, plats_container, toggle_btn))
 
 		priority_slot = QLabel("!" if order.get("priority", False) else "")
 		priority_slot.setFixedWidth(16)

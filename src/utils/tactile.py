@@ -12,7 +12,7 @@ Modified : 2026-06-13
 Version : 1.2.0
 """
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import QFrame, QPushButton, QScrollArea, QScroller, QScrollerProperties
 
 
@@ -82,3 +82,35 @@ class BoutonTactile(QPushButton):
 
 # Alias conservé pour rétrocompatibilité interne
 BoutonIngredientTactile = BoutonTactile
+
+
+class EnTeteCliquable(QFrame):
+    """
+    QFrame d'en-tête de carte cliquable sur toute sa largeur.
+    Émet clicked() au relâchement sauf si une ScrollAreaTactile parente
+    est en train de défiler — évite les ouvertures/fermetures involontaires.
+    Hauteur minimale 44px pour respecter les cibles tactiles recommandées.
+    """
+
+    clicked = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setMinimumHeight(44)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            scroll = self._chercher_scroll_area()
+            if scroll is None or not scroll.est_en_scroll():
+                self.clicked.emit()
+        super().mouseReleaseEvent(event)
+
+    def _chercher_scroll_area(self):
+        """Remonte la hiérarchie de parents pour trouver la ScrollAreaTactile englobante."""
+        widget = self.parent()
+        while widget is not None:
+            if isinstance(widget, ScrollAreaTactile):
+                return widget
+            widget = widget.parent()
+        return None

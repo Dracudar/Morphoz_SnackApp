@@ -46,7 +46,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
-from src.utils.tactile import ScrollAreaTactile
+from src.utils.tactile import EnTeteCliquable, ScrollAreaTactile
 from src.backend.app_config import get_print_options
 from src.backend.data_sources import get_all_history_orders
 from src.backend.printer import reprint_all_active_cuisine, reprint_ticket_cuisine_plat, reprint_ticket_recap
@@ -603,8 +603,8 @@ class CommandesHistoriqueModule(QFrame):
 
 	def _build_card_header(
 		self, order: Dict[str, Any], content_container: QWidget, is_collapsed: bool
-	) -> QFrame:
-		header = QFrame()
+	) -> EnTeteCliquable:
+		header = EnTeteCliquable()
 		header.setObjectName("commandeCardHeader")
 		header_layout = QHBoxLayout(header)
 		header_layout.setContentsMargins(0, 0, 0, 0)
@@ -614,13 +614,13 @@ class CommandesHistoriqueModule(QFrame):
 
 		toggle_btn = QPushButton("▶" if is_collapsed else "▼")
 		toggle_btn.setFixedSize(20, 20)
-		toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+		toggle_btn.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 		toggle_btn.setStyleSheet(
 			f"QPushButton {{ color: {_TEXT_CARD_CNT}; background: transparent; border: none; font-size: 11px; }}"
-			f"QPushButton:hover {{ color: {_TEXT_CARD_ID}; }}"
 		)
-		toggle_btn.clicked.connect(lambda: self._toggle_order(order_id, content_container, toggle_btn))
 		header_layout.addWidget(toggle_btn)
+
+		header.clicked.connect(lambda: self._toggle_order(order_id, content_container, toggle_btn))
 
 		priority_slot = QLabel("!" if order.get("priority", False) else "")
 		priority_slot.setFixedWidth(16)
