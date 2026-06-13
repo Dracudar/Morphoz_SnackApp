@@ -41,9 +41,8 @@ Consultation avec filtres avancés (statut, date, priorité, type de plat), tri 
 
 ### Personnalisation des plats étendue
 
-V2.0.0 ajoute des dialogs de personnalisation pour :
+V2.0.0 ajoute un dialog de personnalisation pour :
 - Crêpe (type)
-- Frites (taille)
 
 Et améliore les dialogs existants :
 - Pizza : calcul de prix dynamique selon les viandes ajoutées/retirées
