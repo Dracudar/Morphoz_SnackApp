@@ -5,25 +5,26 @@ poste_preparation.py - Module du poste de préparation
 
 Description:
     Affichage plein écran des plats en cours de préparation, filtrable par type
-    (Pizza, Grillade, Frites, Salade composée, Crêpe). Chaque plat est représenté
-    par une carte avec ses détails et ses boutons d'action (Prêt / Livré).
+    (Pizza, Grillade, Frites, Salade composée, Crêpe). Les plats sont affichés
+    en grille (3 colonnes) adaptée aux écrans tactiles 10".
 
 Author :
     Dracudar
 
 Version:
-    1.0
+    2.0
 
 Date de création :
     2026.06.08
 
 Date de modification:
-    2026.06.08
+    2026.06.12
 """
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -36,8 +37,9 @@ from src.backend.data_sources import get_live_orders_prep
 from src.modules.commandes_poste_preparation.UI.widgets.carte_plat import CartePlatWidget
 
 _ALL_TYPES = ["Pizza", "Grillade", "Frites", "Salade composée", "Crêpe"]
+_COLUMNS   = 4  # colonnes en grille (adapté à l'écran 10")
 
-# ── Palette ──────────────────────────────────────────────────────────────────
+# ── Palette ───────────────────────────────────────────────────────────────────
 _BG           = "#2f3136"
 _TEXT_TITRE   = "#f5f5f5"
 _BTN_INACTIF  = ("background-color: #3a3d43; color: #d6d6d6; border: 1px solid #60646c; "
@@ -49,7 +51,7 @@ _BTN_ACTIF_HOVER = "background-color: #5a8fdb;"
 
 
 class PostePreparationModule(QFrame):
-    """Page plein écran du poste de préparation."""
+    """Page plein écran du poste de préparation (grille 3 colonnes)."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -76,13 +78,23 @@ class PostePreparationModule(QFrame):
             f"QScrollArea, QScrollArea > QWidget > QWidget {{ background-color: {_BG}; }}"
         )
 
-        self._list_container = QWidget()
-        self._list_layout = QVBoxLayout(self._list_container)
-        self._list_layout.setContentsMargins(0, 0, 0, 0)
-        self._list_layout.setSpacing(10)
-        self._list_layout.addStretch()
-        scroll.setWidget(self._list_container)
+        # Contenu scrollable : grille + stretch pour coller en haut
+        scroll_content = QWidget()
+        content_layout = QVBoxLayout(scroll_content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
 
+        self._grid_container = QWidget()
+        self._grid_layout = QGridLayout(self._grid_container)
+        self._grid_layout.setContentsMargins(0, 0, 0, 0)
+        self._grid_layout.setSpacing(10)
+        for col in range(_COLUMNS):
+            self._grid_layout.setColumnStretch(col, 1)
+
+        content_layout.addWidget(self._grid_container)
+        content_layout.addStretch(1)
+
+        scroll.setWidget(scroll_content)
         main_layout.addWidget(scroll)
 
         self.setStyleSheet(f"QFrame#postePreparation {{ background-color: {_BG}; }}")
@@ -138,20 +150,23 @@ class PostePreparationModule(QFrame):
 
     # ── Données ───────────────────────────────────────────────────────────────
 
-    def _clear_list(self):
-        while self._list_layout.count() > 1:
-            item = self._list_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
+    def _clear_grid(self):
+        while self._grid_layout.count():
+            item = self._grid_layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
 
     def refresh(self):
-        """Recharge les plats depuis le disque et reconstruit la liste."""
+        """Recharge les plats depuis le disque et reconstruit la grille."""
         plats = get_live_orders_prep()
         if self._active_filters:
             plats = [p for p in plats if p["plat"] in self._active_filters]
 
-        self._clear_list()
+        # Prioritaires en tête, puis ordre naturel (ID croissant)
+        plats.sort(key=lambda p: (0 if p.get("prioritaire") else 1, p["id"]))
+
+        self._clear_grid()
 
         count = len(plats)
         plat_word = "plat" if count <= 1 else "plats"
@@ -159,9 +174,10 @@ class PostePreparationModule(QFrame):
             f"Poste de préparation  —  {count} {plat_word} en cours"
         )
 
-        for plat in plats:
+        for i, plat in enumerate(plats):
+            row, col = divmod(i, _COLUMNS)
             card = CartePlatWidget(plat, self._on_state_changed)
-            self._list_layout.insertWidget(self._list_layout.count() - 1, card)
+            self._grid_layout.addWidget(card, row, col, Qt.AlignmentFlag.AlignTop)
 
     def _on_state_changed(self, _context=None):
         """Rappelé par le backend après un changement de statut."""

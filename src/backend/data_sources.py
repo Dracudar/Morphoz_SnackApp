@@ -398,6 +398,7 @@ def get_live_orders_prep() -> List[Dict[str, Any]]:
                 "status": status,
                 "composition": line_data.get("Composition", {}),
                 "prix": line_data.get("Prix"),
+                "prioritaire": bool(infos.get("Prioritaire", False)),
             })
 
     return plats
