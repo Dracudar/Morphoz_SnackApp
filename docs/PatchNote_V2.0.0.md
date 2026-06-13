@@ -63,4 +63,13 @@ L'écran de stock à onglets de la V1 est remplacé par un module complet :
 
 ---
 
+## Déploiement cible
+
+La V2.0.0 est conçue pour fonctionner sur un réseau local (LAN) composé de Raspberry Pi :
+
+- **Poste principal** — saisie des commandes, fenêtre d'affichage client et centralisation des données sur le dossier partagé
+- **Postes secondaires** (un ou plusieurs) — postes de préparation cuisine en affichage plein écran, accédant aux données via le dossier partagé
+
+---
+
 *Version précédente : 1.2.2 (17 juin 2025) — Interface Tkinter, MegaSouye 9*
