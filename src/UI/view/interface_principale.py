@@ -135,7 +135,7 @@ class InterfacePrincipaleWidget(QWidget):
     def refresh_all_pages(self):
         """Rafraîchit toutes les pages et le suivi (appelé sur changement de config ou de commande)."""
         self.page_saisie.refresh()
-        self.page_stock.reload_from_disk()
+        self.page_stock.refresh()
         self.page_carte.reload_from_disk()
         self.page_historique.refresh_orders()
         self.page_poste_prep.refresh()
