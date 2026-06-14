@@ -24,6 +24,8 @@ Date de modification:
 import io
 import os
 from PIL import Image
+from svglib.svglib import svg2rlg
+from reportlab.graphics import renderPM
 from escpos.printer import Usb
 from src.backend.commandes_utils import charger_fichier_commande
 from src.backend.app_config import get_printer_config, get_print_options
@@ -42,10 +44,12 @@ def charger_logo(nom_image, taille=()):
     chemin = os.path.abspath(os.path.join(BASE_DIR, '..', '..', 'assets', 'imgs', nom_image))
     try:
         if nom_image.lower().endswith('.svg'):
-            import cairosvg
-            w, h = taille if taille else (None, None)
-            png_bytes = cairosvg.svg2png(url=chemin, output_width=w, output_height=h,
-                                         background_color="white")
+            drawing = svg2rlg(chemin)
+            if taille:
+                sx, sy = taille[0] / drawing.width, taille[1] / drawing.height
+                drawing.width, drawing.height = taille[0], taille[1]
+                drawing.transform = (sx, 0, 0, sy, 0, 0)
+            png_bytes = renderPM.drawToString(drawing, fmt="PNG")
             img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
         else:
             img = Image.open(chemin).convert("RGBA")
