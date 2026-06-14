@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    2.0
+    2.1
 
 Date de création :
     2026.06.08
 
 Date de modification:
-    2026.06.12
+    2026.06.13
 """
 
 from PySide6.QtCore import Qt, QTimer
@@ -28,11 +28,11 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
+from src.utils.tactile import ScrollAreaTactile
 from src.backend.data_sources import get_live_orders_prep
 from src.modules.commandes_poste_preparation.UI.widgets.carte_plat import CartePlatWidget
 
@@ -71,12 +71,7 @@ class PostePreparationModule(QFrame):
 
         main_layout.addLayout(self._build_header())
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setStyleSheet(
-            f"QScrollArea, QScrollArea > QWidget > QWidget {{ background-color: {_BG}; }}"
-        )
+        self._scroll = ScrollAreaTactile(_BG)
 
         # Contenu scrollable : grille + stretch pour coller en haut
         scroll_content = QWidget()
@@ -94,8 +89,8 @@ class PostePreparationModule(QFrame):
         content_layout.addWidget(self._grid_container)
         content_layout.addStretch(1)
 
-        scroll.setWidget(scroll_content)
-        main_layout.addWidget(scroll)
+        self._scroll.setWidget(scroll_content)
+        main_layout.addWidget(self._scroll)
 
         self.setStyleSheet(f"QFrame#postePreparation {{ background-color: {_BG}; }}")
 
@@ -176,7 +171,7 @@ class PostePreparationModule(QFrame):
 
         for i, plat in enumerate(plats):
             row, col = divmod(i, _COLUMNS)
-            card = CartePlatWidget(plat, self._on_state_changed)
+            card = CartePlatWidget(plat, self._on_state_changed, self._scroll)
             self._grid_layout.addWidget(card, row, col, Qt.AlignmentFlag.AlignTop)
 
     def _on_state_changed(self, _context=None):

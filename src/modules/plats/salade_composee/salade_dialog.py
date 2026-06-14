@@ -11,13 +11,13 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.2
 
 Date de création :
     2026.06.05
 
 Date de modification:
-    2026.06.06
+    2026.06.13
 """
 
 from typing import Dict, List, Optional
@@ -25,14 +25,14 @@ from typing import Dict, List, Optional
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog,
-    QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
+
+from src.utils.tactile import BoutonIngredientTactile, ScrollAreaTactile
 
 
 # ── Feuilles de style ──────────────────────────────────────────────────────────
@@ -213,9 +213,7 @@ class SaladeDialog(QDialog):
         lbl.setStyleSheet(_SECTION_STYLE)
         layout.addWidget(lbl)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll = ScrollAreaTactile()
 
         scroll_widget = QWidget()
         scroll_layout = QVBoxLayout(scroll_widget)
@@ -231,7 +229,7 @@ class SaladeDialog(QDialog):
             cat_lbl.setStyleSheet(_CATEGORY_STYLE)
             scroll_layout.addWidget(cat_lbl)
             for ingr in items:
-                btn = QPushButton(ingr)
+                btn = BoutonIngredientTactile(ingr, scroll)
                 btn.setStyleSheet(_INGREDIENT_BTN_STYLE)
                 btn.setCheckable(True)
                 btn.setChecked(False)

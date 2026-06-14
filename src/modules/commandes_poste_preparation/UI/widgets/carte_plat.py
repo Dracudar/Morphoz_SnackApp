@@ -12,7 +12,7 @@ Author :
     Dracudar
 
 Version:
-    2.3
+    2.4
 
 Date de création :
     2026.06.08
@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.modules.commandes_suivi.backend.commandes_suivi_gestion import livrer_plat, plat_prêt
+from src.utils.tactile import BoutonTactile, ScrollAreaTactile
 
 # ── Dimensions ────────────────────────────────────────────────────────────────
 CARD_H = 250   # hauteur fixe pour uniformité de la grille
@@ -66,10 +67,11 @@ _COMP_FONT = "font-size: 13px;"
 class CartePlatWidget(QFrame):
     """Carte tactile à hauteur fixe — hiérarchie ID > composition > nom."""
 
-    def __init__(self, plat: dict, on_action: Callable[[], None], parent=None):
+    def __init__(self, plat: dict, on_action: Callable[[], None], scroll_area: ScrollAreaTactile, parent=None):
         super().__init__(parent)
         self._plat = plat
         self._on_action = on_action
+        self._scroll_area = scroll_area
         self.setObjectName("cartePlat")
         self.setFixedHeight(CARD_H)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -132,7 +134,7 @@ class CartePlatWidget(QFrame):
         btn_color = _BTN_COLOR.get(status_lower)
 
         if btn_label and btn_color:
-            btn = QPushButton(btn_label)
+            btn = BoutonTactile(btn_label, self._scroll_area)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setMinimumHeight(44)
             btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
