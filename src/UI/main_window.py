@@ -16,12 +16,12 @@ Date de création :
     2026.05.12
 
 Date de modification:
-    2026.06.13
+    2026.06.14
 """
 
 # Importation des modules nécessaires
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtWidgets import QMainWindow
 
 from src.UI.view.interface_principale import InterfacePrincipaleWidget
@@ -34,6 +34,7 @@ class MainWindow(QMainWindow):
 
         # Configuration de la fenêtre
         self.setWindowTitle("Morphoz SnackApp")
+        self.setWindowIcon(QIcon("assets/imgs/logo_snack.svg"))
         self.setGeometry(100, 100, 1200, 800)
 
         # Créer le widget central

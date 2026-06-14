@@ -16,10 +16,10 @@ Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.07
+    2026.06.14
 """
 
-from PySide6.QtGui import QColor, QPalette
+from PySide6.QtGui import QColor, QIcon, QPalette
 from PySide6.QtWidgets import QApplication
 from src.UI.main_window import MainWindow
 
@@ -54,6 +54,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
     app.setPalette(_build_dark_palette())
+    app.setWindowIcon(QIcon("assets/imgs/logo_snack.svg"))
 
     logger.log(logger.DEMARRAGE_APP, {})
     app.aboutToQuit.connect(lambda: logger.log(logger.ARRET_APP, {}))

@@ -17,14 +17,14 @@ Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.13
+    2026.06.14
 """
 
 from PySide6.QtCore import QEvent, Qt, Signal
+from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
-    QLabel,
     QPushButton,
     QStackedWidget,
     QVBoxLayout,
@@ -34,15 +34,6 @@ from PySide6.QtWidgets import (
 # Pages affichées en mode split (saisie + suivi côte à côte) ; toutes les autres passent en plein écran.
 _PAGES_MODE_SPLIT = frozenset({"saisie"})
 
-_NOMS_PAGES = {
-    "saisie":            "Saisie commande",
-    "stock":             "Stock",
-    "carte":             "Carte",
-    "historique":        "Historique",
-    "logs":              "Journal",
-    "parametres":        "Paramètres",
-    "poste_preparation": "Poste de préparation",
-}
 
 from src.modules.carte.UI import CarteModule
 from src.modules.commandes_historique.UI import CommandesHistoriqueModule
@@ -149,11 +140,10 @@ class InterfacePrincipaleWidget(QWidget):
         btn_menu.clicked.connect(self._basculer_volet)
         layout.addWidget(btn_menu)
 
-        self._titre_page = QLabel("")
-        self._titre_page.setStyleSheet(
-            "color: #d6d6d6; font-size: 14px; font-weight: 600; padding-left: 4px;"
-        )
-        layout.addWidget(self._titre_page, 1)
+        logo = QSvgWidget("assets/imgs/MegaSnack.svg")
+        logo.setFixedSize(130, 28)
+        layout.addWidget(logo)
+        layout.addStretch(1)
 
         return barre
 
@@ -175,7 +165,6 @@ class InterfacePrincipaleWidget(QWidget):
             self.left_stack.setCurrentWidget(widget)
             self._refresh_page(widget)
             self.suivi_module.setVisible(page_name in _PAGES_MODE_SPLIT)
-            self._titre_page.setText(_NOMS_PAGES.get(page_name, ""))
 
     def refresh_all_pages(self):
         """Rafraîchit toutes les pages et le suivi."""
