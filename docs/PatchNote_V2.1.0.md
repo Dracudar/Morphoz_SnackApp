@@ -1,6 +1,18 @@
 # Morphoz SnackApp — Patch Notes V2.1.0
 
-*Version en cours de développement — premier jet*
+*Version en cours de développement*
+
+---
+
+## Navigation tactile (volet latéral)
+
+La barre de menus classique (`QMenuBar`) est remplacée par un **volet de navigation latéral** glissant, pensé pour les écrans tactiles 10 pouces :
+
+- Volet sombre semi-transparent avec navigation par icônes et labels
+- Page active mise en évidence (fond bleu, texte gras)
+- `BoutonTactile` appliqué aux boutons du poste de préparation et de l'historique — distingue tap et scroll pour éviter les activations accidentelles
+- En-têtes de commandes cliquables sur toute la largeur (historique)
+- `QScroller` avec suivi d'état à la place du filtre global d'événements : latence tactile réduite
 
 ---
 
@@ -32,10 +44,39 @@ La fenêtre secondaire tournée vers le client est entièrement redessinée :
 
 ---
 
-## En cours de développement
+## Logos en SVG
 
-- **Défilement tactile** : remplacement de tous les `QScrollArea` par un composant à défilement cinétique (idéal pour les écrans 10 pouces)
-- **Logos en SVG** : conversion des images PNG (logo, en-tête ticket) en vectoriel pour une meilleure qualité d'impression
+Les images PNG (logo, en-tête ticket) sont remplacées par des fichiers **SVG vectoriels** pour une qualité d'impression et d'affichage optimale à toutes les résolutions :
+
+- `assets/imgs/` : `MegaSnack.svg`, `logo_snack.svg`, `logo_MegaSouye.svg` (PNG supprimés)
+- Logo **MegaSnack** affiché dans la barre de navigation (via `QSvgWidget`)
+- **Icône de l'application** en SVG (`logo_snack.svg`) sur la fenêtre principale et la `QApplication`
+- `printer.py` utilise désormais **svglib + reportlab** pour convertir les SVG en image 1-bit avant envoi à l'imprimante thermique (remplace cairosvg)
+
+---
+
+## Application allégée pour postes cuisine
+
+Un **second point d'entrée** (`src/core/app_prep.py`) permet de lancer une version réduite de l'application sur les machines à ressources limitées (4 Go RAM) :
+
+- Charge uniquement le module **poste de préparation** — pas de stock, historique, carte, logs ni impression USB
+- Panneau latéral de configuration minimal : sélecteur du dossier data (partage réseau LAN), bascule plein écran, quitter
+- Logo MegaSnack en en-tête du panneau latéral
+
+---
+
+## Compilation et déploiement
+
+- Fichiers **PyInstaller** `morphoz_snackapp.spec` et `morphoz_prep.spec` pour produire des exécutables autonomes Windows et Linux
+- Pipeline **CI/CD GitHub Actions** (`build.yml`) : 4 builds en parallèle (Windows/Linux × app principale/app préparation), attachés automatiquement à chaque release GitHub taggée `vX.Y.Z`
+- Version centralisée dans `src/core/version.py` (`APP_VERSION`)
+
+---
+
+## Vérificateur de mises à jour
+
+- Au démarrage, `UpdateChecker` (QThread) interroge l'**API GitHub Releases** en arrière-plan (timeout 5 s)
+- Si une version supérieure est disponible, une **bannière discrète** s'affiche en haut de la fenêtre principale — non bloquante, fermable
 
 ---
 

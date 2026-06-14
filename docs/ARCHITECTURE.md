@@ -65,7 +65,7 @@ L'application couvre l'intégralité du cycle de vente :
 | Persistance | **Fichiers JSON** | Commandes, stock, carte, config, IDs cache |
 | Journalisation | **JSON Lines** | Un fichier `.log` par jour dans `data/logs/` |
 | Impression | **python-escpos** + **pyusb** | Tickets thermiques USB (protocole ESC-POS) |
-| Images tickets | **Pillow** | Traitement de l'en-tête image pour l'imprimante |
+| Images tickets | **Pillow** + **svglib** + **reportlab** | Chargement PNG, conversion SVG→PNG pour l'imprimante |
 | Python | ≥ 3.14 | Typage, f-strings, pathlib, importlib |
 
 **Dépendances** (`requirements.txt`) :
@@ -74,6 +74,8 @@ PySide6
 pillow
 pyusb
 python-escpos
+svglib
+reportlab
 ```
 
 ---
@@ -81,16 +83,18 @@ python-escpos
 ## 3. Architecture en couches
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         POINT D'ENTRÉE                          │
-│                      src/core/app.py                            │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-┌───────────────────────────▼─────────────────────────────────────┐
-│                      COUCHE UI                                  │
-│  main_window.py ─ InterfacePrincipaleWidget ─ module_registry   │
-│  SuiviExterieurWindow                                           │
-└────────────┬──────────────────────────────────────┬────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                        POINTS D'ENTRÉE                           │
+│   src/core/app.py (application principale)                       │
+│   src/core/app_prep.py (application légère postes cuisine)       │
+└──────────────────────────────┬───────────────────────────────────┘
+                               │
+┌──────────────────────────────▼───────────────────────────────────┐
+│                      COUCHE UI                                   │
+│  main_window.py ─ InterfacePrincipaleWidget ─ module_registry    │
+│  volet_navigation.py ─ SuiviExterieurWindow                      │
+│  UI_prep/ : main_window_prep.py ─ panneau_lateral.py             │
+└────────────┬──────────────────────────────────────┬─────────────┘
              │                                      │
 ┌────────────▼──────────────────┐  ┌───────────────▼────────────┐
 │   MODULES UI (src/modules/)   │  │   COUCHE BACKEND           │
@@ -110,6 +114,8 @@ python-escpos
 │  logs/app_YYYYMMDD.log · logs/derniers_ID.json                │
 └───────────────────────────────────────────────────────────────┘
 ```
+
+**Application légère postes cuisine** (`src/core/app_prep.py` + `src/UI_prep/`) : point d'entrée alternatif sans dépendance USB ni modules de gestion (stock, carte, logs, historique). Conçu pour des machines à 4 Go de RAM sur réseau LAN.
 
 ### Principes architecturaux
 
@@ -200,6 +206,12 @@ data/
 
 ## 5. Couche `core`
 
+### `src/core/version.py`
+
+**Version centralisée.** Définit la constante `APP_VERSION` utilisée pour l'affichage et la vérification des mises à jour.
+
+---
+
 ### `src/core/app.py`
 
 **Point d'entrée principal.** Lance l'application PySide6 avec le thème sombre.
@@ -207,7 +219,17 @@ data/
 | Fonction | Description |
 |---|---|
 | `_build_dark_palette() → QPalette` | Construit la palette de couleurs sombres (fond `#2f3136`, texte `#f5f5f5`, accent bleu `#2a82da`) utilisée par toute l'application via le style Fusion. |
-| `__main__` | Instancie `QApplication`, applique le style Fusion + palette sombre, enregistre les événements de démarrage/arrêt dans le journal, crée et affiche `MainWindow`. |
+| `__main__` | Instancie `QApplication`, applique le style Fusion + palette sombre, définit l'icône (`logo_snack.svg`), enregistre les événements de démarrage/arrêt, crée et affiche `MainWindow`. |
+
+---
+
+### `src/core/app_prep.py`
+
+**Point d'entrée allégé pour postes cuisine.** Lance une version minimale de l'application sans dépendances USB ni modules de gestion (stock, carte, logs, historique, impression). Conçu pour des machines à ressources limitées (≥ 4 Go RAM).
+
+| Fonction | Description |
+|---|---|
+| `__main__` | Instancie `QApplication` avec le même thème sombre, crée et affiche `MainWindowPrep`. Aucun import `escpos`/`pyusb`. |
 
 ---
 
@@ -215,14 +237,14 @@ data/
 
 ### `src/UI/main_window.py`
 
-**Fenêtre principale** (`QMainWindow`). Contient la barre de menus et orchestre les fenêtres secondaires.
+**Fenêtre principale** (`QMainWindow`). Orchestre les fenêtres secondaires et la bannière de mise à jour.
 
 | Méthode | Description |
 |---|---|
-| `__init__` | Initialise la fenêtre (titre, taille 1200×800), crée `InterfacePrincipaleWidget` comme widget central, crée `SuiviExterieurWindow` (masquée par défaut). |
+| `__init__` | Initialise la fenêtre (titre, taille 1200×800, icône SVG), crée `InterfacePrincipaleWidget` comme widget central, crée `SuiviExterieurWindow` (masquée par défaut), lance `UpdateChecker`. |
 | `setup_shortcuts()` | Enregistre les raccourcis globaux : `Ctrl+Q` (quitter), `F11` (plein écran), `Escape` (quitter plein écran), `Ctrl+M` (minimiser). |
-| `setup_menus()` | Construit la barre de menus avec deux menus : **App** (plein écran, quitter) et **Affichage** (navigation entre les 7 pages du stack + toggle affichage extérieur). |
-| `_toggle_suivi_exterieur(checked)` | Affiche ou masque `SuiviExterieurWindow` selon l'état du menu toggle. Journalise l'événement `AFFICHAGE_EXTERIEUR`. |
+| `_on_update_available(version)` | Reçoit le signal de `UpdateChecker` et insère une bannière non-bloquante en haut de la fenêtre. |
+| `_toggle_suivi_exterieur(checked)` | Affiche ou masque `SuiviExterieurWindow`. Journalise l'événement `AFFICHAGE_EXTERIEUR`. |
 | `toggle_fullscreen()` | Bascule entre `showNormal()` et `showFullScreen()`. |
 | `exit_fullscreen()` | Quitte le plein écran si actif. |
 | `closeEvent(event)` | Ferme proprement `SuiviExterieurWindow` (via `force_close()`) avant de quitter. |
@@ -242,6 +264,19 @@ data/
 
 ---
 
+### `src/UI/view/volet_navigation.py`
+
+**Volet de navigation latéral tactile.** Remplace la `QMenuBar` classique. S'affiche en superposition sur le contenu principal.
+
+| Élément / Méthode | Description |
+|---|---|
+| `VoletNavigation` | Widget glissant affiché/masqué par un bouton hamburger. Fond sombre `#1e2124`, largeur fixe. |
+| Boutons de navigation | Un bouton par module (icône + label), hauteur 50 px. L'item actif est mis en évidence (fond bleu `#4a7fcb`, gras). |
+| Bouton "Quitter" | Style danger (texte rouge), séparé des liens de navigation. |
+| Raccourcis | `F11` / `Escape` pour basculer le plein écran depuis le volet. |
+
+---
+
 ### `src/UI/view/interface_principale.py`
 
 **Assembleur de la vue principale.** Gère le `QStackedWidget` gauche (7 pages) et le panneau de suivi droit.
@@ -250,7 +285,7 @@ data/
 |---|---|
 | `_PAGES_MODE_SPLIT` | Frozenset `{"saisie"}` — seule la page saisie affiche le panneau suivi à droite. |
 | `PlaceholderPage` | Widget générique affichant un titre et un message, utilisé pour les pages non encore implémentées. |
-| `InterfacePrincipaleWidget.__init__` | Construit les 7 pages du stack (`SaisieCommandeModule`, `StockModule`, `CarteModule`, `CommandesHistoriqueModule`, `LogsModule`, `ParametresModule`, `PostePreparationModule`) et le `SuiviCommandesModule`. Connecte les signaux inter-modules (`config_changed → refresh_all_pages`, `command_changed → refresh_all_pages`, `go_back → saisie`, etc.). Démarre sur la page **Paramètres**. |
+| `InterfacePrincipaleWidget.__init__` | Construit les 7 pages du stack (`SaisieCommandeModule`, `StockModule`, `CarteModule`, `CommandesHistoriqueModule`, `LogsModule`, `ParametresModule`, `PostePreparationModule`) et le `SuiviCommandesModule`. Intègre `VoletNavigation` en superposition. Connecte les signaux inter-modules (`config_changed → refresh_all_pages`, `command_changed → refresh_all_pages`, `go_back → saisie`, etc.). Démarre sur la page **Paramètres**. |
 | `set_left_page(page_name)` | Affiche la page demandée dans le stack, appelle `_refresh_page`, et adapte la visibilité du panneau suivi (mode split uniquement pour `"saisie"`). |
 | `refresh_all_pages()` | Rafraîchit toutes les pages du stack et le suivi (appelé sur `config_changed` ou `command_changed`). |
 | `_refresh_page(widget)` | Appelle `refresh()`, `reload_from_disk()` ou `refresh_orders()` selon ce que le widget expose. |
@@ -273,6 +308,27 @@ data/
 | `_build_plat_row(plat, style)` | Construit une ligne (type du plat + numéro de commande). |
 | `force_close()` | Arrête le timer et ferme la fenêtre définitivement (appelé par `MainWindow.closeEvent`). |
 | `closeEvent(event)` | Masque la fenêtre (fermeture manuelle) en émettant `closed`, ou la détruit si `_app_closing=True`. |
+
+---
+
+### `src/UI_prep/` — Interface allégée pour postes cuisine
+
+Module UI dédié à `app_prep.py`. N'importe aucun module de gestion (stock, historique, carte, logs, impression).
+
+#### `main_window_prep.py` — `MainWindowPrep`
+
+Fenêtre principale de l'application légère. Contient `PostePreparationModule` comme widget central et intègre `PanneauLateral`.
+
+#### `panneau_lateral.py` — `PanneauLateral`
+
+Volet de configuration minimal accessible depuis un bouton flottant.
+
+| Élément | Description |
+|---|---|
+| Sélecteur dossier data | `QFileDialog` pour pointer vers un partage réseau LAN. Rafraîchit `PostePreparationModule` instantanément. |
+| Logo MegaSnack | `QSvgWidget` affiché en en-tête du panneau. |
+| Plein écran | Bascule `showFullScreen` / `showNormal`. |
+| Quitter | Ferme proprement l'application. |
 
 ---
 
@@ -400,7 +456,7 @@ Cache mémoire des compteurs d'IDs journaliers. Persisté dans `logs/derniers_ID
 
 | Fonction | Description |
 |---|---|
-| `charger_logo(nom_image, taille)` | Charge une image PNG, la redimensionne via Pillow, composite sur fond blanc, convertit en noir/blanc 1-bit pour l'imprimante thermique. |
+| `charger_logo(nom_image, taille)` | Charge une image PNG ou **SVG** et la convertit en 1-bit pour l'imprimante thermique. SVG : conversion via `svglib.svg2rlg` + `renderPM.drawToString` (reportlab). PNG : redimensionnement Pillow. Dans les deux cas : composite sur fond blanc puis quantification en noir/blanc. |
 | `_get_printer()` | Instancie `escpos.printer.Usb` depuis la configuration (`vendor_id`, `product_id`, `interface`, `profile`). |
 | `_do_print_recap(commande, p, reprint)` | **Ticket récapitulatif client** : logo en-tête + date + N° commande (grand format) + montant + type paiement + détail de chaque plat. Si `reprint=True`, imprime tous les plats sans filtrage de statut. |
 | `_print_plat_ticket(plat, infos, p)` | **Ticket cuisine par plat** : date + ID court + composition détaillée selon le type (viandes/accompagnement pour grillade, base/ingrédients pour pizza, etc.). |
@@ -409,6 +465,18 @@ Cache mémoire des compteurs d'IDs journaliers. Persisté dans `logs/derniers_ID
 | `reprint_ticket_recap(chemin_fichier)` | Réimpression manuelle (depuis l'historique). Contourne les options d'impression automatique. Lève `RuntimeError` si l'impression échoue. |
 | `reprint_ticket_cuisine_plat(chemin_fichier, plat_id)` | Réimprime le ticket cuisine d'un seul plat identifié par son ID complet. |
 | `reprint_all_active_cuisine()` | Réimprime les tickets cuisine de tous les plats `En préparation` ou `Prêt` des commandes actives. Retourne le nombre de tickets imprimés. |
+
+---
+
+### `src/backend/update_checker.py`
+
+**Vérification des mises à jour disponibles.** Interroge l'API GitHub Releases en arrière-plan sans bloquer l'interface.
+
+| Élément | Description |
+|---|---|
+| `_GITHUB_API_URL` | URL de l'API GitHub Releases pour le dépôt `dracudar/morphoz_snackapp`. |
+| `_parse_version(v)` | Convertit `"v2.1.0"` en tuple `(2, 1, 0)` pour comparaison sémantique. |
+| `UpdateChecker(QThread)` | Thread Qt qui effectue la requête HTTP (timeout 5 s). Émet `update_available(str)` si la version distante est supérieure à `current_version`. Ne lève jamais d'exception — les erreurs réseau sont silencieusement ignorées. |
 
 ---
 
@@ -898,12 +966,13 @@ Configuration applicative (hors dossier data pour permettre la reconfiguration m
 
 ### `assets/imgs/`
 
+Les images sont désormais au format **SVG** pour une qualité optimale à toutes les résolutions et tailles d'impression.
+
 | Image | Usage |
 |---|---|
-| `En-tete ticket V1.png` | En-tête du ticket récapitulatif client (576×123 px après redimensionnement) |
-| `En-tete ticket V2.png` | Variante de l'en-tête |
-| `MegaSouye.png` | Logo événement |
-| `logo_snack.png` | Logo snack |
+| `MegaSnack.svg` | En-tête du ticket récapitulatif client + barre de navigation (rendu via `QSvgWidget` ou `svglib`) |
+| `logo_snack.svg` | Icône de la fenêtre principale et de la `QApplication` |
+| `logo_MegaSouye.svg` | Logo événement (réserve) |
 
 ---
 
@@ -915,12 +984,25 @@ Utilitaire standalone d'impression des tickets pour les repas gratuits, indépen
 
 ---
 
+### Fichiers de compilation PyInstaller
+
+| Fichier | Description |
+|---|---|
+| `morphoz_snackapp.spec` | Configuration PyInstaller pour l'application principale (`src/core/app.py`). Mode `onedir`, inclut `assets/`, `module_registry` data et hidden imports USB. |
+| `morphoz_prep.spec` | Configuration PyInstaller pour l'application légère (`src/core/app_prep.py`). Mode `onedir`, sans imports USB ni modules de gestion. |
+
+Le pipeline CI/CD (`.github/workflows/build.yml`) compile les deux applications en parallèle sur Windows et Linux à chaque tag `vX.Y.Z`, puis publie 4 archives sur la release GitHub.
+
+---
+
 ## 16. Diagramme de dépendances simplifié
 
 ```
-app.py
+app.py  (application principale)
   └── MainWindow
+        ├── UpdateChecker [update_checker.py]  ──► bannière notification
         ├── InterfacePrincipaleWidget
+        │     ├── VoletNavigation [volet_navigation.py]
         │     ├── SaisieCommandeModule
         │     │     ├── BoutonMenu · ItemRow · PaymentDialog
         │     │     ├── route_plat_selection()
@@ -943,12 +1025,19 @@ app.py
         │           └── FiltreTriLogDialog
         └── SuiviExterieurWindow  →  get_live_orders_prep()
 
+app_prep.py  (application légère postes cuisine)
+  └── MainWindowPrep [UI_prep/main_window_prep.py]
+        ├── PanneauLateral [UI_prep/panneau_lateral.py]
+        └── PostePreparationModule  →  get_live_orders_prep()
+
 Couche backend (partagée par tous les modules) :
+  version.py      ──► APP_VERSION
   app_config.py   ──► get_data_folder() · get_printer_config() · get_print_options()
   data_sources.py ──► get_card_data() · get_stock_cache() · get_live_orders() · ...
   commandes_utils.py ──► generer_ID_commande/plat() · restaurer_stock_plat() · ...
   logger.py       ──► log(evenement, details)
-  printer.py      ──► print_ticket_recap/cuisine() · reprint_*()
+  printer.py      ──► charger_logo() (PNG+SVG) · print_ticket_recap/cuisine() · reprint_*()
+  update_checker.py ──► UpdateChecker(QThread) · update_available(Signal)
 ```
 
 ---
