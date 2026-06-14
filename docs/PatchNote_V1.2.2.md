@@ -65,4 +65,3 @@ La V1.2.2 est la première version stabilisée de l'application, basée sur **Tk
 
 - Menus au format JSON (`carte_MS09.json`)
 - Dépendances : `Pillow`, `python-escpos`, `pyusb`
-- `.env` et dossier `proto/` exclus du dépôt
