@@ -55,11 +55,10 @@ L'écran de stock à onglets de la V1 est remplacé par un module complet :
 
 ### Navigation & UX
 
-- Architecture modulaire avec navigation latérale
 - L'application démarre sur la page Paramètres lors du premier lancement
 - Double bouton de navigation depuis les paramètres (Saisie / Suivi)
 - Raccourcis clavier : `F11` (plein écran), `Ctrl+Q` (quitter)
-- Icônes SVG pour le filtrage, le tri, l'impression et la sauvegarde
+- Remplacement de l'ensemble des icônes PNG par des icônes SVG pour un meilleur rendu haute résolution
 
 ---
 
