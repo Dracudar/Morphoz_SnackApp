@@ -19,17 +19,27 @@ jobs:
       - name: Installer les dépendances
         run: pip install -r requirements.txt pyinstaller
 
-      - name: Compiler avec PyInstaller
+      - name: Compiler l'app principale
         run: pyinstaller morphoz_snackapp.spec --clean --noconfirm
 
-      - name: Archiver le build Windows
+      - name: Compiler l'app préparation
+        run: pyinstaller morphoz_prep.spec --clean --noconfirm
+
+      - name: Archiver les builds Windows
         shell: pwsh
-        run: Compress-Archive -Path dist/MorphozSnackApp -DestinationPath MorphozSnackApp-windows.zip
+        run: |
+          Compress-Archive -Path dist/MorphozSnackApp -DestinationPath MorphozSnackApp-windows.zip
+          Compress-Archive -Path dist/MorphozSnackApp_prep -DestinationPath MorphozSnackApp_prep-windows.zip
 
       - uses: actions/upload-artifact@v4
         with:
-          name: build-windows
+          name: build-windows-main
           path: MorphozSnackApp-windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-windows-prep
+          path: MorphozSnackApp_prep-windows.zip
 
   build-linux:
     name: Build Linux
@@ -47,16 +57,26 @@ jobs:
       - name: Installer les dépendances Python
         run: pip install -r requirements.txt pyinstaller
 
-      - name: Compiler avec PyInstaller
+      - name: Compiler l'app principale
         run: pyinstaller morphoz_snackapp.spec --clean --noconfirm
 
-      - name: Archiver le build Linux
-        run: tar -czf MorphozSnackApp-linux.tar.gz -C dist MorphozSnackApp
+      - name: Compiler l'app préparation
+        run: pyinstaller morphoz_prep.spec --clean --noconfirm
+
+      - name: Archiver les builds Linux
+        run: |
+          tar -czf MorphozSnackApp-linux.tar.gz -C dist MorphozSnackApp
+          tar -czf MorphozSnackApp_prep-linux.tar.gz -C dist MorphozSnackApp_prep
 
       - uses: actions/upload-artifact@v4
         with:
-          name: build-linux
+          name: build-linux-main
           path: MorphozSnackApp-linux.tar.gz
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-linux-prep
+          path: MorphozSnackApp_prep-linux.tar.gz
 
   release:
     name: Créer la release GitHub
@@ -67,19 +87,29 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: build-windows
+          name: build-windows-main
 
       - uses: actions/download-artifact@v4
         with:
-          name: build-linux
+          name: build-windows-prep
 
-      - name: Publier la release avec les deux exécutables
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-linux-main
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-linux-prep
+
+      - name: Publier la release avec les quatre exécutables
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "${{ github.ref_name }}" \
             MorphozSnackApp-windows.zip \
             MorphozSnackApp-linux.tar.gz \
+            MorphozSnackApp_prep-windows.zip \
+            MorphozSnackApp_prep-linux.tar.gz \
             --repo "${{ github.repository }}" \
             --title "Release ${{ github.ref_name }}" \
             --generate-notes
