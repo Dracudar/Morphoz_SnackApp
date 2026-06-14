@@ -36,7 +36,7 @@ class MainWindow(QMainWindow):
 
         # Configuration de la fenêtre
         self.setWindowIcon(QIcon("assets/imgs/logo_snack.svg"))
-        self.setWindowTitle(f"Morphoz SnackApp v{APP_VERSION}")
+        self.setWindowTitle("Morphoz SnackApp")
         self.setGeometry(100, 100, 1200, 800)
 
         # Créer le widget central avec bannière de mise à jour
