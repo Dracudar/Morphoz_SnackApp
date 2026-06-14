@@ -1,5 +1,22 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Tests unitaires pour src/backend/app_config.py.
+test_app_config.py - Tests unitaires pour AppConfig
+
+Description:
+    Tests unitaires pour src/backend/app_config.py.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.06.12
+
+Date de modification:
+    2026.06.14
 """
 
 import json

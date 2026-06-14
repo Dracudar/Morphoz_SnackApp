@@ -1,5 +1,22 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Tests unitaires pour src/backend/commandes_utils.py.
+test_commandes_utils.py - Tests unitaires pour commandes_utils
+
+Description:
+    Tests unitaires pour src/backend/commandes_utils.py.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.06.12
+
+Date de modification:
+    2026.06.14
 """
 
 import json

@@ -1,5 +1,22 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Tests unitaires pour src/modules/stock/cache.py (StockCache).
+test_stock_cache.py - Tests unitaires pour StockCache
+
+Description:
+    Tests unitaires pour src/modules/stock/cache.py (StockCache).
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.06.12
+
+Date de modification:
+    2026.06.14
 """
 
 import json

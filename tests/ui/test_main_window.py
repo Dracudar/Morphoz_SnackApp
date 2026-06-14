@@ -1,8 +1,24 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Tests UI pour src/UI/main_window.py (MainWindow).
+test_main_window.py - Tests UI pour MainWindow
 
-Les sous-widgets lourds (InterfacePrincipaleWidget, SuiviExterieurWindow) sont
-remplacés par des faux widgets Qt pour isoler la fenêtre principale.
+Description:
+    Tests UI pour src/UI/main_window.py (MainWindow).
+    Les sous-widgets lourds (InterfacePrincipaleWidget, SuiviExterieurWindow) sont
+    remplacés par des faux widgets Qt pour isoler la fenêtre principale.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.06.12
+
+Date de modification:
+    2026.06.14
 """
 
 import pytest

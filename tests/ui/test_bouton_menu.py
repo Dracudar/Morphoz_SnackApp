@@ -1,5 +1,22 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Tests UI pour src/modules/commandes_saisie/UI/widgets/bouton_menu.py (BoutonMenu).
+test_bouton_menu.py - Tests UI pour BoutonMenu
+
+Description:
+    Tests UI pour src/modules/commandes_saisie/UI/widgets/bouton_menu.py (BoutonMenu).
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.06.12
+
+Date de modification:
+    2026.06.14
 """
 
 import pytest

@@ -11,7 +11,7 @@ Description:
     une fenêtre dédiée.
     Chaque entrée affiche : index, horodatage, catégorie, événement et détails.
 
-Auteur :
+Author :
     Dracudar
 
 Version:
@@ -19,6 +19,9 @@ Version:
 
 Date de création :
     2026.06.11
+
+Date de modification:
+    2026.06.14
 """
 
 from __future__ import annotations

@@ -1,5 +1,22 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Tests unitaires pour src/backend/logger.py.
+test_logger.py - Tests unitaires pour logger
+
+Description:
+    Tests unitaires pour src/backend/logger.py.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.06.12
+
+Date de modification:
+    2026.06.14
 """
 
 import json

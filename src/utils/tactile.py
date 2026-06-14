@@ -8,8 +8,15 @@ Description:
 
 Author :
     Dracudar
-Modified : 2026-06-13
-Version : 1.2.0
+
+Version:
+    1.2
+
+Date de création :
+    2026.06.12
+
+Date de modification:
+    2026.06.14
 """
 
 from PySide6.QtCore import Qt, QTimer, Signal

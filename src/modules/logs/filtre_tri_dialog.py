@@ -8,7 +8,7 @@ Description:
     catégorie, événement, période (date + heure) et ordre de tri.
     Trois boutons en pied de fenêtre : appliquer, annuler, remise à zéro.
 
-Auteur :
+Author :
     Dracudar
 
 Version:
@@ -16,6 +16,9 @@ Version:
 
 Date de création :
     2026.06.11
+
+Date de modification:
+    2026.06.14
 """
 
 from __future__ import annotations

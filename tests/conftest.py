@@ -1,3 +1,25 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+conftest.py - Fixtures et configuration partagées pour les tests
+
+Description:
+    Fixtures Pytest partagées entre tous les tests : réinitialisation des
+    singletons, jeux de données temporaires et contexte d'environnement.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.06.12
+
+Date de modification:
+    2026.06.14
+"""
+
 import json
 import pytest
 import src.backend.commandes_utils as commandes_utils

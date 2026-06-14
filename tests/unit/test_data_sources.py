@@ -1,5 +1,22 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Tests unitaires pour src/backend/data_sources.py.
+test_data_sources.py - Tests unitaires pour data_sources
+
+Description:
+    Tests unitaires pour src/backend/data_sources.py.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.06.12
+
+Date de modification:
+    2026.06.14
 """
 
 import json

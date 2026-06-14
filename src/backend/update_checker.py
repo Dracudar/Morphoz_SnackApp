@@ -3,7 +3,22 @@
 """
 update_checker.py - Vérification des mises à jour disponibles sur GitHub
 
-Author : Dracudar
+Description:
+    Vérifie en arrière-plan si une nouvelle version est disponible sur GitHub
+    (dépôt dracudar/morphoz_snackapp) via l'API Releases. Émet un signal
+    PySide6 avec le résultat une fois la vérification terminée.
+
+Author :
+    Dracudar
+
+Version:
+    1.0
+
+Date de création :
+    2026.06.14
+
+Date de modification:
+    2026.06.14
 """
 
 import json

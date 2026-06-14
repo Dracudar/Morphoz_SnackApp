@@ -9,8 +9,15 @@ Description:
 
 Author :
     Dracudar
-Modified : 2026-06-13
-Version : 1.0.0
+
+Version:
+    1.0
+
+Date de création :
+    2026.06.13
+
+Date de modification:
+    2026.06.14
 """
 
 from PySide6.QtCore import Qt, Signal
