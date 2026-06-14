@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    2.2
+    2.3
 
 Date de création :
     2025.06.04
 
 Date de modification:
-    2026.06.10
+    2026.06.14
 """
 
 import os
@@ -69,7 +69,7 @@ def _do_print_recap(commande: dict, p, reprint: bool = False) -> None:
     infos = commande["Informations"]
     plats = commande["Commande"]
 
-    logo = charger_logo("En-tete ticket V1.png", taille=(576, 123))
+    logo = charger_logo("MegaSnack.png", taille=(576, 123))
     p.image(logo)
 
     p.set(align='center', width=2, height=2)
