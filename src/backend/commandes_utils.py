@@ -68,8 +68,23 @@ class DerniersIDCache:
             valeur = {}
 
         valeur.setdefault("commande", 0)
-        for cle in PREFIXES_PLAT:
-            valeur.setdefault(cle, 0)
+
+        # Migration : anciennes clés par nom de type → clés par lettre
+        for type_nom, lettre in PREFIXES_PLAT.items():
+            if type_nom in valeur:
+                if lettre not in valeur:
+                    valeur[lettre] = valeur.pop(type_nom)
+                else:
+                    del valeur[type_nom]
+
+        # Nettoyer les clés par nom de type inconnues restantes (ex. "café", "mr. freeze")
+        for cle in [k for k in valeur if k != "commande" and len(k) > 1 and k == k.lower()]:
+            del valeur[cle]
+
+        # Initialiser les lettres connues
+        for lettre in PREFIXES_PLAT.values():
+            valeur.setdefault(lettre, 0)
+
         return valeur
 
     def save(self):
@@ -110,23 +125,23 @@ class DerniersIDCache:
             from src.backend.data_sources import get_card_data
             prefixe = get_card_data().get(type_plat, {}).get("Lettre_ID", "X")
 
-        self._data[cle] = self._data.get(cle, 0) + 1
+        self._data[prefixe] = self._data.get(prefixe, 0) + 1
         self.save()
-        return f"{prefixe}{self._data[cle]:03d}"
+        return f"{prefixe}{self._data[prefixe]:03d}"
 
-    def decrementer_plat(self, type_plat: str, id_plat_val: str):
+    def decrementer_plat(self, _type_plat: str, id_plat_val: str):
         """
         Décrémente le compteur du type de plat, uniquement si id_plat_val correspond
         au dernier identifiant assigné (évite les trous en cas de non-dernier plat).
         """
-        cle = type_plat.lower()
+        prefixe = id_plat_val[0] if id_plat_val else ""  # "P" depuis "P005"
         try:
             numero = int(id_plat_val[1:])  # "P005" → 5
         except (ValueError, IndexError):
             return
-        compteur = self._data.get(cle, 0)
+        compteur = self._data.get(prefixe, 0)
         if numero == compteur and compteur > 0:
-            self._data[cle] -= 1
+            self._data[prefixe] -= 1
             self.save()
 
 
