@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    1.5
+    1.6
 
 Date de création :
     2026.06.05
 
 Date de modification:
-    2026.06.13
+    2026.06.15
 """
 
 from typing import Dict, List, Optional
@@ -105,21 +105,23 @@ _RADIO_STYLE = """
     QRadioButton {
         color: #f5f5f5;
         font-size: 13px;
-        spacing: 8px;
-    }
-    QRadioButton::indicator {
-        width: 18px;
-        height: 18px;
-        border-radius: 9px;
-        border: 2px solid #b0b0b0;
+        spacing: 0px;
+        padding: 5px 14px;
+        border: 2px solid #7d8390;
+        border-radius: 14px;
         background-color: transparent;
     }
-    QRadioButton::indicator:hover {
-        border-color: #f5f5f5;
+    QRadioButton:hover {
+        border-color: #c0c0c0;
     }
-    QRadioButton::indicator:checked {
-        border: 5px solid #2f3136;
-        background-color: #f5f5f5;
+    QRadioButton:checked {
+        border-color: #f5f5f5;
+        background-color: rgba(245, 245, 245, 0.15);
+    }
+    QRadioButton::indicator {
+        width: 0px;
+        height: 0px;
+        image: none;
     }
 """
 
