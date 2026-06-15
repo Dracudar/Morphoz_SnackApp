@@ -42,8 +42,8 @@ class TestDerniersIDCacheInit:
     def test_init_vide_compteurs_a_zero(self, tmp_path):
         cache = DerniersIDCache(str(tmp_path))
         assert cache._data["commande"] == 0
-        for cle in PREFIXES_PLAT:
-            assert cache._data[cle] == 0
+        for lettre in PREFIXES_PLAT.values():
+            assert cache._data[lettre] == 0
 
     def test_init_depuis_fichier_existant(self, tmp_path):
         today = _today()
@@ -52,7 +52,7 @@ class TestDerniersIDCacheInit:
         (tmp_path / "derniers_ID.json").write_text(json.dumps(data), encoding="utf-8")
         cache = DerniersIDCache(str(tmp_path))
         assert cache._data["commande"] == 5
-        assert cache._data["pizza"] == 3
+        assert cache._data["P"] == 3
 
     def test_init_migration_ancien_format_entier(self, tmp_path):
         today = _today()
