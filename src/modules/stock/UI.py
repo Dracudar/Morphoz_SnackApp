@@ -522,7 +522,7 @@ class StockModule(QFrame):
         lyt.addWidget(suivi_chk)
 
         fichier_qty    = int(node.get("Quantité", 0) or 0)
-        stock_reel_val = (cache_qty + prep) if cache_qty is not None else None
+        stock_reel_val = (fichier_qty + prep) if has_qty else None
 
         qty_block = QWidget(content)
         qty_hbox  = QHBoxLayout(qty_block)
@@ -806,11 +806,10 @@ class StockModule(QFrame):
         if not isinstance(node, dict):
             return
         cache_node   = _resolve_path(cache_data, path) or {}
-        cache_qty    = cache_node.get("Quantité")
-        prep         = _get_prep_count(path, node, by_nom, by_plat)
-        stock_reel   = (cache_qty + prep) if cache_qty is not None else None
-
+        cache_qty   = cache_node.get("Quantité")
+        prep        = _get_prep_count(path, node, by_nom, by_plat)
         fichier_qty = int(node.get("Quantité", 0) or 0)
+        stock_reel  = (fichier_qty + prep) if "Quantité" in node else None
         self._detail_fichier_lbl.setText(str(fichier_qty))
         self._detail_cache_lbl.setText("—" if cache_qty is None else str(cache_qty))
         self._detail_prep_lbl.setText(str(prep))
