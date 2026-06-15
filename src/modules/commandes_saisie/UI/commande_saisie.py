@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    1.2
+    1.3
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.09
+    2026.06.15
 """
 
 from __future__ import annotations
@@ -477,9 +477,13 @@ class SaisieCommandeModule(QFrame):
             column = index % columns
             self.menu_grid.addWidget(button, row, column)
 
-        # Adjust scroll height
+        # Absorbe l'espace horizontal excédentaire dans une colonne fantôme à droite
+        # (widgetResizable=True étire le conteneur sur toute la largeur de l'écran)
+        self.menu_grid.setColumnStretch(columns, 1)
+
+        # Adjust scroll height — pas de cap supérieur pour ne pas tronquer les rangées
         row_count = ((len(visible_categories) - 1) // columns) + 1
-        scroll_height = min(240, max(118, 24 + (row_count * 128)))
+        scroll_height = max(118, 24 + (row_count * 128))
         self.menu_scroll.setFixedHeight(scroll_height)
 
     def _on_category_button_clicked(self, category_name: str):
