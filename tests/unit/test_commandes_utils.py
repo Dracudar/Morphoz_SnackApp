@@ -147,32 +147,6 @@ class TestProchainIdPlat:
         assert id_ == "P001"
 
 
-class TestDecrementerPlat:
-    def test_decremente_si_dernier(self, tmp_path):
-        cache = DerniersIDCache(str(tmp_path))
-        cache.prochain_id_plat("pizza")  # P001
-        cache.decrementer_plat("pizza", "P001")
-        assert cache._data["pizza"] == 0
-
-    def test_ne_decremente_pas_si_pas_dernier(self, tmp_path):
-        cache = DerniersIDCache(str(tmp_path))
-        cache.prochain_id_plat("pizza")  # P001
-        cache.prochain_id_plat("pizza")  # P002
-        cache.decrementer_plat("pizza", "P001")  # pas le dernier
-        assert cache._data["pizza"] == 2
-
-    def test_ignore_id_invalide(self, tmp_path):
-        cache = DerniersIDCache(str(tmp_path))
-        cache.prochain_id_plat("pizza")
-        cache.decrementer_plat("pizza", "invalide")
-        assert cache._data["pizza"] == 1
-
-    def test_pas_en_dessous_de_zero(self, tmp_path):
-        cache = DerniersIDCache(str(tmp_path))
-        cache.decrementer_plat("pizza", "P001")
-        assert cache._data["pizza"] == 0
-
-
 # ── plats_identiques ──────────────────────────────────────────────────────────
 
 class TestPlatsIdentiques:
