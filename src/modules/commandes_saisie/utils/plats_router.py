@@ -17,7 +17,7 @@ Author :
     Dracudar
 
 Version:
-    2.1
+    2.2
 
 Date de création :
     2026.05.31
@@ -34,6 +34,32 @@ from typing import Optional, Dict
 
 from src.backend import logger
 from src.backend.data_sources import get_card_data
+
+
+def check_disponibilite_plat(plat_name: str) -> bool:
+    """Vérifie la disponibilité stock d'un plat via check_disponibilite() de son module rooting.
+
+    Retourne True (disponible) si le module n'expose pas cette fonction ou en cas d'erreur.
+    """
+    card_data = get_card_data()
+    plat_data = card_data.get(plat_name, {})
+    module_path = _resolve_module_path(plat_name, plat_data)
+    if module_path is None:
+        return True
+    try:
+        module = importlib.import_module(module_path)
+        fn = getattr(module, "check_disponibilite", None)
+        if fn is None:
+            return True
+        return bool(fn())
+    except Exception as e:
+        logger.log(logger.ERREUR, {
+            "contexte": "check_disponibilite_plat",
+            "type_erreur": type(e).__name__,
+            "message": str(e),
+            "type_plat": plat_name,
+        })
+        return True
 
 
 def route_plat_selection(plat_name: str, context, command_path: str) -> Optional[Dict]:

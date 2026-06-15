@@ -10,7 +10,7 @@ Author :
     Dracudar
 
 Version:
-    1.4
+    1.5
 
 Date de création :
     2026.05.18
@@ -44,7 +44,7 @@ from src.backend.app_config import get_archive_folder_path, get_logs_folder_path
 from src.modules.commandes_saisie.UI.widgets.bouton_menu import BoutonMenu
 from src.modules.commandes_saisie.UI.widgets.item_row import ItemRow, extract_plat_sort_key
 from src.modules.commandes_saisie.UI.payment_dialog import PaymentDialog
-from src.modules.commandes_saisie.utils.plats_router import route_plat_selection
+from src.modules.commandes_saisie.utils.plats_router import route_plat_selection, check_disponibilite_plat
 from src.modules.commandes_saisie.backend.saver import MAJ_commande
 from src.modules.commandes_saisie.backend.gestion import (
     annuler_plat,
@@ -476,6 +476,9 @@ class SaisieCommandeModule(QFrame):
             if not category.get("enabled", True):
                 button.setEnabled(False)
                 button.setToolTip("Categorie indisponible")
+            elif not check_disponibilite_plat(label):
+                button.setEnabled(False)
+                button.setToolTip("Rupture de stock")
             else:
                 button.clicked.connect(
                     lambda _checked=False, cat=category: self._on_category_button_clicked(cat["name"])
