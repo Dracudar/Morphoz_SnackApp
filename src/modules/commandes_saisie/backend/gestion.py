@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    2.4
+    2.5
 
 Date de création :
     2026.06.02
 
 Date de modification:
-    2026.06.10
+    2026.06.15
 """
 
 import os
@@ -25,7 +25,6 @@ from datetime import datetime
 from ....backend.commandes_utils import (
     charger_fichier_commande,
     decrementer_ID_commande,
-    decrementer_ID_plat,
     get_id_cache,
     restaurer_stock_plat,
     log_stock_restauration,
@@ -153,8 +152,6 @@ def annuler_plat(chemin_fichier, plat_id):
         id_commande = commande_data["Informations"]["ID"]
         restaurer_stock_plat(plat)
         log_stock_restauration(plat, id_commande)
-        # La clé IS déjà le type part (ex: "P030") — pas besoin de l'extraire de l'ID
-        decrementer_ID_plat(plat.get("Plat", ""), plat_key)
 
         logger.log(logger.ANNULATION_PLAT, {
             "id_commande": id_commande,
@@ -226,14 +223,10 @@ def annuler_all_plats(chemin_fichier):
     if statut_commande == "En saisie":
         id_commande = commande_data["Informations"]["ID"]
         nb_plats = len(commande_data["Commande"])
-        # Traitement en ordre inverse (tri alpha-numérique décroissant) pour maximiser
-        # les décrémentations consécutives et éviter les trous
-        for plat_key in sorted(commande_data["Commande"], reverse=True):
-            plat = commande_data["Commande"][plat_key]
+        for plat_key, plat in commande_data["Commande"].items():
             if plat["Statut"] == "En attente":
                 restaurer_stock_plat(plat)
                 log_stock_restauration(plat, id_commande)
-                decrementer_ID_plat(plat.get("Plat", ""), plat_key)
 
         logger.log(logger.ANNULATION_COMMANDE, {
             "id_commande": id_commande,

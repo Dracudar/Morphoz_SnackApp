@@ -13,7 +13,7 @@ Author :
     Dracudar
 
 Version:
-    3.3
+    3.4
 
 Date de création :
     2025.05.31
@@ -129,20 +129,6 @@ class DerniersIDCache:
         self.save()
         return f"{prefixe}{self._data[prefixe]:03d}"
 
-    def decrementer_plat(self, _type_plat: str, id_plat_val: str):
-        """
-        Décrémente le compteur du type de plat, uniquement si id_plat_val correspond
-        au dernier identifiant assigné (évite les trous en cas de non-dernier plat).
-        """
-        prefixe = id_plat_val[0] if id_plat_val else ""  # "P" depuis "P005"
-        try:
-            numero = int(id_plat_val[1:])  # "P005" → 5
-        except (ValueError, IndexError):
-            return
-        compteur = self._data.get(prefixe, 0)
-        if numero == compteur and compteur > 0:
-            self._data[prefixe] -= 1
-            self.save()
 
 
 # ── Singleton ──────────────────────────────────────────────────────────────────
@@ -178,11 +164,6 @@ def generer_ID_plat(type_plat: str, logs_path=None) -> str:
 def decrementer_ID_commande(logs_path=None):
     """Décrémente le compteur commande (annulation en saisie, non persisté)."""
     get_id_cache().decrementer_commande()
-
-
-def decrementer_ID_plat(type_plat: str, id_plat_val: str, logs_path=None):
-    """Décrémente le compteur d'un type de plat si c'est le dernier assigné."""
-    get_id_cache().decrementer_plat(type_plat, id_plat_val)
 
 
 # ── Utilitaires stock et annulation ───────────────────────────────────────────
