@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from src.core.version import APP_VERSION
 from src.modules.commandes_poste_preparation.UI.poste_preparation import PostePreparationModule
 from src.UI.view.volet_navigation import OverlayFermeture
 from src.UI_prep.panneau_lateral import VoletPrep
@@ -44,7 +45,7 @@ class MainWindowPrep(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Morphoz SnackApp — Poste de préparation")
+        self.setWindowTitle(f"Morphoz SnackApp v{APP_VERSION} — Poste de préparation")
         self.setWindowIcon(QIcon("assets/imgs/logo_snack.svg"))
         self.setGeometry(100, 100, 1200, 800)
 
