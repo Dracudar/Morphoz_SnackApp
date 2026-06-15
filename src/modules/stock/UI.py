@@ -1153,8 +1153,9 @@ class StockModule(QFrame):
         if not isinstance(node, dict):
             return
 
-        en_prepa    = _get_prep_count(path, node, by_nom, by_plat)
-        new_fichier = max(0, stock_reel_saisi - en_prepa)
+        en_prepa       = _get_prep_count(path, node, by_nom, by_plat)
+        fichier_before = int(node.get("Quantité", 0) or 0)
+        new_fichier    = max(0, stock_reel_saisi - en_prepa)
 
         # Mettre à jour le nœud
         node["Quantité"] = new_fichier
@@ -1167,10 +1168,14 @@ class StockModule(QFrame):
             QMessageBox.critical(self, "Stock", "Impossible d'enregistrer le stock.")
             return
 
-        # Mettre à jour le cache en mémoire pour cohérence immédiate
+        # Mettre à jour le cache en mémoire en préservant les déductions de saisie en cours
         cache_obj = get_stock_cache()
         if cache_obj is not None:
-            cache_obj.set_quantite(path, new_fichier)
+            cache_node_before = _resolve_path(cache_obj.data, path) or {}
+            cache_before      = cache_node_before.get("Quantité")
+            saisie_delta      = max(0, fichier_before - (cache_before if cache_before is not None else fichier_before))
+            new_cache         = max(0, new_fichier - saisie_delta)
+            cache_obj.set_quantite(path, new_cache)
 
         logger.log(logger.MODIFICATION_STOCK_MANUELLE, {
             "action":            "mise_a_jour_stock_reel",
