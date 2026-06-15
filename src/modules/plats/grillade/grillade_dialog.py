@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    1.2
+    1.3
 
 Date de création :
     2026.06.06
 
 Date de modification:
-    2026.06.06
+    2026.06.15
 """
 
 from typing import Dict, Optional
@@ -27,6 +27,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QButtonGroup,
     QDialog,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -240,63 +241,66 @@ class GrilladeDialog(QDialog):
     # ──────────────────────────────── Lignes de viandes ───────────────────────
 
     def _build_viandes_rows(self) -> QWidget:
-        """Construit les lignes [Nom] [−] [Quantité] [+] pour chaque viande."""
-        container = QWidget()
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        """Construit les lignes [Nom] [stretch] [−] [Quantité] [+] pour chaque viande.
 
-        for viande, data in self.grillades_stock.items():
+        Colonnes du QGridLayout :
+            0 : nom de la viande
+            1 : espace flexible (stretch) — "Dernier !" s'y loge, aligné à droite
+            2 : bouton "−"  /  "Hors stock" centré sur cols 2-4
+            3 : label quantité
+            4 : bouton "+" (ancré au bord droit pour toutes les lignes)
+        """
+        container = QWidget()
+        layout = QGridLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setVerticalSpacing(8)
+        layout.setHorizontalSpacing(8)
+        layout.setColumnStretch(1, 1)
+
+        for row_idx, (viande, data) in enumerate(self.grillades_stock.items()):
             out_of_stock = data.get("OutOfStock", False)
             quantite_stock = data.get("Quantité", 0)
 
-            row = QHBoxLayout()
-            row.setSpacing(8)
-
-            # Nom de la viande
+            # Colonne 0 : nom de la viande
             name_lbl = QLabel(viande)
             name_lbl.setStyleSheet(_VIANDE_NAME_STYLE)
-            name_lbl.setMinimumWidth(130)
-            row.addWidget(name_lbl)
+            layout.addWidget(name_lbl, row_idx, 0)
 
             if out_of_stock or quantite_stock == 0:
-                # Viande indisponible : afficher le label directement
+                # Colonnes 2-4 : "Hors stock" centré sur la zone des boutons
                 oos_lbl = QLabel("Hors stock")
                 oos_lbl.setStyleSheet("font-size: 11px; color: #e07070; font-style: italic;")
-                row.addWidget(oos_lbl)
-                row.addStretch()
+                oos_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                layout.addWidget(oos_lbl, row_idx, 2, 1, 3)
             else:
-                row.addStretch()
+                # Colonne 1 : "Dernier !" dans l'espace flexible, aligné à droite des boutons
+                if quantite_stock == 1:
+                    last_lbl = QLabel("Dernier !")
+                    last_lbl.setStyleSheet(_LAST_STOCK_STYLE)
+                    last_lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+                    layout.addWidget(last_lbl, row_idx, 1)
 
-                # Bouton "−"
+                # Colonne 2 : bouton "−"
                 btn_moins = QPushButton("−")
                 btn_moins.setStyleSheet(_COUNTER_BTN_STYLE)
                 btn_moins.setEnabled(False)
                 btn_moins.clicked.connect(lambda _, v=viande: self._ajuster(v, -1))
-                row.addWidget(btn_moins)
+                layout.addWidget(btn_moins, row_idx, 2)
                 self._btn_moins[viande] = btn_moins
 
-                # Label quantité
+                # Colonne 3 : label quantité
                 qtl_lbl = QLabel("0")
                 qtl_lbl.setStyleSheet(_QUANTITE_STYLE)
                 qtl_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                row.addWidget(qtl_lbl)
+                layout.addWidget(qtl_lbl, row_idx, 3)
                 self._qtl_labels[viande] = qtl_lbl
 
-                # Bouton "+"
+                # Colonne 4 : bouton "+"
                 btn_plus = QPushButton("+")
                 btn_plus.setStyleSheet(_COUNTER_BTN_STYLE)
                 btn_plus.clicked.connect(lambda _, v=viande: self._ajuster(v, 1))
-                row.addWidget(btn_plus)
+                layout.addWidget(btn_plus, row_idx, 4)
                 self._btn_plus[viande] = btn_plus
-
-                # Avertissement "Dernier !" si stock = 1
-                if quantite_stock == 1:
-                    last_lbl = QLabel("Dernier !")
-                    last_lbl.setStyleSheet(_LAST_STOCK_STYLE)
-                    row.addWidget(last_lbl)
-
-            layout.addLayout(row)
 
         return container
 
