@@ -17,7 +17,7 @@ Author :
     Dracudar
 
 Version:
-    2.0
+    2.1
 
 Date de création :
     2026.05.31
@@ -89,8 +89,11 @@ def _resolve_module_path(plat_name: str, plat_data: Dict) -> Optional[str]:
     # 2. Découverte automatique par slug normalisé
     slug = _to_slug(plat_name)
     candidate = f"src.modules.plats.{slug}.rooting"
-    if importlib.util.find_spec(candidate) is not None:
-        return candidate
+    try:
+        if importlib.util.find_spec(candidate) is not None:
+            return candidate
+    except ModuleNotFoundError:
+        pass
 
     return None
 

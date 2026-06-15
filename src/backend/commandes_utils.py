@@ -13,13 +13,13 @@ Author :
     Dracudar
 
 Version:
-    3.2
+    3.3
 
 Date de création :
     2025.05.31
 
 Date de modification:
-    2026.06.09
+    2026.06.15
 """
 
 import os
@@ -96,9 +96,20 @@ class DerniersIDCache:
     # ── Plats ─────────────────────────────────────────────────────────────────
 
     def prochain_id_plat(self, type_plat: str) -> str:
-        """Incrémente le compteur du type de plat, le persiste et retourne l'ID (ex: P001)."""
+        """Incrémente le compteur du type de plat, le persiste et retourne l'ID (ex: P001).
+
+        Résolution du préfixe :
+        1. PREFIXES_PLAT (plats historiques codés en dur)
+        2. Champ "Lettre_ID" dans la carte active (nouveaux plats sans code)
+        3. Repli sur "X" si rien n'est défini
+        """
         cle = type_plat.lower()
-        prefixe = PREFIXES_PLAT.get(cle, "X")
+        prefixe = PREFIXES_PLAT.get(cle)
+
+        if prefixe is None:
+            from src.backend.data_sources import get_card_data
+            prefixe = get_card_data().get(type_plat, {}).get("Lettre_ID", "X")
+
         self._data[cle] = self._data.get(cle, 0) + 1
         self.save()
         return f"{prefixe}{self._data[cle]:03d}"
