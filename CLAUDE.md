@@ -131,6 +131,7 @@ Chaque module métier est réparti par fonctionnalité plutôt que regroupé dan
 - `src/UI/<module>/` pour les composants visuels (widget principal exposant `refresh()` ou `reload_from_disk()`, dialogues, sous-widgets).
 - `src/backend/<module>/` pour la logique métier correspondante, quand elle existe (ex. `src/backend/saisie/`, `src/backend/suivi/`).
 - La navigation (volet latéral) est une liste statique (`_ITEMS_NAV` dans `src/UI/view/volet_navigation.py`), et `InterfacePrincipaleWidget` instancie explicitement chaque module — pas de découverte dynamique pour ces modules-là (à la différence des plats, voir ci-dessous).
+- Pour les widgets volumineux à état partagé (`StockModule`, `CommandesHistoriqueModule`), les méthodes de construction sont réparties dans des mixins importés depuis des fichiers séparés (ex. `src/UI/stock/vue_liste.py`, `src/UI/stock/formulaire_edition.py`) ; la classe finale hérite de `QFrame` et de ces mixins, le fichier `*_module.py` ne gardant que l'assemblage (`__init__`, `_build_ui`, rafraîchissement).
 
 ### Personnalisation des plats (`src/modules_plats/`)
 
