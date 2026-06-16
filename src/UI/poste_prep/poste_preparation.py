@@ -34,7 +34,7 @@ from PySide6.QtWidgets import (
 
 from src.utils.tactile import ScrollAreaTactile
 from src.backend.data_sources import get_live_orders_prep
-from src.modules.commandes_poste_preparation.UI.widgets.carte_plat import CartePlatWidget
+from src.UI.poste_prep.widgets.carte_plat import CartePlatWidget
 
 _ALL_TYPES = ["Pizza", "Grillade", "Frites", "Salade composée", "Crêpe"]
 _COLUMNS   = 4  # colonnes en grille (adapté à l'écran 10")

@@ -4,7 +4,7 @@
 test_bouton_menu.py - Tests UI pour BoutonMenu
 
 Description:
-    Tests UI pour src/modules/commandes_saisie/UI/widgets/bouton_menu.py (BoutonMenu).
+    Tests UI pour src/UI/saisie/widgets/bouton_menu.py (BoutonMenu).
 
 Author :
     Dracudar
@@ -24,7 +24,7 @@ from unittest.mock import patch
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel
 
-from src.modules.commandes_saisie.UI.widgets.bouton_menu import BoutonMenu
+from src.UI.saisie.widgets.bouton_menu import BoutonMenu
 
 
 @pytest.fixture

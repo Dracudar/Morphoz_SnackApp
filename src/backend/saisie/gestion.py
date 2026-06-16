@@ -22,16 +22,16 @@ Date de modification:
 import os
 import json
 from datetime import datetime
-from ....backend.commandes_utils import (
+from src.backend.commandes_utils import (
     charger_fichier_commande,
     decrementer_ID_commande,
     get_id_cache,
     restaurer_stock_plat,
     log_stock_restauration,
 )
-from ....backend.printer import print_ticket_recap, print_ticket_cuisine
-from ....backend.data_sources import get_stock_cache
-from ....backend import logger
+from src.backend.printer import print_ticket_recap, print_ticket_cuisine
+from src.backend.data_sources import get_stock_cache
+from src.backend import logger
 
 
 def set_prioritaire(chemin_fichier: str, valeur: bool):

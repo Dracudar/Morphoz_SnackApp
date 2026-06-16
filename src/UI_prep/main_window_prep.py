@@ -34,7 +34,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from src.modules.commandes_poste_preparation.UI.poste_preparation import PostePreparationModule
+from src.UI.poste_prep.poste_preparation import PostePreparationModule
 from src.UI.view.volet_navigation import OverlayFermeture
 from src.UI_prep.panneau_lateral import VoletPrep
 

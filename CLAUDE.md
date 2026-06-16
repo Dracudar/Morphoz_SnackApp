@@ -114,12 +114,12 @@ SuiviExterieurWindow (QDialog)  — fenêtre secondaire affichage client
 3. Les changements inter-modules passent par des signaux PySide6 (`Signal()`), notamment `command_changed` et `config_changed`.
 4. Les commandes transitent par des états : brouillon (racine de `commandes/`) → `en_cours/` → `terminee/` ou `annulee/`.
 
-### Modules (`src/modules/`)
+### Modules (`src/UI/` et `src/backend/`)
 
-Chaque module suit le même schéma :
-- Un widget QWidget/QFrame principal exposant `refresh()` ou `reload_from_disk()`.
-- Un sous-dossier `UI/` pour les composants visuels et, si nécessaire, un sous-dossier `backend/` pour la logique métier.
-- `module_registry.py` découvre dynamiquement les modules via un fichier `module.py` optionnel dans chaque dossier.
+Chaque module métier est réparti par fonctionnalité plutôt que regroupé dans un dossier unique :
+- `src/UI/<module>/` pour les composants visuels (widget principal exposant `refresh()` ou `reload_from_disk()`, dialogues, sous-widgets).
+- `src/backend/<module>/` pour la logique métier correspondante, quand elle existe (ex. `src/backend/saisie/`, `src/backend/suivi/`).
+- La navigation (volet latéral) est une liste statique (`_ITEMS_NAV` dans `src/UI/view/volet_navigation.py`), et `InterfacePrincipaleWidget` instancie explicitement chaque module — pas de découverte dynamique pour ces modules-là (à la différence des plats, voir ci-dessous).
 
 ### Personnalisation des plats (`src/modules_plats/`)
 

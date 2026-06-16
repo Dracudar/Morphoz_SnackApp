@@ -17,8 +17,8 @@ a = Analysis(
     datas=[
         # Ressources graphiques (icônes, images)
         ("assets", "assets"),
-        # Fichiers descripteurs et icônes des modules (chargés par module_registry)
-        ("src/modules", "src/modules"),
+        # Icônes des types de plats (résolues par chemin relatif depuis bouton_menu.py / data_sources.py)
+        ("src/modules_plats", "src/modules_plats"),
     ],
     hiddenimports=[
         # Backends libusb chargés dynamiquement par pyusb

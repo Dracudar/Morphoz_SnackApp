@@ -41,12 +41,12 @@ from PySide6.QtWidgets import (
 from src.utils.tactile import ScrollAreaTactile
 from src.backend.data_sources import get_draft_orders, get_menu_categories
 from src.backend.app_config import get_archive_folder_path, get_logs_folder_path
-from src.modules.commandes_saisie.UI.widgets.bouton_menu import BoutonMenu
-from src.modules.commandes_saisie.UI.widgets.item_row import ItemRow, extract_plat_sort_key
-from src.modules.commandes_saisie.UI.payment_dialog import PaymentDialog
-from src.modules.commandes_saisie.utils.plats_router import route_plat_selection, check_disponibilite_plat
-from src.modules.commandes_saisie.backend.saver import MAJ_commande
-from src.modules.commandes_saisie.backend.gestion import (
+from src.UI.saisie.widgets.bouton_menu import BoutonMenu
+from src.UI.saisie.widgets.item_row import ItemRow, extract_plat_sort_key
+from src.UI.saisie.payment_dialog import PaymentDialog
+from src.UI.saisie.utils.plats_router import route_plat_selection, check_disponibilite_plat
+from src.backend.saisie.saver import MAJ_commande
+from src.backend.saisie.gestion import (
     annuler_plat,
     annuler_all_plats,
     set_prioritaire,
@@ -75,7 +75,7 @@ def _make_cancel_icon(size: int = 26) -> QIcon:
     return icon
 
 
-from src.modules.commandes_saisie.backend.paiements import (
+from src.backend.saisie.paiements import (
     paiement_carte,
     paiement_especes,
     gratuit,

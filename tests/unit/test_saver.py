@@ -4,7 +4,7 @@
 test_saver.py - Tests unitaires pour saver
 
 Description:
-    Tests unitaires pour src/modules/commandes_saisie/backend/saver.py.
+    Tests unitaires pour src/backend/saisie/saver.py.
 
 Author :
     Dracudar
@@ -23,7 +23,7 @@ import json
 import pytest
 from collections import OrderedDict
 
-from src.modules.commandes_saisie.backend.saver import (
+from src.backend.saisie.saver import (
     _sort_key_plat,
     creer_dict_plat,
     initialiser_dossiers_commandes,

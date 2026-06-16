@@ -45,7 +45,7 @@ from PySide6.QtWidgets import (
 
 from src.utils.tactile import ScrollAreaTactile
 from src.backend.app_config import get_logs_folder_path
-from src.modules.logs.filtre_tri_dialog import FILTERS_DEFAULT, FiltreTriLogDialog
+from src.UI.logs.filtre_tri_dialog import FILTERS_DEFAULT, FiltreTriLogDialog
 
 
 # ── Palette (identique à l'historique) ───────────────────────────────────────
@@ -340,7 +340,7 @@ class LogsModule(QFrame):
             parts.append(f"{from_str} → {to_str}")
         tri = f.get("tri", "timestamp_desc")
         if tri and tri != "timestamp_desc":
-            from src.modules.logs.filtre_tri_dialog import TRI_OPTIONS
+            from src.UI.logs.filtre_tri_dialog import TRI_OPTIONS
             label = next((lbl for lbl, k in TRI_OPTIONS if k == tri), tri)
             parts.append(f"Tri : {label}")
         return "  ·  ".join(parts)

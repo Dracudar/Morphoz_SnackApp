@@ -35,14 +35,14 @@ from PySide6.QtWidgets import (
 _PAGES_MODE_SPLIT = frozenset({"saisie"})
 
 
-from src.modules.carte.UI import CarteModule
-from src.modules.commandes_historique.UI import CommandesHistoriqueModule
-from src.modules.commandes_poste_preparation.UI.poste_preparation import PostePreparationModule
-from src.modules.commandes_saisie.UI.commande_saisie import SaisieCommandeModule
-from src.modules.commandes_suivi.UI.UI import SuiviCommandesModule
-from src.modules.logs.UI import LogsModule
-from src.modules.parametres.UI import ParametresModule
-from src.modules.stock.UI import StockModule
+from src.UI.carte.carte_module import CarteModule
+from src.UI.historique.historique_module import CommandesHistoriqueModule
+from src.UI.poste_prep.poste_preparation import PostePreparationModule
+from src.UI.saisie.commande_saisie import SaisieCommandeModule
+from src.UI.suivi.suivi_module import SuiviCommandesModule
+from src.UI.logs.logs_module import LogsModule
+from src.UI.parametres.parametres_module import ParametresModule
+from src.UI.stock.stock_module import StockModule
 from src.UI.view.volet_navigation import OverlayFermeture, VoletNavigation
 
 

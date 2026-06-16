@@ -35,7 +35,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from src.modules.commandes_suivi.backend.commandes_suivi_gestion import livrer_plat, plat_prêt
+from src.backend.suivi.commandes_suivi_gestion import livrer_plat, plat_prêt
 from src.utils.tactile import BoutonTactile, ScrollAreaTactile
 
 # ── Dimensions ────────────────────────────────────────────────────────────────

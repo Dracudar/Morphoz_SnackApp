@@ -21,7 +21,7 @@ Date de modification:
 
 import json
 from src.backend.commandes_utils import charger_fichier_commande
-from src.modules.commandes_saisie.backend.gestion import valider_commande
+from src.backend.saisie.gestion import valider_commande
 
 
 def paiement_carte(chemin_fichier):
