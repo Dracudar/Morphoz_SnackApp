@@ -75,7 +75,7 @@ Morphoz_SnackApp/
 │   └── imgs/                               # Images vectorielles (logos SVG)
 │       ├── MegaSnack.svg                   # En-tête ticket + barre de navigation
 │       ├── logo_snack.svg                  # Icône de l'application
-│       └── logo_MegaSouye.svg             # Logo événement
+│       └── logo_MegaSouye.svg              # Logo événement
 │
 ├── src/
 │   ├── core/
@@ -93,7 +93,7 @@ Morphoz_SnackApp/
 │   │
 │   ├── UI_prep/
 │   │   ├── main_window_prep.py             # Fenêtre principale de l'application légère
-│   │   └── panneau_lateral.py             # Volet de configuration (dossier data, plein écran)
+│   │   └── panneau_lateral.py              # Volet de configuration (dossier data, plein écran)
 │   │
 │   ├── backend/
 │   │   ├── app_config.py                   # Gestion de la configuration (dossier, imprimante, options)
@@ -101,7 +101,10 @@ Morphoz_SnackApp/
 │   │   ├── data_sources.py                 # Chargement/sauvegarde centralisé (carte, stock, commandes)
 │   │   ├── logger.py                       # Journal d'événements (JSON Lines, fichier quotidien)
 │   │   ├── printer.py                      # Impression des tickets (ESC-POS, USB, PNG+SVG)
-│   │   └── update_checker.py              # Vérification mises à jour GitHub (QThread)
+│   │   └── update_checker.py               # Vérification mises à jour GitHub (QThread)
+│   │
+│   ├── utils/
+│   │   └── tactile.py                      # Composants Qt tactiles (ScrollAreaTactile, BoutonTactile, EnTeteCliquable)
 │   │
 │   └── modules/
 │       ├── commandes_saisie/               # Saisie des commandes (UI + backend + dialogue paiement)
@@ -166,7 +169,7 @@ Projet open-source sous licence MIT.
   </tr>
   <tr>
     <td>2.1.0</td>
-    <td><em>en cours</em></td>
+    <td><em>16/06/2026</em></td>
     <td>Navigation tactile (volet latéral), logos SVG, application légère postes cuisine, compilation PyInstaller multi-plateforme, vérificateur de mises à jour</td>
   </tr>
 </table>

@@ -14,6 +14,7 @@
 5. [Couche `core`](#5-couche-core)
 6. [Couche `UI`](#6-couche-ui)
 7. [Couche `backend`](#7-couche-backend)
+   - 7.bis [`src/utils/`](#7bis-srcutils)
 8. [Modules métier](#8-modules-métier)
    - 8.1 [commandes\_saisie](#81-commandes_saisie)
    - 8.2 [commandes\_suivi](#82-commandes_suivi)
@@ -160,8 +161,8 @@ data/
     "ID": "20260612-007",
     "Date de création": ["12/06/2026", "14:32"],
     "Date de validation": ["12/06/2026", "14:35"],
-    "Date de livraison": ["12/06/2026", "14:50"],
-    "Statut": "En cours",
+    "Date de finalisation": ["12/06/2026", "14:50"],
+    "Statut": "Terminée",
     "Montant": 12.50,
     "Devise": "EUR",
     "Type de paiement": "Carte",
@@ -175,8 +176,8 @@ data/
       "Recette": "4 Fromages",
       "Nom": "Pizza 4 Fromages — Base blanche",
       "Date de mise en livraison": ["12/06/2026", "14:48"],
-      "Date de livraison": ["", ""],
-      "Statut": "Prêt",
+      "Date de livraison": ["12/06/2026", "14:50"],
+      "Statut": "Livré",
       "Prix": 8.50,
       "Composition": {
         "Base": "Crème fraîche",
@@ -298,11 +299,11 @@ data/
 
 | Élément / Méthode | Description |
 |---|---|
-| `_MAX_EN_PREP_PAR_TYPE = 2` | Constante limitant l'affichage à 2 plats par type dans la section "En préparation". |
+| `_MAX_EN_PREP_PAR_TYPE = 3` | Constante limitant l'affichage à 3 plats par type dans la section "En préparation". |
 | `SuiviExterieurWindow.__init__` | Construit l'UI, configure les raccourcis F11/Escape, démarre un timer de 3 secondes et appelle `refresh()`. |
 | `_build_ui()` | Crée un scroll area avec deux sections (Prêts / En préparation). |
 | `_build_timer()` | Timer toutes les 3 s → `refresh()`. |
-| `refresh()` | Recharge les plats via `get_live_orders_prep()`, sépare Prêts / En préparation, regroupe par type (max 2 par type), reconstruit l'affichage. |
+| `refresh()` | Recharge les plats via `get_live_orders_prep()`, sépare Prêts / En préparation, regroupe par type (max 3 par type), reconstruit l'affichage. |
 | `_build_section_prêts(prêts)` | Construit le cadre vert "✓ Prêts à récupérer" avec la liste des plats. |
 | `_build_section_prep(prep_par_type)` | Construit le cadre orange "⏳ En préparation" avec les plats groupés par type. |
 | `_build_plat_row(plat, style)` | Construit une ligne (type du plat + numéro de commande). |
@@ -401,12 +402,11 @@ Cache mémoire des compteurs d'IDs journaliers. Persisté dans `logs/derniers_ID
 | Attribut / Méthode | Description |
 |---|---|
 | `_FILENAME = "derniers_ID.json"` | Nom du fichier de persistance. Supporte la migration depuis l'ancien `dernier_id.json`. |
-| `__init__(logs_path)` | Initialise les compteurs (`commande`, `pizza`, `grillade`, `frites`, `salade composée`, `crêpe`) à 0 ou depuis le fichier existant. Gère la migration de l'ancien format entier `{"20260606": 8}` vers `{"20260606": {"commande": 8, ...}}`. |
+| `__init__(logs_path)` | Charge les compteurs depuis le fichier existant. Les compteurs de plats sont indexés par lettre (`"P"`, `"G"`, `"F"`, `"S"`, `"C"`) depuis la migration, pas par nom de type. Gère deux migrations transparentes : ancien format entier `{"20260606": 8}` → `{"commande": N, ...}` ; anciennes clés par nom (`"pizza"`) → clés par lettre (`"P"`). |
 | `save()` | Persiste les compteurs sur disque. |
 | `prochain_id_commande()` | Incrémente le compteur commande, persiste et retourne `"YYYYMMDD-NNN"`. |
 | `decrementer_commande()` | Décrémente le compteur commande (annulation d'une commande en saisie). |
-| `prochain_id_plat(type_plat)` | Incrémente le compteur du type, persiste et retourne `"X000"` (ex. `"P001"`). |
-| `decrementer_plat(type_plat, id_plat_val)` | Décrémente uniquement si `id_plat_val` est le **dernier** ID assigné pour ce type (évite les trous). |
+| `prochain_id_plat(type_plat)` | Incrémente le compteur du type, persiste et retourne `"X000"` (ex. `"P001"`). Résout le préfixe depuis `PREFIXES_PLAT`, puis `Lettre_ID` dans la carte active, puis `"X"` en repli. |
 
 #### Fonctions utilitaires
 
@@ -416,7 +416,6 @@ Cache mémoire des compteurs d'IDs journaliers. Persisté dans `logs/derniers_ID
 | `generer_ID_commande()` | Délègue à `get_id_cache().prochain_id_commande()`. |
 | `generer_ID_plat(type_plat)` | Délègue à `get_id_cache().prochain_id_plat()`. |
 | `decrementer_ID_commande()` | Délègue à `get_id_cache().decrementer_commande()`. |
-| `decrementer_ID_plat(type_plat, id_plat_val)` | Délègue à `get_id_cache().decrementer_plat()`. |
 | `restaurer_stock_plat(plat)` | Restitue dans le cache stock les quantités consommées par un plat annulé (Pizza : +1 pâte ; Grillade : +N pour chaque viande). |
 | `log_stock_restauration(plat, id_commande)` | Journalise la restauration automatique de stock dans le log `MODIFICATION_CACHE_STOCK`. |
 | `plats_identiques(plat_ref, plat_candidat)` | Vérifie l'égalité stricte type + recette + nom + composition entre deux plats. |
@@ -480,6 +479,22 @@ Cache mémoire des compteurs d'IDs journaliers. Persisté dans `logs/derniers_ID
 
 ---
 
+## 7.bis `src/utils/`
+
+Composants Qt réutilisables partagés entre plusieurs modules UI.
+
+### `src/utils/tactile.py`
+
+| Classe | Description |
+|---|---|
+| `ScrollAreaTactile` | `QScrollArea` avec défilement cinétique tactile (geste `TouchGesture` via `QScroller`), scrollbars masquées. Expose `est_en_scroll()` pour que les boutons enfants détectent un scroll en cours. Propriétés `QScrollerProperties` ajustées (`DecelerationFactor`, `MinimumVelocity`). |
+| `BoutonTactile` | `QPushButton` qui bloque l'événement `mouseReleaseEvent` si sa `ScrollAreaTactile` parente est en cours de défilement — évite les activations involontaires au scroll. Fonctionne pour les boutons checkables et les boutons d'action. |
+| `EnTeteCliquable` | `QFrame` d'en-tête cliquable sur toute sa largeur. Émet `clicked()` au relâchement sauf si une `ScrollAreaTactile` englobante est en train de défiler. Hauteur minimale 44 px (recommandation tactile). |
+
+`BoutonIngredientTactile` est conservé comme alias de `BoutonTactile` pour la rétrocompatibilité interne.
+
+---
+
 ## 8. Modules métier
 
 ### 8.1 `commandes_saisie`
@@ -529,8 +544,8 @@ Dialogue modal de sélection du mode de paiement. Émet `payment_selected(str)` 
 | `set_prioritaire(chemin, valeur)` | Met `Informations.Prioritaire` à `True`/`False` dans le JSON de commande. |
 | `valider_commande(chemin)` | Enregistre la date de validation, appelle l'impression, passe les plats "En attente" → "En préparation", persiste le cache stock et les IDs, déplace le fichier vers `en_cours/`. |
 | `annuler_commande(chemin)` | Pour une commande validée : marque "Annulée" si tous les plats sont annulés, déplace vers `annulee/`. |
-| `annuler_plat(chemin, plat_id)` | **Branche saisie** (statut "En saisie" + plat "En attente") : restaure le stock, décrémente l'ID, supprime la clé du plat. Si la commande est vide, supprime le fichier et décrémente l'ID commande. **Branche validée** : marque "Annulé" avec horodatage, restaure le stock si "En préparation", appelle `annuler_commande()`. |
-| `annuler_all_plats(chemin)` | Annule tous les plats. En saisie : traitement en ordre inverse pour maximiser les décrémentations consécutives, puis suppression du fichier. Validée : appelle `annuler_plat` pour chaque plat. |
+| `annuler_plat(chemin, plat_id)` | **Branche saisie** (statut "En saisie" + plat "En attente") : restaure le stock, supprime la clé du plat. Si la commande est vide, supprime le fichier et décrémente l'ID commande. **Branche validée** : marque "Annulé" avec horodatage `Date d'annulation`, restaure le stock si "En attente" ou "En préparation", appelle `annuler_commande()`. |
+| `annuler_all_plats(chemin)` | Annule tous les plats. En saisie : restaure le stock de chaque plat, supprime le fichier et décrémente l'ID commande. Validée : appelle `annuler_plat` pour chaque plat. |
 
 #### `backend/saver.py`
 
@@ -587,7 +602,7 @@ Gestion des transitions de statut pour les commandes validées.
 | `_transferer_pret(plat_data, chemin_source)` | Tente de transférer "Prêt" vers un plat identique "En préparation" (via `trouver_candidat_transfert`). Retourne `True` si transfert effectué. |
 | `annuler_plat_valide(chemin, plat_id)` | Annulation d'un plat post-validation selon son statut : "En préparation" → restaure stock + "Annulé" ; "Prêt" → tente transfert ou "Non livré" ; autre → "Annulé". Appelle `_finaliser_apres_annulation`. |
 | `annuler_commande_complete(chemin)` | Annule tous les plats actifs d'une commande validée en appliquant la logique unitaire. |
-| `_finaliser_apres_annulation(chemin)` | Si tous les plats sont en état terminal : "Annulée" si tous Annulés, "Terminée" sinon. |
+| `_finaliser_apres_annulation(chemin)` | Si tous les plats sont en état terminal : "Annulée" (avec horodatage `Date d'annulation`) si tous Annulés, "Terminée" (via `terminer_commande`) sinon. |
 
 ---
 
