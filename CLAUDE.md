@@ -105,7 +105,11 @@ SuiviExterieurWindow (QDialog)  — fenêtre secondaire affichage client
 | `config/persistance.py` | Lecture/écriture JSON génériques, chargement de `assets/config.json`, création de la structure data, `save_app_config()` |
 | `config/imprimante.py` | Configuration de l'imprimante thermique (`get_printer_config()`) |
 | `config/impression.py` | Options d'activation de l'impression (`get_print_options()`) |
-| `data_sources.py` | Toutes les opérations I/O JSON : carte, stock, commandes (brouillons, en cours, terminées, annulées) |
+| `data/carte.py` | I/O JSON de la carte (`carte_active.json`, `carte_archive.json`) |
+| `data/stock.py` | Cache mémoire du stock (`StockCache`) et I/O JSON de `stock.json` |
+| `data/categories.py` | Construction des catégories de menu enrichies (icône, état, recettes) pour la saisie |
+| `data/commandes.py` | Lecture des commandes : brouillons, en cours, historique complet, terminées |
+| `data/prep.py` | Lecture minimale des commandes en cours, seul fichier de données chargé par l'application légère postes cuisine |
 | `commandes_utils.py` | Génération d'ID de commande (`YYYYMMDD-###`) et de plat (préfixe type + `###`), cache quotidien `derniers_ID.json`, réconciliation du stock au démarrage |
 | `logger.py` | Journal d'événements au format JSON Lines (`data/logs/app_YYYYMMDD.log`) avec index séquentiel |
 | `printer.py` | Impression de tickets thermiques USB (ESC-POS) ; nécessite libusb (voir `archive/` pour Windows) |
@@ -113,7 +117,7 @@ SuiviExterieurWindow (QDialog)  — fenêtre secondaire affichage client
 ### Flux de données
 
 1. Au démarrage : `config/persistance.py` charge `assets/config.json` → `commandes_utils.py` réconcilie le stock depuis les brouillons en suspens.
-2. Chaque module accède aux données via `data_sources.py` (pas d'accès fichier direct dans les modules).
+2. Chaque module accède aux données via `src/backend/data/` (pas d'accès fichier direct dans les modules).
 3. Les changements inter-modules passent par des signaux PySide6 (`Signal()`), notamment `command_changed` et `config_changed`.
 4. Les commandes transitent par des états : brouillon (racine de `commandes/`) → `en_cours/` → `terminee/` ou `annulee/`.
 

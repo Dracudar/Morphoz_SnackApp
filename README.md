@@ -109,10 +109,9 @@ Morphoz_SnackApp/
 │   │   │   ├── imprimante.py               # Configuration de l'imprimante thermique
 │   │   │   └── impression.py               # Options d'activation de l'impression
 │   │   ├── commandes_utils.py              # Génération d'ID, réconciliation du stock, chargement JSON
-│   │   ├── data_sources.py                 # Chargement/sauvegarde centralisé (carte, stock, commandes)
 │   │   ├── saisie/                         # Logique métier de la saisie (gestion, paiements, sauvegarde)
 │   │   ├── suivi/                          # Logique métier du suivi des commandes
-│   │   ├── data/                           # Cache stock (StockCache)
+│   │   ├── data/                           # carte.py, stock.py (StockCache), categories.py, commandes.py, prep.py
 │   │   ├── logger.py                       # Journal d'événements (JSON Lines, fichier quotidien)
 │   │   ├── printer.py                      # Impression des tickets (ESC-POS, USB, PNG+SVG)
 │   │   └── update_checker.py              # Vérification mises à jour GitHub (QThread)

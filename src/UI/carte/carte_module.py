@@ -42,7 +42,7 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
-from src.backend.data_sources import get_card_data, save_card_data
+from src.backend.data.carte import get_card_data, save_card_data
 from src.backend import logger
 
 

@@ -101,11 +101,12 @@ reportlab
 │   saisie / suivi / historique │  │   config/{chemins,         │
 │   poste_prep / carte / stock  │◄─┤     persistance,imprimante,│
 │   logs / parametres           │  │     impression}.py         │
-│                                │  │   data_sources.py          │
-│   src/modules_plats/          │  │   commandes_utils.py       │
-│   {pizza,grillade,...}        │  │   logger.py / printer.py   │
-│   (découverte dynamique)      │  └────────────────────────────┘
-└───────────────────────────────┘
+│                                │  │   data/{carte,stock,       │
+│   src/modules_plats/          │  │     categories,commandes,  │
+│   {pizza,grillade,...}        │  │     prep}.py               │
+│   (découverte dynamique)      │  │   commandes_utils.py       │
+│                                │  │   logger.py / printer.py   │
+└───────────────────────────────┘  └────────────────────────────┘
              │
 ┌────────────▼──────────────────────────────────────────────────┐
 │              DONNÉES (dossier data/ configurable)             │
@@ -119,7 +120,7 @@ reportlab
 
 ### Principes architecturaux
 
-- **Découplage UI/backend** : les modules UI n'accèdent jamais directement aux fichiers — ils passent par `data_sources.py` ou les helpers de `commandes_utils.py`.
+- **Découplage UI/backend** : les modules UI n'accèdent jamais directement aux fichiers — ils passent par `backend/data/` ou les helpers de `commandes_utils.py`.
 - **Singleton de cache** : `StockCache` et `DerniersIDCache` sont des singletons en mémoire, persistés sur disque uniquement aux points de validation (validation d'une commande, annulation).
 - **Signaux Qt** : la communication entre modules passe par des signaux (`command_changed`, `config_changed`, `go_back`…) sans couplage direct.
 - **Rafraîchissement par timer** : les vues saisie (2 s), suivi (5 s) et extérieur (3 s) se rechargent périodiquement depuis le disque pour refléter les modifications d'autres modules.
@@ -374,9 +375,11 @@ Source unique de vérité pour tous les chemins de fichiers, répartie en 4 fich
 
 ---
 
-### `src/backend/data_sources.py`
+### `src/backend/data/`
 
-**Sources de données métier.** Chargement/sauvegarde centralisé de la carte, du stock et des commandes. Fournit les catégories enrichies (icône, état, recettes) aux vues de saisie.
+**Sources de données métier.** Chargement/sauvegarde centralisé de la carte, du stock et des commandes, découpé par domaine. Fournit les catégories enrichies (icône, état, recettes) aux vues de saisie.
+
+**`carte.py`** — chargement/sauvegarde de la carte.
 
 | Fonction | Description |
 |---|---|
@@ -384,21 +387,42 @@ Source unique de vérité pour tous les chemins de fichiers, répartie en 4 fich
 | `save_card_data(payload)` | Sauvegarde `carte_active.json`. |
 | `get_archive_card_data()` | Charge `carte_archive.json`. |
 | `save_archive_card_data(payload)` | Sauvegarde `carte_archive.json`. |
+
+**`stock.py`** — cache mémoire du stock (classe `StockCache` + singleton).
+
+| Fonction / Méthode | Description |
+|---|---|
 | `get_stock_data()` | Charge `stock.json` directement depuis le disque. |
 | `save_stock_data(payload)` | Sauvegarde `stock.json` directement. |
 | `_reconcilier_brouillons(cache)` | Au démarrage, décrémente le cache pour les plats "En attente" des brouillons existants (commandes "En saisie" en racine) pour compenser un arrêt brutal précédent. |
 | `get_stock_cache()` | Retourne le singleton `StockCache`. Le crée au premier appel (charge le JSON + réconcilie les brouillons). |
+| `StockCache.decrementer/incrementer/set_quantite/...` | Opérations sur le cache en mémoire, persistées explicitement via `save()`. |
+
+**`categories.py`** — catégories de menu enrichies pour la saisie.
+
+| Fonction | Description |
+|---|---|
 | `_normalize_text(value)` | Normalise ASCII minuscule sans ponctuation. |
 | `_normalized_state(state)` | Normalise l'état d'une catégorie pour comparaison insensible à la casse et aux accents. |
 | `_find_category_folder(category_name)` | Cherche le dossier `src/modules_plats/<nom normalisé>` correspondant à une catégorie. |
 | `_resolve_category_icon(category_name, out_of_stock)` | Retourne le chemin `icon.svg` du module correspondant à la catégorie. |
 | `get_menu_categories()` | Retourne la liste des catégories de la carte active enrichies : `name`, `state`, `price`, `recipe_count`, `has_recipes`, `hidden`, `out_of_stock`, `enabled`, `icon_path`. Les catégories `"Retiré"` et `"Archivé"` sont masquées. |
+
+**`commandes.py`** — lecture des commandes (brouillons, en cours, historique).
+
+| Fonction | Description |
+|---|---|
 | `get_draft_orders()` | Charge les commandes "En saisie" depuis la racine du dossier commandes (max 1 brouillon). Retourne une liste de dicts avec `file, id, status, created_at, items, amount, priority`. |
 | `_parse_order_file(order_file)` | Charge et structure un fichier JSON de commande → `(infos, command_lines)`. |
 | `get_live_orders()` | Charge les commandes en cours depuis `en_cours/`. Retourne les compteurs `active_count`, `pending_count`, `delivered_count`, `cancelled_count` par commande. |
-| `get_live_orders_prep()` | Charge les commandes `en_cours/` et retourne une **liste plate** de plats (un dict par plat) excluant Annulé/Livré/Non livré. Utilisé par le poste cuisine et l'affichage extérieur. |
 | `get_all_history_orders()` | Charge toutes les commandes depuis `en_cours/`, `terminee/` et `annulee/`, triées par ID décroissant. Utilisé par l'historique. |
 | `get_completed_orders()` | Charge uniquement les commandes terminées depuis `terminee/`. |
+
+**`prep.py`** — seul fichier de données chargé par l'application légère postes cuisine. Ne dépend que de `backend/config/chemins.py` et `backend/config/persistance.py`.
+
+| Fonction | Description |
+|---|---|
+| `get_live_orders_prep()` | Charge les commandes `en_cours/` et retourne une **liste plate** de plats (un dict par plat) excluant Annulé/Livré/Non livré. Utilisé par le poste cuisine et l'affichage extérieur. |
 
 ---
 
@@ -1045,7 +1069,7 @@ app_prep.py  (application légère postes cuisine)
 Couche backend (partagée par tous les modules) :
   version.py      ──► APP_VERSION
   config/         ──► get_data_folder() · get_printer_config() · get_print_options()
-  data_sources.py ──► get_card_data() · get_stock_cache() · get_live_orders() · ...
+  data/           ──► get_card_data() · get_stock_cache() · get_live_orders() · ...
   commandes_utils.py ──► generer_ID_commande/plat() · restaurer_stock_plat() · ...
   logger.py       ──► log(evenement, details)
   printer.py      ──► charger_logo() (PNG+SVG) · print_ticket_recap/cuisine() · reprint_*()

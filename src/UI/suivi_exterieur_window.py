@@ -40,7 +40,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from src.backend.data_sources import get_live_orders_prep
+from src.backend.data.prep import get_live_orders_prep
 
 # Nombre maximum de plats "En préparation" affichés par type
 _MAX_EN_PREP_PAR_TYPE = 3

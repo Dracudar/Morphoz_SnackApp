@@ -4,7 +4,7 @@
 test_stock_cache.py - Tests unitaires pour StockCache
 
 Description:
-    Tests unitaires pour src/backend/data/stock_cache.py (StockCache).
+    Tests unitaires pour la classe StockCache de src/backend/data/stock.py.
 
 Author :
     Dracudar
@@ -16,12 +16,12 @@ Date de création :
     2026.06.12
 
 Date de modification:
-    2026.06.14
+    2026.06.16
 """
 
 import json
 import pytest
-from src.backend.data.stock_cache import StockCache
+from src.backend.data.stock import StockCache
 
 
 @pytest.fixture

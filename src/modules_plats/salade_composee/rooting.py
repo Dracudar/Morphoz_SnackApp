@@ -23,7 +23,8 @@ from typing import Dict, List, Optional
 
 from PySide6.QtWidgets import QApplication, QDialog
 
-from src.backend.data_sources import get_card_data, get_stock_cache
+from src.backend.data.carte import get_card_data
+from src.backend.data.stock import get_stock_cache
 from src.modules_plats.salade_composee.salade_dialog import SaladeDialog
 
 

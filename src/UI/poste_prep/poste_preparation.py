@@ -33,7 +33,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.utils.tactile import ScrollAreaTactile
-from src.backend.data_sources import get_live_orders_prep
+from src.backend.data.prep import get_live_orders_prep
 from src.UI.poste_prep.widgets.carte_plat import CartePlatWidget
 
 _ALL_TYPES = ["Pizza", "Grillade", "Frites", "Salade composée", "Crêpe"]

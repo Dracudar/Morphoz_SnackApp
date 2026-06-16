@@ -122,7 +122,7 @@ class DerniersIDCache:
         prefixe = PREFIXES_PLAT.get(cle)
 
         if prefixe is None:
-            from src.backend.data_sources import get_card_data
+            from src.backend.data.carte import get_card_data
             prefixe = get_card_data().get(type_plat, {}).get("Lettre_ID", "X")
 
         self._data[prefixe] = self._data.get(prefixe, 0) + 1
@@ -170,7 +170,7 @@ def decrementer_ID_commande(logs_path=None):
 
 def restaurer_stock_plat(plat: dict) -> None:
     """Restitue dans le cache les quantités consommées par un plat annulé."""
-    from src.backend.data_sources import get_stock_cache
+    from src.backend.data.stock import get_stock_cache
     cache = get_stock_cache()
     plat_type = plat.get("Plat", "")
     composition = plat.get("Composition", {})

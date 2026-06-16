@@ -369,7 +369,7 @@ def reprint_all_active_cuisine() -> int:
     Retourne le nombre de tickets imprimés.
     Lève RuntimeError si l'impression échoue.
     """
-    from src.backend.data_sources import get_live_orders_prep
+    from src.backend.data.prep import get_live_orders_prep
 
     plats_actifs = [
         plat for plat in get_live_orders_prep()

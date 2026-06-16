@@ -53,13 +53,9 @@ from PySide6.QtWidgets import (
 
 from src.utils.tactile import ScrollAreaTactile
 from src.backend import logger
-from src.backend.data_sources import (
-    get_card_data,
-    get_live_orders_prep,
-    get_stock_cache,
-    get_stock_data,
-    save_stock_data,
-)
+from src.backend.data.carte import get_card_data
+from src.backend.data.prep import get_live_orders_prep
+from src.backend.data.stock import get_stock_cache, get_stock_data, save_stock_data
 
 # ── Couleurs ──────────────────────────────────────────────────────────────────
 _BG_MAIN        = "#2f3136"

@@ -20,7 +20,8 @@ Date de modification:
 """
 
 from typing import Dict, Optional
-from src.backend.data_sources import get_card_data, get_stock_cache
+from src.backend.data.carte import get_card_data
+from src.backend.data.stock import get_stock_cache
 
 
 def check_disponibilite() -> bool:

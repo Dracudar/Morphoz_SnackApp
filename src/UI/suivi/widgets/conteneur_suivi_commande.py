@@ -34,7 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.utils.tactile import EnTeteCliquable, ScrollAreaTactile
-from src.backend.data_sources import get_live_orders
+from src.backend.data.commandes import get_live_orders
 
 
 # ── Couleurs ────────────────────────────────────────────────────────────────

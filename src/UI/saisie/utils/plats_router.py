@@ -33,7 +33,7 @@ import unicodedata
 from typing import Optional, Dict
 
 from src.backend import logger
-from src.backend.data_sources import get_card_data
+from src.backend.data.carte import get_card_data
 
 
 def check_disponibilite_plat(plat_name: str) -> bool:

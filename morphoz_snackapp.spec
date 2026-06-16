@@ -17,7 +17,7 @@ a = Analysis(
     datas=[
         # Ressources graphiques (icônes, images)
         ("assets", "assets"),
-        # Icônes des types de plats (résolues par chemin relatif depuis bouton_menu.py / data_sources.py)
+        # Icônes des types de plats (résolues par chemin relatif depuis bouton_menu.py / backend/data/categories.py)
         ("src/modules_plats", "src/modules_plats"),
     ],
     hiddenimports=[

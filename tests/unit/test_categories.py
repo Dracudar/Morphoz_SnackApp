@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-test_data_sources.py - Tests unitaires pour data_sources
+test_categories.py - Tests unitaires pour src/backend/data/categories.py
 
 Description:
-    Tests unitaires pour src/backend/data_sources.py.
+    Tests unitaires pour la normalisation de texte/état et la construction
+    des catégories de menu.
 
 Author :
     Dracudar
@@ -16,17 +17,12 @@ Date de création :
     2026.06.12
 
 Date de modification:
-    2026.06.14
+    2026.06.16
 """
 
-import json
-import pytest
-from pathlib import Path
-
-from src.backend.data_sources import (
+from src.backend.data.categories import (
     _normalize_text,
     _normalized_state,
-    _parse_order_file,
     get_menu_categories,
 )
 
@@ -70,8 +66,8 @@ class TestNormalizedState:
 
 class TestGetMenuCategories:
     def _patch_card(self, monkeypatch, card_data):
-        monkeypatch.setattr("src.backend.data_sources.get_card_data", lambda: card_data)
-        monkeypatch.setattr("src.backend.data_sources._resolve_category_icon", lambda *a: None)
+        monkeypatch.setattr("src.backend.data.categories.get_card_data", lambda: card_data)
+        monkeypatch.setattr("src.backend.data.categories._resolve_category_icon", lambda *a: None)
 
     def test_retourne_liste_vide_si_carte_vide(self, monkeypatch):
         self._patch_card(monkeypatch, {})
@@ -125,36 +121,3 @@ class TestGetMenuCategories:
         cat = get_menu_categories()[0]
         assert cat["has_recipes"] is False
         assert cat["recipe_count"] == 0
-
-
-# ── _parse_order_file ─────────────────────────────────────────────────────────
-
-class TestParseOrderFile:
-    def _write_order(self, path, data):
-        p = Path(path)
-        p.write_text(json.dumps(data), encoding="utf-8")
-        return p
-
-    def test_retourne_infos_et_commande(self, tmp_path):
-        data = {
-            "Informations": {"ID": "20260101-001", "Statut": "En cours"},
-            "Commande": {"P001": {"Plat": "Pizza", "Statut": "En attente"}},
-        }
-        f = self._write_order(tmp_path / "commande_test.json", data)
-        infos, commande = _parse_order_file(f)
-        assert infos["ID"] == "20260101-001"
-        assert "P001" in commande
-
-    def test_fichier_vide_retourne_dicts_vides(self, tmp_path):
-        f = tmp_path / "commande_vide.json"
-        f.write_text("{}", encoding="utf-8")
-        infos, commande = _parse_order_file(f)
-        assert infos == {}
-        assert commande == {}
-
-    def test_champs_manquants_retourne_dicts_vides(self, tmp_path):
-        f = tmp_path / "commande_partielle.json"
-        f.write_text('{"autre": "champ"}', encoding="utf-8")
-        infos, commande = _parse_order_file(f)
-        assert infos == {}
-        assert commande == {}

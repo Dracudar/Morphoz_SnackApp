@@ -30,7 +30,7 @@ from src.backend.commandes_utils import (
     log_stock_restauration,
 )
 from src.backend.printer import print_ticket_recap, print_ticket_cuisine
-from src.backend.data_sources import get_stock_cache
+from src.backend.data.stock import get_stock_cache
 from src.backend import logger
 
 

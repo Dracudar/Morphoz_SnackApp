@@ -23,7 +23,7 @@ Date de modification:
 import json
 import pytest
 import src.backend.commandes_utils as commandes_utils
-import src.backend.data_sources as data_sources
+import src.backend.data.stock as stock_module
 import src.backend.logger as logger_module
 
 
@@ -31,12 +31,12 @@ import src.backend.logger as logger_module
 def reset_singletons():
     """Réinitialise les singletons entre chaque test."""
     commandes_utils._id_cache = None
-    data_sources._stock_cache_instance = None
+    stock_module._stock_cache_instance = None
     logger_module._log_index = 0
     logger_module._log_index_date = ""
     yield
     commandes_utils._id_cache = None
-    data_sources._stock_cache_instance = None
+    stock_module._stock_cache_instance = None
     logger_module._log_index = 0
     logger_module._log_index_date = ""
 
