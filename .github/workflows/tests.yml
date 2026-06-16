@@ -50,8 +50,4 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           QT_DEBUG_PLUGINS: 0
         run: |
-          pytest --tb=short -v --cov=src --cov-report=term-missing
-
-      - name: Rapport de couverture (résumé)
-        if: always()
-        run: pytest --tb=no -q --cov=src --cov-report=term 2>/dev/null || true
+          pytest --tb=short -v --cov=src --cov-report=term-missing --cov-report=xml
