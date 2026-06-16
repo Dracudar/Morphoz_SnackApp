@@ -23,11 +23,8 @@ import os
 import json
 from datetime import datetime
 from collections import OrderedDict
-from src.backend.commandes_utils import (
-    charger_fichier_commande,
-    generer_ID_commande,
-    generer_ID_plat,
-)
+from src.backend.commandes.ids import generer_ID_commande, generer_ID_plat
+from src.backend.commandes.stock_utils import charger_fichier_commande
 from src.backend import logger
 
 

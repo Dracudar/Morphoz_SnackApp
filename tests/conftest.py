@@ -22,7 +22,7 @@ Date de modification:
 
 import json
 import pytest
-import src.backend.commandes_utils as commandes_utils
+import src.backend.commandes.ids as ids_module
 import src.backend.data.stock as stock_module
 import src.backend.logger as logger_module
 
@@ -30,12 +30,12 @@ import src.backend.logger as logger_module
 @pytest.fixture(autouse=True)
 def reset_singletons():
     """Réinitialise les singletons entre chaque test."""
-    commandes_utils._id_cache = None
+    ids_module._id_cache = None
     stock_module._stock_cache_instance = None
     logger_module._log_index = 0
     logger_module._log_index_date = ""
     yield
-    commandes_utils._id_cache = None
+    ids_module._id_cache = None
     stock_module._stock_cache_instance = None
     logger_module._log_index = 0
     logger_module._log_index_date = ""
@@ -84,9 +84,9 @@ def logs_dir(tmp_path):
 @pytest.fixture
 def id_cache(tmp_path, logs_dir):
     """Cache d'IDs journaliers pointant sur un répertoire temporaire."""
-    from src.backend.commandes_utils import DerniersIDCache
+    from src.backend.commandes.ids import DerniersIDCache
     cache = DerniersIDCache(str(logs_dir))
-    commandes_utils._id_cache = cache
+    ids_module._id_cache = cache
     return cache
 
 

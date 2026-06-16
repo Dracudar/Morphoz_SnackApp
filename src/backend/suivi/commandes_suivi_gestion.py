@@ -22,12 +22,8 @@ Date de modification:
 import json
 import os
 from datetime import datetime
-from src.backend.commandes_utils import (
-    charger_fichier_commande,
-    restaurer_stock_plat,
-    log_stock_restauration,
-    trouver_candidat_transfert,
-)
+from src.backend.commandes.stock_utils import charger_fichier_commande, log_stock_restauration, restaurer_stock_plat
+from src.backend.commandes.transfert import trouver_candidat_transfert
 from src.backend.data.stock import get_stock_cache
 from src.backend import logger
 

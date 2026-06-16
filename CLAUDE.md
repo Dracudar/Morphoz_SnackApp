@@ -110,13 +110,15 @@ SuiviExterieurWindow (QDialog)  — fenêtre secondaire affichage client
 | `data/categories.py` | Construction des catégories de menu enrichies (icône, état, recettes) pour la saisie |
 | `data/commandes.py` | Lecture des commandes : brouillons, en cours, historique complet, terminées |
 | `data/prep.py` | Lecture minimale des commandes en cours, seul fichier de données chargé par l'application légère postes cuisine |
-| `commandes_utils.py` | Génération d'ID de commande (`YYYYMMDD-###`) et de plat (préfixe type + `###`), cache quotidien `derniers_ID.json`, réconciliation du stock au démarrage |
+| `commandes/ids.py` | Génération d'ID de commande (`YYYYMMDD-###`) et de plat (préfixe type + `###`), cache quotidien `derniers_ID.json` |
+| `commandes/stock_utils.py` | Restauration du stock à l'annulation d'un plat, chargement de fichiers JSON de commande (quarantaine des fichiers corrompus) |
+| `commandes/transfert.py` | Recherche d'un plat identique "En préparation" à qui transférer l'état "Prêt" |
 | `logger.py` | Journal d'événements au format JSON Lines (`data/logs/app_YYYYMMDD.log`) avec index séquentiel |
 | `printer.py` | Impression de tickets thermiques USB (ESC-POS) ; nécessite libusb (voir `archive/` pour Windows) |
 
 ### Flux de données
 
-1. Au démarrage : `config/persistance.py` charge `assets/config.json` → `commandes_utils.py` réconcilie le stock depuis les brouillons en suspens.
+1. Au démarrage : `config/persistance.py` charge `assets/config.json` → `data/stock.py` réconcilie le stock depuis les brouillons en suspens.
 2. Chaque module accède aux données via `src/backend/data/` (pas d'accès fichier direct dans les modules).
 3. Les changements inter-modules passent par des signaux PySide6 (`Signal()`), notamment `command_changed` et `config_changed`.
 4. Les commandes transitent par des états : brouillon (racine de `commandes/`) → `en_cours/` → `terminee/` ou `annulee/`.

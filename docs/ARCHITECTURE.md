@@ -104,7 +104,9 @@ reportlab
 │                                │  │   data/{carte,stock,       │
 │   src/modules_plats/          │  │     categories,commandes,  │
 │   {pizza,grillade,...}        │  │     prep}.py               │
-│   (découverte dynamique)      │  │   commandes_utils.py       │
+│   (découverte dynamique)      │  │   commandes/{ids,          │
+│                                │  │     stock_utils,           │
+│                                │  │     transfert}.py          │
 │                                │  │   logger.py / printer.py   │
 └───────────────────────────────┘  └────────────────────────────┘
              │
@@ -120,7 +122,7 @@ reportlab
 
 ### Principes architecturaux
 
-- **Découplage UI/backend** : les modules UI n'accèdent jamais directement aux fichiers — ils passent par `backend/data/` ou les helpers de `commandes_utils.py`.
+- **Découplage UI/backend** : les modules UI n'accèdent jamais directement aux fichiers — ils passent par `backend/data/` ou les helpers de `backend/commandes/`.
 - **Singleton de cache** : `StockCache` et `DerniersIDCache` sont des singletons en mémoire, persistés sur disque uniquement aux points de validation (validation d'une commande, annulation).
 - **Signaux Qt** : la communication entre modules passe par des signaux (`command_changed`, `config_changed`, `go_back`…) sans couplage direct.
 - **Rafraîchissement par timer** : les vues saisie (2 s), suivi (5 s) et extérieur (3 s) se rechargent périodiquement depuis le disque pour refléter les modifications d'autres modules.
@@ -426,9 +428,11 @@ Source unique de vérité pour tous les chemins de fichiers, répartie en 4 fich
 
 ---
 
-### `src/backend/commandes_utils.py`
+### `src/backend/commandes/`
 
 **Utilitaires de gestion des commandes.** Cache des identifiants journaliers, restauration stock, recherche de candidat de transfert.
+
+**`ids.py`** — cache des identifiants journaliers.
 
 #### Classe `DerniersIDCache`
 
@@ -442,9 +446,6 @@ Cache mémoire des compteurs d'IDs journaliers. Persisté dans `logs/derniers_ID
 | `prochain_id_commande()` | Incrémente le compteur commande, persiste et retourne `"YYYYMMDD-NNN"`. |
 | `decrementer_commande()` | Décrémente le compteur commande (annulation d'une commande en saisie). |
 | `prochain_id_plat(type_plat)` | Incrémente le compteur du type, persiste et retourne `"X000"` (ex. `"P001"`). |
-| `decrementer_plat(type_plat, id_plat_val)` | Décrémente uniquement si `id_plat_val` est le **dernier** ID assigné pour ce type (évite les trous). |
-
-#### Fonctions utilitaires
 
 | Fonction | Description |
 |---|---|
@@ -452,12 +453,21 @@ Cache mémoire des compteurs d'IDs journaliers. Persisté dans `logs/derniers_ID
 | `generer_ID_commande()` | Délègue à `get_id_cache().prochain_id_commande()`. |
 | `generer_ID_plat(type_plat)` | Délègue à `get_id_cache().prochain_id_plat()`. |
 | `decrementer_ID_commande()` | Délègue à `get_id_cache().decrementer_commande()`. |
-| `decrementer_ID_plat(type_plat, id_plat_val)` | Délègue à `get_id_cache().decrementer_plat()`. |
+
+**`stock_utils.py`** — restauration du stock et chargement de fichiers de commande.
+
+| Fonction | Description |
+|---|---|
 | `restaurer_stock_plat(plat)` | Restitue dans le cache stock les quantités consommées par un plat annulé (Pizza : +1 pâte ; Grillade : +N pour chaque viande). |
 | `log_stock_restauration(plat, id_commande)` | Journalise la restauration automatique de stock dans le log `MODIFICATION_CACHE_STOCK`. |
+| `charger_fichier_commande(chemin_fichier)` | Charge un fichier JSON de commande. En cas de JSON invalide, déplace le fichier vers `corrompu/` et journalise `FICHIER_CORROMPU`. |
+
+**`transfert.py`** — recherche de candidat de transfert d'état.
+
+| Fonction | Description |
+|---|---|
 | `plats_identiques(plat_ref, plat_candidat)` | Vérifie l'égalité stricte type + recette + nom + composition entre deux plats. |
 | `trouver_candidat_transfert(plat_ref, chemin_commande_source)` | Cherche dans toutes les commandes `en_cours/` un plat identique "En préparation" à qui transférer l'état "Prêt". Ordre de priorité : même commande → commandes prioritaires → autres. |
-| `charger_fichier_commande(chemin_fichier)` | Charge un fichier JSON de commande. En cas de JSON invalide, déplace le fichier vers `corrompu/` et journalise `FICHIER_CORROMPU`. |
 
 ---
 
@@ -1070,7 +1080,7 @@ Couche backend (partagée par tous les modules) :
   version.py      ──► APP_VERSION
   config/         ──► get_data_folder() · get_printer_config() · get_print_options()
   data/           ──► get_card_data() · get_stock_cache() · get_live_orders() · ...
-  commandes_utils.py ──► generer_ID_commande/plat() · restaurer_stock_plat() · ...
+  commandes/      ──► generer_ID_commande/plat() · restaurer_stock_plat() · ...
   logger.py       ──► log(evenement, details)
   printer.py      ──► charger_logo() (PNG+SVG) · print_ticket_recap/cuisine() · reprint_*()
   update_checker.py ──► UpdateChecker(QThread) · update_available(Signal)

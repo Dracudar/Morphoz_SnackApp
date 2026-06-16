@@ -108,7 +108,7 @@ Morphoz_SnackApp/
 │   │   │   ├── persistance.py              # JSON I/O, chargement config.json, save_app_config
 │   │   │   ├── imprimante.py               # Configuration de l'imprimante thermique
 │   │   │   └── impression.py               # Options d'activation de l'impression
-│   │   ├── commandes_utils.py              # Génération d'ID, réconciliation du stock, chargement JSON
+│   │   ├── commandes/                      # ids.py, stock_utils.py, transfert.py
 │   │   ├── saisie/                         # Logique métier de la saisie (gestion, paiements, sauvegarde)
 │   │   ├── suivi/                          # Logique métier du suivi des commandes
 │   │   ├── data/                           # carte.py, stock.py (StockCache), categories.py, commandes.py, prep.py
