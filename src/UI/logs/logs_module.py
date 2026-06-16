@@ -44,7 +44,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.utils.tactile import ScrollAreaTactile
-from src.backend.app_config import get_logs_folder_path
+from src.backend.config.chemins import get_logs_folder_path
 from src.UI.logs.filtre_tri_dialog import FILTERS_DEFAULT, FiltreTriLogDialog
 
 

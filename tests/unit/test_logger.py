@@ -40,7 +40,7 @@ def logs_path(tmp_path, monkeypatch):
     """Configure le dossier de logs vers tmp_path et retourne le chemin."""
     d = tmp_path / "logs"
     d.mkdir()
-    monkeypatch.setattr("src.backend.app_config.get_logs_folder_path", lambda: d)
+    monkeypatch.setattr("src.backend.config.chemins.get_logs_folder_path", lambda: d)
     return d
 
 

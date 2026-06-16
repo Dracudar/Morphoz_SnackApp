@@ -195,7 +195,7 @@ def log(evenement: str, details: dict = None) -> None:
     Ne lève jamais d'exception : les erreurs disque sont silencieusement ignorées
     pour ne pas interrompre le flux applicatif.
     """
-    from src.backend.app_config import get_logs_folder_path
+    from src.backend.config.chemins import get_logs_folder_path
 
     now = datetime.now()
     today = now.strftime("%Y%m%d")

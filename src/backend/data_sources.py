@@ -30,16 +30,15 @@ import unicodedata
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from src.backend.app_config import (
+from src.backend.config.chemins import (
     PLATS_ROOT,
-    _load_json_file,
-    _write_json_file,
     get_archive_folder_path,
     get_archive_menu_file_path,
     get_command_root,
     get_menu_file_path,
     get_stock_file_path,
 )
+from src.backend.config.persistance import _load_json_file, _write_json_file
 
 
 # ── Carte / menu ──────────────────────────────────────────────────────────────

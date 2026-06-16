@@ -40,12 +40,10 @@ from PySide6.QtWidgets import (
 
 from pathlib import Path
 
-from src.backend.app_config import (
-	get_data_folder,
-	get_print_options,
-	get_printer_config,
-	save_app_config,
-)
+from src.backend.config.chemins import get_data_folder
+from src.backend.config.imprimante import get_printer_config
+from src.backend.config.impression import get_print_options
+from src.backend.config.persistance import save_app_config
 from src.backend import logger
 
 

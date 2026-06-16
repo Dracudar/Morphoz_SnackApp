@@ -28,7 +28,8 @@ from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 from escpos.printer import Usb
 from src.backend.commandes_utils import charger_fichier_commande
-from src.backend.app_config import get_printer_config, get_print_options
+from src.backend.config.imprimante import get_printer_config
+from src.backend.config.impression import get_print_options
 from src.backend import logger
 
 

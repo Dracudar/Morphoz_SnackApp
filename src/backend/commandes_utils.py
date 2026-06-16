@@ -142,7 +142,7 @@ def get_id_cache() -> DerniersIDCache:
     Recrée automatiquement le cache si le jour a changé (passage minuit).
     """
     global _id_cache
-    from src.backend.app_config import get_logs_folder_path
+    from src.backend.config.chemins import get_logs_folder_path
     date_actuelle = datetime.now().strftime("%Y%m%d")
     if _id_cache is None or _id_cache._date != date_actuelle:
         _id_cache = DerniersIDCache(str(get_logs_folder_path()))
@@ -231,7 +231,7 @@ def trouver_candidat_transfert(plat_ref: dict, chemin_commande_source: str):
 
     Retourne (chemin_fichier, plat_id_complet) ou None si aucun candidat trouvé.
     """
-    from src.backend.app_config import get_command_root
+    from src.backend.config.chemins import get_command_root
 
     root_folder = get_command_root()
     if root_folder is None:

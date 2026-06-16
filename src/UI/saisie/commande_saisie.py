@@ -40,7 +40,7 @@ from PySide6.QtWidgets import (
 
 from src.utils.tactile import ScrollAreaTactile
 from src.backend.data_sources import get_draft_orders, get_menu_categories
-from src.backend.app_config import get_archive_folder_path, get_logs_folder_path
+from src.backend.config.chemins import get_archive_folder_path, get_logs_folder_path
 from src.UI.saisie.widgets.bouton_menu import BoutonMenu
 from src.UI.saisie.widgets.item_row import ItemRow, extract_plat_sort_key
 from src.UI.saisie.payment_dialog import PaymentDialog

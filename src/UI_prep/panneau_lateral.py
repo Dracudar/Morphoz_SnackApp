@@ -37,7 +37,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from src.backend.app_config import CONFIG_FILE, get_data_folder
+from src.backend.config.chemins import get_data_folder
+from src.backend.config.persistance import CONFIG_FILE
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 _BG          = "#1e2124"

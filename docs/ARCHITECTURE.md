@@ -91,20 +91,20 @@ reportlab
                                │
 ┌──────────────────────────────▼───────────────────────────────────┐
 │                      COUCHE UI                                   │
-│  main_window.py ─ InterfacePrincipaleWidget ─ module_registry    │
-│  volet_navigation.py ─ SuiviExterieurWindow                      │
+│  main_window.py ─ InterfacePrincipaleWidget ─ volet_navigation   │
+│  (liste statique _ITEMS_NAV) ─ SuiviExterieurWindow              │
 │  UI_prep/ : main_window_prep.py ─ panneau_lateral.py             │
 └────────────┬──────────────────────────────────────┬─────────────┘
              │                                      │
 ┌────────────▼──────────────────┐  ┌───────────────▼────────────┐
-│   MODULES UI (src/modules/)   │  │   COUCHE BACKEND           │
-│   commandes_saisie            │  │   app_config.py            │
-│   commandes_suivi             │◄─┤   data_sources.py          │
-│   commandes_historique        │  │   commandes_utils.py       │
-│   commandes_poste_preparation │  │   logger.py                │
-│   carte / stock / logs        │  │   printer.py               │
-│   parametres                  │  └────────────────────────────┘
-│   plats/{pizza,grillade,...}  │
+│   MODULES UI (src/UI/)        │  │   COUCHE BACKEND           │
+│   saisie / suivi / historique │  │   config/{chemins,         │
+│   poste_prep / carte / stock  │◄─┤     persistance,imprimante,│
+│   logs / parametres           │  │     impression}.py         │
+│                                │  │   data_sources.py          │
+│   src/modules_plats/          │  │   commandes_utils.py       │
+│   {pizza,grillade,...}        │  │   logger.py / printer.py   │
+│   (découverte dynamique)      │  └────────────────────────────┘
 └───────────────────────────────┘
              │
 ┌────────────▼──────────────────────────────────────────────────┐
@@ -251,16 +251,9 @@ data/
 
 ---
 
-### `src/UI/module_registry.py`
+### Modules UI et backend (`src/UI/` et `src/backend/`)
 
-**Registre de découverte dynamique des modules UI.** Permet d'ajouter un module sans modifier le code central — il suffit de créer un dossier dans `src/modules/` avec un `module.py` optionnel.
-
-| Fonction | Description |
-|---|---|
-| `_normalize_text(value) → str` | Normalise une chaîne en identifiant ASCII minuscule sans ponctuation (suppression des accents, caractères spéciaux). |
-| `_load_module(module_path) → module` | Charge dynamiquement un fichier Python via `importlib.util` et retourne le module, ou `None` en cas d'échec. |
-| `_pick_icon(folder) → Optional[str]` | Retourne le chemin de la première icône trouvée (`icon.svg` ou `icon.png`) dans le dossier d'un module. |
-| `discover_module_registry() → Dict` | Parcourt `src/modules/`, charge le `module.py` si présent (cherche `get_module_descriptor()` ou les constantes `LABEL`, `ICON_PATH`…), et construit un registre indexé par label normalisé et par slug. |
+Pas de registre de découverte dynamique pour les modules métier : chaque module est réparti par fonctionnalité (`src/UI/<module>/` pour les vues, `src/backend/<module>/` pour la logique métier correspondante), et `InterfacePrincipaleWidget` instancie explicitement chaque module. La navigation est une liste statique `_ITEMS_NAV` dans `src/UI/view/volet_navigation.py`. Seuls les types de plats (`src/modules_plats/`) restent découverts dynamiquement, via `plats_router.py` (voir plus bas).
 
 ---
 
@@ -334,31 +327,50 @@ Volet de configuration minimal accessible depuis un bouton flottant.
 
 ## 7. Couche `backend`
 
-### `src/backend/app_config.py`
+### `src/backend/config/` — Gestion de la configuration applicative
 
-**Gestion de la configuration applicative.** Source unique de vérité pour tous les chemins de fichiers.
+Source unique de vérité pour tous les chemins de fichiers, répartie en 4 fichiers par responsabilité.
+
+**`chemins.py`** — chemins absolus dérivés du dossier data.
 
 | Constante / Fonction | Description |
 |---|---|
-| `CONFIG_FILE` | Chemin vers `assets/config.json` (fichier de configuration applicative). |
+| `PROJECT_ROOT`, `PLATS_ROOT` | Racine du projet et dossier `src/modules_plats/`. |
 | `STOCK_FILENAME`, `CARTE_ACTIVE_FILENAME`, etc. | Noms de fichiers fixes dans le dossier data. |
-| `_DEFAULT_PRINTER` | Valeurs par défaut imprimante (Epson TM-T20II, vendor `0x04B8`, product `0x0E15`). |
 | `_default_data_folder()` | Retourne `PROJECT_ROOT/data` en développement, ou le dossier à côté de l'exécutable si compilé (PyInstaller). |
-| `_load_json_file(file_path)` | Charge un JSON et retourne `{}` si absent ou invalide — ne lève jamais d'exception. |
-| `_write_json_file(file_path, payload)` | Écrit un dict JSON en créant les dossiers parents. Retourne `True` si succès. |
-| `get_data_folder()` | Lit `data_folder` dans `config.json`, retourne le chemin configuré ou le défaut. |
+| `get_data_folder()` | Lit `data_folder` dans `config.json` (via `config/persistance.py`), retourne le chemin configuré ou le défaut. |
 | `get_stock_file_path()` | `get_data_folder() / "stock.json"` |
 | `get_menu_file_path()` | `get_data_folder() / "carte_active.json"` |
 | `get_archive_menu_file_path()` | `get_data_folder() / "carte_archive.json"` |
 | `get_archive_folder_path()` | `get_data_folder() / "commandes"` |
 | `get_logs_folder_path()` | `get_data_folder() / "logs"` |
 | `get_command_root()` | Retourne le dossier commandes s'il existe, `None` sinon. |
-| `_parse_hex_or_int(value, default)` | Convertit `"0x04B8"` ou un entier en `int`. |
-| `get_printer_config()` | Lit et retourne la config imprimante avec valeurs par défaut si absente. |
-| `get_print_options()` | Retourne `{impression_active, ticket_client, ticket_cuisine}` — tous `True` par défaut. |
+
+**`persistance.py`** — lecture/écriture JSON génériques et sauvegarde de la configuration.
+
+| Constante / Fonction | Description |
+|---|---|
+| `CONFIG_FILE` | Chemin vers `assets/config.json` (fichier de configuration applicative). |
+| `_load_json_file(file_path)` | Charge un JSON et retourne `{}` si absent ou invalide — ne lève jamais d'exception. |
+| `_write_json_file(file_path, payload)` | Écrit un dict JSON en créant les dossiers parents. Retourne `True` si succès. |
+| `_load_app_config()` | Charge `assets/config.json`. |
 | `_create_data_structure(data_folder)` | Crée récursivement la structure `commandes/{en_cours,terminee,annulee,corrompu}`, `logs/`, et les fichiers JSON vides. Journalise chaque création. |
 | `save_app_config(data_folder, vendor_id, ...)` | Persiste toute la configuration dans `config.json` et appelle `_create_data_structure`. Retourne `True` si succès. |
 | `get_default_config()` | Retourne la configuration par défaut complète sans lire `config.json`. |
+
+**`imprimante.py`** — configuration de l'imprimante thermique.
+
+| Constante / Fonction | Description |
+|---|---|
+| `_DEFAULT_PRINTER` | Valeurs par défaut imprimante (Epson TM-T20II, vendor `0x04B8`, product `0x0E15`). |
+| `_parse_hex_or_int(value, default)` | Convertit `"0x04B8"` ou un entier en `int`. |
+| `get_printer_config()` | Lit et retourne la config imprimante avec valeurs par défaut si absente. |
+
+**`impression.py`** — options d'activation de l'impression.
+
+| Fonction | Description |
+|---|---|
+| `get_print_options()` | Retourne `{impression_active, ticket_client, ticket_cuisine}` — tous `True` par défaut. |
 
 ---
 
@@ -378,7 +390,7 @@ Volet de configuration minimal accessible depuis un bouton flottant.
 | `get_stock_cache()` | Retourne le singleton `StockCache`. Le crée au premier appel (charge le JSON + réconcilie les brouillons). |
 | `_normalize_text(value)` | Normalise ASCII minuscule sans ponctuation. |
 | `_normalized_state(state)` | Normalise l'état d'une catégorie pour comparaison insensible à la casse et aux accents. |
-| `_find_category_folder(category_name)` | Cherche le dossier `src/modules/<nom normalisé>` correspondant à une catégorie. |
+| `_find_category_folder(category_name)` | Cherche le dossier `src/modules_plats/<nom normalisé>` correspondant à une catégorie. |
 | `_resolve_category_icon(category_name, out_of_stock)` | Retourne le chemin `icon.svg` du module correspondant à la catégorie. |
 | `get_menu_categories()` | Retourne la liste des catégories de la carte active enrichies : `name`, `state`, `price`, `recipe_count`, `has_recipes`, `hidden`, `out_of_stock`, `enabled`, `icon_path`. Les catégories `"Retiré"` et `"Archivé"` sont masquées. |
 | `get_draft_orders()` | Charge les commandes "En saisie" depuis la racine du dossier commandes (max 1 brouillon). Retourne une liste de dicts avec `file, id, status, created_at, items, amount, priority`. |
@@ -988,7 +1000,7 @@ Utilitaire standalone d'impression des tickets pour les repas gratuits, indépen
 
 | Fichier | Description |
 |---|---|
-| `morphoz_snackapp.spec` | Configuration PyInstaller pour l'application principale (`src/core/app.py`). Mode `onedir`, inclut `assets/`, `module_registry` data et hidden imports USB. |
+| `morphoz_snackapp.spec` | Configuration PyInstaller pour l'application principale (`src/core/app.py`). Mode `onedir`, inclut `assets/`, `src/modules_plats/` data et hidden imports USB. |
 | `morphoz_prep.spec` | Configuration PyInstaller pour l'application légère (`src/core/app_prep.py`). Mode `onedir`, sans imports USB ni modules de gestion. |
 
 Le pipeline CI/CD (`.github/workflows/build.yml`) compile les deux applications en parallèle sur Windows et Linux à chaque tag `vX.Y.Z`, puis publie 4 archives sur la release GitHub.
@@ -1018,9 +1030,9 @@ app.py  (application principale)
         │     │     └── marquer_plat_pret/livre/annuler_plat_valide()  [commandes_suivi_gestion.py]
         │     ├── PostePreparationModule
         │     │     └── CartePlatWidget
-        │     ├── StockModule  →  StockCache  [cache.py]
+        │     ├── StockModule  →  StockCache  [backend/data/stock_cache.py]
         │     ├── CarteModule
-        │     ├── ParametresModule  →  save_app_config()  [app_config.py]
+        │     ├── ParametresModule  →  save_app_config()  [backend/config/persistance.py]
         │     └── LogsModule
         │           └── FiltreTriLogDialog
         └── SuiviExterieurWindow  →  get_live_orders_prep()
@@ -1032,7 +1044,7 @@ app_prep.py  (application légère postes cuisine)
 
 Couche backend (partagée par tous les modules) :
   version.py      ──► APP_VERSION
-  app_config.py   ──► get_data_folder() · get_printer_config() · get_print_options()
+  config/         ──► get_data_folder() · get_printer_config() · get_print_options()
   data_sources.py ──► get_card_data() · get_stock_cache() · get_live_orders() · ...
   commandes_utils.py ──► generer_ID_commande/plat() · restaurer_stock_plat() · ...
   logger.py       ──► log(evenement, details)

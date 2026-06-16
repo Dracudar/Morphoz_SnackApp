@@ -47,7 +47,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.utils.tactile import EnTeteCliquable, ScrollAreaTactile
-from src.backend.app_config import get_print_options
+from src.backend.config.impression import get_print_options
 from src.backend.data_sources import get_all_history_orders
 from src.backend.printer import reprint_all_active_cuisine, reprint_ticket_cuisine_plat, reprint_ticket_recap
 from src.UI.historique.filtre_dialog import FiltreHistoriqueDialog

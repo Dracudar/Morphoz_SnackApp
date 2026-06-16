@@ -86,38 +86,43 @@ Morphoz_SnackApp/
 │   ├── UI/
 │   │   ├── main_window.py                  # Fenêtre principale (raccourcis F11/Ctrl+Q, bannière MAJ)
 │   │   ├── suivi_exterieur_window.py       # Fenêtre d'affichage extérieur client
-│   │   ├── module_registry.py              # Registre des modules chargés
-│   │   └── view/
-│   │       ├── interface_principale.py     # Assemblage vue principale (panneau gauche + droite)
-│   │       └── volet_navigation.py         # Volet de navigation latéral tactile
+│   │   ├── view/
+│   │   │   ├── interface_principale.py     # Assemblage vue principale (panneau gauche + droite)
+│   │   │   └── volet_navigation.py         # Volet de navigation latéral tactile (liste statique des modules)
+│   │   ├── saisie/                         # Saisie des commandes (widgets + dialogue paiement)
+│   │   ├── stock/                          # Gestion des stocks (liste hiérarchique + formulaire d'édition)
+│   │   ├── carte/                          # Gestion de la carte (catégories, recettes, prix, états)
+│   │   ├── historique/                     # Historique avec filtres, tri et réimpression
+│   │   ├── suivi/                          # Suivi en temps réel des commandes (panneau droit)
+│   │   ├── logs/                           # Consultation du journal d'événements avec filtres et tri
+│   │   ├── parametres/                     # Paramètres (dossier de données, imprimante, impression)
+│   │   └── poste_prep/                     # Poste de préparation cuisine (plein écran)
 │   │
 │   ├── UI_prep/
 │   │   ├── main_window_prep.py             # Fenêtre principale de l'application légère
 │   │   └── panneau_lateral.py             # Volet de configuration (dossier data, plein écran)
 │   │
 │   ├── backend/
-│   │   ├── app_config.py                   # Gestion de la configuration (dossier, imprimante, options)
+│   │   ├── config/                         # Configuration applicative (dossier, imprimante, options)
+│   │   │   ├── chemins.py                  # Chemins absolus dérivés du dossier data
+│   │   │   ├── persistance.py              # JSON I/O, chargement config.json, save_app_config
+│   │   │   ├── imprimante.py               # Configuration de l'imprimante thermique
+│   │   │   └── impression.py               # Options d'activation de l'impression
 │   │   ├── commandes_utils.py              # Génération d'ID, réconciliation du stock, chargement JSON
 │   │   ├── data_sources.py                 # Chargement/sauvegarde centralisé (carte, stock, commandes)
+│   │   ├── saisie/                         # Logique métier de la saisie (gestion, paiements, sauvegarde)
+│   │   ├── suivi/                          # Logique métier du suivi des commandes
+│   │   ├── data/                           # Cache stock (StockCache)
 │   │   ├── logger.py                       # Journal d'événements (JSON Lines, fichier quotidien)
 │   │   ├── printer.py                      # Impression des tickets (ESC-POS, USB, PNG+SVG)
 │   │   └── update_checker.py              # Vérification mises à jour GitHub (QThread)
 │   │
-│   └── modules/
-│       ├── commandes_saisie/               # Saisie des commandes (UI + backend + dialogue paiement)
-│       ├── commandes_suivi/                # Suivi en temps réel des commandes (panneau droit)
-│       ├── commandes_poste_preparation/    # Poste de préparation cuisine (plein écran)
-│       ├── commandes_historique/           # Historique avec filtres, tri et réimpression
-│       ├── carte/                          # Gestion de la carte (catégories, recettes, prix, états)
-│       ├── stock/                          # Gestion des stocks (liste hiérarchique + formulaire d'édition)
-│       ├── logs/                           # Consultation du journal d'événements avec filtres et tri
-│       ├── parametres/                     # Paramètres (dossier de données, imprimante, impression)
-│       └── plats/                          # Dialogues de personnalisation par type de plat
-│           ├── pizza/                      # Sélection de recette + personnalisation base/ingrédients
-│           ├── grillade/                   # Choix de viande et accompagnement
-│           ├── salade_composee/            # Sélection des ingrédients
-│           ├── crepe/                      # Choix du type de crêpe
-│           └── frites/                     # Choix de la taille
+│   └── modules_plats/                      # Dialogues de personnalisation par type de plat (découverte dynamique)
+│       ├── pizza/                          # Sélection de recette + personnalisation base/ingrédients
+│       ├── grillade/                       # Choix de viande et accompagnement
+│       ├── salade_composee/                # Sélection des ingrédients
+│       ├── crepe/                          # Choix du type de crêpe
+│       └── frites/                         # Choix de la taille
 │
 ├── .github/
 │   └── workflows/
