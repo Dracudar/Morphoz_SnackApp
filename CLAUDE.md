@@ -121,7 +121,7 @@ Chaque module suit le même schéma :
 - Un sous-dossier `UI/` pour les composants visuels et, si nécessaire, un sous-dossier `backend/` pour la logique métier.
 - `module_registry.py` découvre dynamiquement les modules via un fichier `module.py` optionnel dans chaque dossier.
 
-### Personnalisation des plats (`src/modules/plats/`)
+### Personnalisation des plats (`src/modules_plats/`)
 
 `plats_router.py` est le point d'entrée central : il reçoit une sélection de plat et dispatche vers le module type correspondant (`pizza/`, `grillade/`, `salade_composee/`, `crepe/`, `frites/`). Chaque type expose un `rooting.py` qui ouvre la boîte de dialogue de personnalisation appropriée.
 

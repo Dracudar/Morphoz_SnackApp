@@ -89,7 +89,7 @@ class BoutonMenu(QPushButton):
         normalized = unicodedata.normalize("NFD", self.category_name)
         ascii_name = "".join(c for c in normalized if unicodedata.category(c) != "Mn")
         plat_name_lower = ascii_name.lower().replace(" ", "_")
-        category_folder = Path(f"src/modules/plats/{plat_name_lower}/")
+        category_folder = Path(f"src/modules_plats/{plat_name_lower}/")
         category_icon = category_folder / "icon.svg"
 
         if category_icon.exists():

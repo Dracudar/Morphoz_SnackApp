@@ -32,6 +32,7 @@ from typing import Any, Dict, Optional
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_FILE = PROJECT_ROOT / "assets" / "config.json"
 MODULES_ROOT = PROJECT_ROOT / "src" / "modules"
+PLATS_ROOT = PROJECT_ROOT / "src" / "modules_plats"
 
 # Noms de fichiers et dossiers fixes dans le dossier data
 STOCK_FILENAME = "stock.json"

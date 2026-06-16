@@ -110,11 +110,11 @@ def _resolve_module_path(plat_name: str, plat_data: Dict) -> Optional[str]:
     """
     # 1. Champ explicite dans la carte
     if "module" in plat_data:
-        return f"src.modules.plats.{plat_data['module']}.rooting"
+        return f"src.modules_plats.{plat_data['module']}.rooting"
 
     # 2. Découverte automatique par slug normalisé
     slug = _to_slug(plat_name)
-    candidate = f"src.modules.plats.{slug}.rooting"
+    candidate = f"src.modules_plats.{slug}.rooting"
     try:
         if importlib.util.find_spec(candidate) is not None:
             return candidate

@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from src.backend.app_config import (
-    MODULES_ROOT,
+    PLATS_ROOT,
     _load_json_file,
     _write_json_file,
     get_archive_folder_path,
@@ -151,11 +151,11 @@ def _normalized_state(state: str) -> str:
 
 
 def _find_category_folder(category_name: str) -> Optional[Path]:
-    """Recherche le dossier de module correspondant à une catégorie par nom normalisé."""
-    if not MODULES_ROOT.exists():
+    """Recherche le dossier de plat correspondant à une catégorie par nom normalisé."""
+    if not PLATS_ROOT.exists():
         return None
     target = _normalize_text(category_name)
-    for child in MODULES_ROOT.iterdir():
+    for child in PLATS_ROOT.iterdir():
         if child.is_dir() and _normalize_text(child.name) == target:
             return child
     return None

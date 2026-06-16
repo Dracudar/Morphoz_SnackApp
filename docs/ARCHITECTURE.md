@@ -554,7 +554,7 @@ Dialogue modal de sélection du mode de paiement. Émet `payment_selected(str)` 
 
 | Élément | Description |
 |---|---|
-| `PLAT_HANDLERS` | Dict de routage `{"Pizza": "src.modules.plats.pizza.rooting", ...}` pour les 5 types de plats. |
+| `PLAT_HANDLERS` | Dict de routage `{"Pizza": "src.modules_plats.pizza.rooting", ...}` pour les 5 types de plats. |
 | `route_plat_selection(plat_name, context, command_path)` | Charge dynamiquement le module `rooting.py` du type et appelle `route_selection()`. Journalise `ERREUR` si le type est inconnu ou si une exception est levée. |
 
 ---

@@ -24,7 +24,7 @@ from typing import Dict, List, Optional
 from PySide6.QtWidgets import QApplication, QDialog
 
 from src.backend.data_sources import get_card_data, get_stock_cache
-from src.modules.plats.pizza.pizza_dialog import PizzaDialog
+from src.modules_plats.pizza.pizza_dialog import PizzaDialog
 
 
 def route_selection(context, command_path: str) -> Optional[Dict]:
