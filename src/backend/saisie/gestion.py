@@ -24,7 +24,7 @@ import json
 from datetime import datetime
 from src.backend.commandes.ids import decrementer_ID_commande, get_id_cache
 from src.backend.commandes.stock_utils import charger_fichier_commande, log_stock_restauration, restaurer_stock_plat
-from src.backend.printer import print_ticket_recap, print_ticket_cuisine
+from src.backend.impression.tickets import print_ticket_recap, print_ticket_cuisine
 from src.backend.data.stock import get_stock_cache
 from src.backend import logger
 

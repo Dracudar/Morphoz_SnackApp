@@ -50,7 +50,7 @@ L'application couvre l'intégralité du cycle de vente :
 | Historique consultable, filtrable et réimprimable | `commandes_historique` |
 | Gestion des stocks avec cache mémoire | `stock` |
 | Gestion de la carte (catégories, recettes, prix) | `carte` |
-| Impression thermique USB (ESC-POS) | `backend/printer.py` |
+| Impression thermique USB (ESC-POS) | `backend/impression/` |
 | Journalisation exhaustive (JSON Lines) | `backend/logger.py` |
 | Configuration (dossier data, imprimante) | `parametres` |
 
@@ -107,7 +107,9 @@ reportlab
 │   (découverte dynamique)      │  │   commandes/{ids,          │
 │                                │  │     stock_utils,           │
 │                                │  │     transfert}.py          │
-│                                │  │   logger.py / printer.py   │
+│                                │  │   logger.py                │
+│                                │  │   impression/{ressources,  │
+│                                │  │     tickets,reimprimer}.py │
 └───────────────────────────────┘  └────────────────────────────┘
              │
 ┌────────────▼──────────────────────────────────────────────────┐
@@ -496,18 +498,30 @@ Cache mémoire des compteurs d'IDs journaliers. Persisté dans `logs/derniers_ID
 
 ---
 
-### `src/backend/printer.py`
+### `src/backend/impression/`
 
 **Impression ESC-POS des tickets.** Gère l'impression automatique à la validation et la réimpression manuelle depuis l'historique.
+
+**`ressources.py`** — chargement du logo.
 
 | Fonction | Description |
 |---|---|
 | `charger_logo(nom_image, taille)` | Charge une image PNG ou **SVG** et la convertit en 1-bit pour l'imprimante thermique. SVG : conversion via `svglib.svg2rlg` + `renderPM.drawToString` (reportlab). PNG : redimensionnement Pillow. Dans les deux cas : composite sur fond blanc puis quantification en noir/blanc. |
+
+**`tickets.py`** — impression automatique à la validation.
+
+| Fonction | Description |
+|---|---|
 | `_get_printer()` | Instancie `escpos.printer.Usb` depuis la configuration (`vendor_id`, `product_id`, `interface`, `profile`). |
 | `_do_print_recap(commande, p, reprint)` | **Ticket récapitulatif client** : logo en-tête + date + N° commande (grand format) + montant + type paiement + détail de chaque plat. Si `reprint=True`, imprime tous les plats sans filtrage de statut. |
 | `_print_plat_ticket(plat, infos, p)` | **Ticket cuisine par plat** : date + ID court + composition détaillée selon le type (viandes/accompagnement pour grillade, base/ingrédients pour pizza, etc.). |
 | `print_ticket_recap(chemin_fichier)` | Impression automatique (appelée à la validation). Vérifie `impression_active` et `ticket_client` avant d'imprimer. Journalise `IMPRESSION_TICKET`. |
 | `print_ticket_cuisine(chemin_fichier)` | Impression automatique d'un ticket par plat "En attente". Vérifie `ticket_cuisine`. |
+
+**`reimprimer.py`** — réimpression manuelle depuis l'historique.
+
+| Fonction | Description |
+|---|---|
 | `reprint_ticket_recap(chemin_fichier)` | Réimpression manuelle (depuis l'historique). Contourne les options d'impression automatique. Lève `RuntimeError` si l'impression échoue. |
 | `reprint_ticket_cuisine_plat(chemin_fichier, plat_id)` | Réimprime le ticket cuisine d'un seul plat identifié par son ID complet. |
 | `reprint_all_active_cuisine()` | Réimprime les tickets cuisine de tous les plats `En préparation` ou `Prêt` des commandes actives. Retourne le nombre de tickets imprimés. |
@@ -1082,7 +1096,7 @@ Couche backend (partagée par tous les modules) :
   data/           ──► get_card_data() · get_stock_cache() · get_live_orders() · ...
   commandes/      ──► generer_ID_commande/plat() · restaurer_stock_plat() · ...
   logger.py       ──► log(evenement, details)
-  printer.py      ──► charger_logo() (PNG+SVG) · print_ticket_recap/cuisine() · reprint_*()
+  impression/     ──► charger_logo() (PNG+SVG) · print_ticket_recap/cuisine() · reprint_*()
   update_checker.py ──► UpdateChecker(QThread) · update_available(Signal)
 ```
 

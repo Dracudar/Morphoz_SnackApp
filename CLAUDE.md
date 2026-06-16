@@ -114,7 +114,9 @@ SuiviExterieurWindow (QDialog)  — fenêtre secondaire affichage client
 | `commandes/stock_utils.py` | Restauration du stock à l'annulation d'un plat, chargement de fichiers JSON de commande (quarantaine des fichiers corrompus) |
 | `commandes/transfert.py` | Recherche d'un plat identique "En préparation" à qui transférer l'état "Prêt" |
 | `logger.py` | Journal d'événements au format JSON Lines (`data/logs/app_YYYYMMDD.log`) avec index séquentiel |
-| `printer.py` | Impression de tickets thermiques USB (ESC-POS) ; nécessite libusb (voir `archive/` pour Windows) |
+| `impression/ressources.py` | Chargement du logo (PNG/SVG) pour les tickets |
+| `impression/tickets.py` | Impression automatique des tickets récapitulatif et cuisine (ESC-POS) ; nécessite libusb (voir `archive/` pour Windows) |
+| `impression/reimprimer.py` | Réimpression manuelle des tickets depuis l'historique |
 
 ### Flux de données
 

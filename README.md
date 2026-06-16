@@ -113,7 +113,7 @@ Morphoz_SnackApp/
 │   │   ├── suivi/                          # Logique métier du suivi des commandes
 │   │   ├── data/                           # carte.py, stock.py (StockCache), categories.py, commandes.py, prep.py
 │   │   ├── logger.py                       # Journal d'événements (JSON Lines, fichier quotidien)
-│   │   ├── printer.py                      # Impression des tickets (ESC-POS, USB, PNG+SVG)
+│   │   ├── impression/                     # ressources.py (logo), tickets.py (auto), reimprimer.py (manuel)
 │   │   └── update_checker.py              # Vérification mises à jour GitHub (QThread)
 │   │
 │   └── modules_plats/                      # Dialogues de personnalisation par type de plat (découverte dynamique)
