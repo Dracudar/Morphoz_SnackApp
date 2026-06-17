@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    1.2
+    1.5
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.09
+    2026.06.15
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ import unicodedata
 from pathlib import Path
 from typing import Dict, Optional
 
-from PySide6.QtCore import Qt, QTimer, Signal, QSize
+from PySide6.QtCore import Qt, QEvent, QTimer, Signal, QSize
 from PySide6.QtGui import QColor, QIcon, QPixmap, QPainter
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
@@ -34,17 +34,17 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
+from src.utils.tactile import ScrollAreaTactile
 from src.backend.data_sources import get_draft_orders, get_menu_categories
 from src.backend.app_config import get_archive_folder_path, get_logs_folder_path
 from src.modules.commandes_saisie.UI.widgets.bouton_menu import BoutonMenu
 from src.modules.commandes_saisie.UI.widgets.item_row import ItemRow, extract_plat_sort_key
 from src.modules.commandes_saisie.UI.payment_dialog import PaymentDialog
-from src.modules.commandes_saisie.utils.plats_router import route_plat_selection
+from src.modules.commandes_saisie.utils.plats_router import route_plat_selection, check_disponibilite_plat
 from src.modules.commandes_saisie.backend.saver import MAJ_commande
 from src.modules.commandes_saisie.backend.gestion import (
     annuler_plat,
@@ -127,13 +127,12 @@ class SaisieCommandeModule(QFrame):
         menu_layout.addWidget(menu_title)
 
         # Scrollable menu grid
-        self.menu_scroll = QScrollArea()
-        self.menu_scroll.setWidgetResizable(True)
-        self.menu_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        self.menu_scroll.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.menu_scroll.setStyleSheet(
-            "QScrollArea, QScrollArea > QWidget > QWidget { background-color: #2f3136; }"
-        )
+        self.menu_scroll = ScrollAreaTactile()
+        # widgetResizable=False : le conteneur garde sa taille naturelle (pas d'étirement)
+        # AlignHCenter : Qt centre le conteneur quand il est plus étroit que le viewport
+        self.menu_scroll.setWidgetResizable(False)
+        self.menu_scroll.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
+        self.menu_scroll.viewport().installEventFilter(self)
 
         self.menu_container = QWidget()
         self.menu_grid = QGridLayout(self.menu_container)
@@ -142,6 +141,9 @@ class SaisieCommandeModule(QFrame):
         self.menu_grid.setVerticalSpacing(8)
         self.menu_scroll.setWidget(self.menu_container)
         menu_layout.addWidget(self.menu_scroll)
+
+        self._menu_button_widgets: list[BoutonMenu] = []
+        self._current_menu_columns: int = 0
 
         parent_layout.addWidget(self.menu_frame, 0)
 
@@ -175,12 +177,7 @@ class SaisieCommandeModule(QFrame):
 
     def _build_items_section(self, parent_layout):
         """Construit la zone scrollable qui contient les lignes d'articles."""
-        items_scroll = QScrollArea()
-        items_scroll.setWidgetResizable(True)
-        items_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        items_scroll.setStyleSheet(
-            "QScrollArea, QScrollArea > QWidget > QWidget { background-color: #2f3136; }"
-        )
+        items_scroll = ScrollAreaTactile()
 
         self.items_container = QWidget()
         self.items_layout = QVBoxLayout(self.items_container)
@@ -450,13 +447,15 @@ class SaisieCommandeModule(QFrame):
             self._display_no_order_state()
 
     def refresh_menu(self):
-        """Reconstruit les boutons du menu à partir de la carte JSON."""
-        # Clear existing buttons
+        """Recharge les catégories depuis le JSON et crée les boutons, puis les arrange."""
+        # Supprime les anciens boutons
         while self.menu_grid.count():
             item = self.menu_grid.takeAt(0)
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
+        self._menu_button_widgets = []
+        self._current_menu_columns = 0  # Force le ré-arrangement
 
         categories = get_menu_categories()
         visible_categories = [cat for cat in categories if not cat.get("hidden", False)]
@@ -466,31 +465,70 @@ class SaisieCommandeModule(QFrame):
             placeholder.setStyleSheet("color: #d6d6d6; font-size: 14px;")
             self.menu_grid.addWidget(placeholder, 0, 0)
             self.menu_scroll.setFixedHeight(118)
+            self.menu_container.adjustSize()
             return
 
-        columns = 5
-        for index, category in enumerate(visible_categories):
+        for category in visible_categories:
             label = category["name"]
             icon_path = category.get("icon_path")
-            button = BoutonMenu(label, svg_path=icon_path)
+            button = BoutonMenu(label, svg_path=icon_path, parent=self.menu_container)
 
-            # Disable if not enabled
             if not category.get("enabled", True):
                 button.setEnabled(False)
                 button.setToolTip("Categorie indisponible")
+            elif not check_disponibilite_plat(label):
+                button.setEnabled(False)
+                button.setToolTip("Rupture de stock")
             else:
                 button.clicked.connect(
                     lambda _checked=False, cat=category: self._on_category_button_clicked(cat["name"])
                 )
 
+            self._menu_button_widgets.append(button)
+
+        self._arrange_menu_buttons()
+
+    def _calculate_menu_columns(self) -> int:
+        """Nombre de colonnes selon la largeur du viewport (boutons 120 px + 8 px d'écart)."""
+        available = self.menu_scroll.viewport().width()
+        if available <= 0:
+            return 5
+        return max(1, (available + 8) // (120 + 8))
+
+    def _arrange_menu_buttons(self):
+        """Replace les boutons dans la grille avec le nombre de colonnes adapté à la largeur."""
+        if not self._menu_button_widgets:
+            return
+
+        columns = self._calculate_menu_columns()
+        if columns == self._current_menu_columns and self.menu_grid.count() > 0:
+            return  # Rien à faire si le nombre de colonnes n'a pas changé
+        self._current_menu_columns = columns
+
+        # Retire les boutons de la grille sans les supprimer
+        while self.menu_grid.count():
+            self.menu_grid.takeAt(0)
+
+        # Remet les boutons dans la grille avec le nouveau nombre de colonnes
+        for index, button in enumerate(self._menu_button_widgets):
             row = index // columns
             column = index % columns
             self.menu_grid.addWidget(button, row, column)
+            button.show()
 
-        # Adjust scroll height
-        row_count = ((len(visible_categories) - 1) // columns) + 1
-        scroll_height = min(240, max(118, 24 + (row_count * 128)))
+        # Met à jour la hauteur de la zone de défilement
+        row_count = ((len(self._menu_button_widgets) - 1) // columns) + 1
+        scroll_height = max(118, 24 + (row_count * 128))
         self.menu_scroll.setFixedHeight(scroll_height)
+
+        # Recalcule la taille du conteneur pour que le centrage fonctionne
+        self.menu_container.adjustSize()
+
+    def eventFilter(self, source, event):
+        """Réorganise les boutons du menu quand le viewport change de largeur."""
+        if source is self.menu_scroll.viewport() and event.type() == QEvent.Type.Resize:
+            self._arrange_menu_buttons()
+        return super().eventFilter(source, event)
 
     def _on_category_button_clicked(self, category_name: str):
         """Gère le clic sur un bouton de catégorie : route vers le handler du plat correspondant."""

@@ -13,13 +13,13 @@ Author :
     Dracudar
 
 Version:
-    3.2
+    3.4
 
 Date de création :
     2025.05.31
 
 Date de modification:
-    2026.06.09
+    2026.06.15
 """
 
 import os
@@ -68,8 +68,23 @@ class DerniersIDCache:
             valeur = {}
 
         valeur.setdefault("commande", 0)
-        for cle in PREFIXES_PLAT:
-            valeur.setdefault(cle, 0)
+
+        # Migration : anciennes clés par nom de type → clés par lettre
+        for type_nom, lettre in PREFIXES_PLAT.items():
+            if type_nom in valeur:
+                if lettre not in valeur:
+                    valeur[lettre] = valeur.pop(type_nom)
+                else:
+                    del valeur[type_nom]
+
+        # Nettoyer les clés par nom de type inconnues restantes (ex. "café", "mr. freeze")
+        for cle in [k for k in valeur if k != "commande" and len(k) > 1 and k == k.lower()]:
+            del valeur[cle]
+
+        # Initialiser les lettres connues
+        for lettre in PREFIXES_PLAT.values():
+            valeur.setdefault(lettre, 0)
+
         return valeur
 
     def save(self):
@@ -96,27 +111,24 @@ class DerniersIDCache:
     # ── Plats ─────────────────────────────────────────────────────────────────
 
     def prochain_id_plat(self, type_plat: str) -> str:
-        """Incrémente le compteur du type de plat, le persiste et retourne l'ID (ex: P001)."""
-        cle = type_plat.lower()
-        prefixe = PREFIXES_PLAT.get(cle, "X")
-        self._data[cle] = self._data.get(cle, 0) + 1
-        self.save()
-        return f"{prefixe}{self._data[cle]:03d}"
+        """Incrémente le compteur du type de plat, le persiste et retourne l'ID (ex: P001).
 
-    def decrementer_plat(self, type_plat: str, id_plat_val: str):
-        """
-        Décrémente le compteur du type de plat, uniquement si id_plat_val correspond
-        au dernier identifiant assigné (évite les trous en cas de non-dernier plat).
+        Résolution du préfixe :
+        1. PREFIXES_PLAT (plats historiques codés en dur)
+        2. Champ "Lettre_ID" dans la carte active (nouveaux plats sans code)
+        3. Repli sur "X" si rien n'est défini
         """
         cle = type_plat.lower()
-        try:
-            numero = int(id_plat_val[1:])  # "P005" → 5
-        except (ValueError, IndexError):
-            return
-        compteur = self._data.get(cle, 0)
-        if numero == compteur and compteur > 0:
-            self._data[cle] -= 1
-            self.save()
+        prefixe = PREFIXES_PLAT.get(cle)
+
+        if prefixe is None:
+            from src.backend.data_sources import get_card_data
+            prefixe = get_card_data().get(type_plat, {}).get("Lettre_ID", "X")
+
+        self._data[prefixe] = self._data.get(prefixe, 0) + 1
+        self.save()
+        return f"{prefixe}{self._data[prefixe]:03d}"
+
 
 
 # ── Singleton ──────────────────────────────────────────────────────────────────
@@ -152,11 +164,6 @@ def generer_ID_plat(type_plat: str, logs_path=None) -> str:
 def decrementer_ID_commande(logs_path=None):
     """Décrémente le compteur commande (annulation en saisie, non persisté)."""
     get_id_cache().decrementer_commande()
-
-
-def decrementer_ID_plat(type_plat: str, id_plat_val: str, logs_path=None):
-    """Décrémente le compteur d'un type de plat si c'est le dernier assigné."""
-    get_id_cache().decrementer_plat(type_plat, id_plat_val)
 
 
 # ── Utilitaires stock et annulation ───────────────────────────────────────────

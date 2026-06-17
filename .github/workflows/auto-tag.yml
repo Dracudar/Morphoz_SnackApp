@@ -1,0 +1,39 @@
+name: Auto-tag
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  tag:
+    name: Créer le tag de version si absent
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+
+      - name: Lire APP_VERSION depuis version.py
+        id: version
+        run: |
+          VERSION=$(python3 -c "exec(open('src/core/version.py').read()); print(APP_VERSION)")
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Vérifier si le tag existe déjà
+        id: check
+        run: |
+          if git tag --list | grep -qx "${{ steps.version.outputs.tag }}"; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Créer et pousser le tag
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          git tag "${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"

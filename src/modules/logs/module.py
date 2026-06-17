@@ -3,7 +3,10 @@
 """
 module.py - Descripteur du module Journal
 
-Auteur :
+Description:
+    Descripteur du module Journal pour le registre dynamique des modules UI.
+
+Author :
     Dracudar
 
 Version:
@@ -11,6 +14,9 @@ Version:
 
 Date de création :
     2026.06.11
+
+Date de modification:
+    2026.06.14
 """
 
 from __future__ import annotations

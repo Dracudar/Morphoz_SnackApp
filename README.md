@@ -14,6 +14,8 @@ Application de gestion de snack pour événements (ex : MégaSouye), développé
 - **Historique des commandes** — recherche, filtres (statut, date, priorité), tri, réimpression
 - **Journal d'événements** — traçabilité complète au format JSON Lines (commandes, stock, paiements, paramètres, erreurs)
 - **Affichage extérieur** — fenêtre secondaire pour le suivi des commandes côté client
+- **Application légère pour postes cuisine** — point d'entrée `app_prep.py` sans dépendances USB ni modules de gestion (adapté aux machines à 4 Go RAM, partage réseau LAN)
+- **Vérification des mises à jour** — détection automatique en arrière-plan via l'API GitHub Releases
 
 ## Utilisation
 
@@ -47,13 +49,19 @@ Pour les paramètres (dossier de données, imprimante, options d'impression), ac
    | Dépendance | Rôle |
    |------------|------|
    | **PySide6** | Interface graphique Qt6 |
-   | **Pillow** | Traitement de l'image d'en-tête des tickets |
+   | **Pillow** | Traitement des images pour l'impression |
    | **pyusb** | Communication USB avec l'imprimante |
    | **python-escpos** | Protocole ESC-POS pour imprimantes thermiques |
+   | **svglib** | Conversion SVG → image pour l'impression |
+   | **reportlab** | Rendu vectoriel utilisé par svglib |
 
 4. **Lancer l'application**
    ```bash
+   # Application principale (caisse + cuisine + gestion)
    python -m src.core.app
+
+   # Application allégée pour postes cuisine (sans impression USB)
+   python -m src.core.app_prep
    ```
 
 ### Structure du projet
@@ -64,25 +72,39 @@ Morphoz_SnackApp/
 ├── assets/
 │   ├── config.json                         # Configuration (dossier données, imprimante, options impression)
 │   ├── icons/                              # Icônes SVG (annuler, filtrer, trier, imprimer, sauvegarder)
-│   └── imgs/                               # Images (en-tête ticket)
+│   └── imgs/                               # Images vectorielles (logos SVG)
+│       ├── MegaSnack.svg                   # En-tête ticket + barre de navigation
+│       ├── logo_snack.svg                  # Icône de l'application
+│       └── logo_MegaSouye.svg              # Logo événement
 │
 ├── src/
 │   ├── core/
-│   │   └── app.py                          # Point d'entrée, initialisation Qt (thème sombre Fusion)
+│   │   ├── app.py                          # Point d'entrée principal (thème sombre Fusion, vérif MAJ)
+│   │   ├── app_prep.py                     # Point d'entrée allégé pour postes cuisine (sans USB)
+│   │   └── version.py                      # Version centralisée (APP_VERSION)
 │   │
 │   ├── UI/
-│   │   ├── main_window.py                  # Fenêtre principale (menus, raccourcis F11/Ctrl+Q)
+│   │   ├── main_window.py                  # Fenêtre principale (raccourcis F11/Ctrl+Q, bannière MAJ)
 │   │   ├── suivi_exterieur_window.py       # Fenêtre d'affichage extérieur client
 │   │   ├── module_registry.py              # Registre des modules chargés
 │   │   └── view/
-│   │       └── interface_principale.py     # Assemblage vue principale (panneau gauche + droite)
+│   │       ├── interface_principale.py     # Assemblage vue principale (panneau gauche + droite)
+│   │       └── volet_navigation.py         # Volet de navigation latéral tactile
+│   │
+│   ├── UI_prep/
+│   │   ├── main_window_prep.py             # Fenêtre principale de l'application légère
+│   │   └── panneau_lateral.py              # Volet de configuration (dossier data, plein écran)
 │   │
 │   ├── backend/
 │   │   ├── app_config.py                   # Gestion de la configuration (dossier, imprimante, options)
 │   │   ├── commandes_utils.py              # Génération d'ID, réconciliation du stock, chargement JSON
 │   │   ├── data_sources.py                 # Chargement/sauvegarde centralisé (carte, stock, commandes)
 │   │   ├── logger.py                       # Journal d'événements (JSON Lines, fichier quotidien)
-│   │   └── printer.py                      # Impression des tickets (ESC-POS, USB)
+│   │   ├── printer.py                      # Impression des tickets (ESC-POS, USB, PNG+SVG)
+│   │   └── update_checker.py               # Vérification mises à jour GitHub (QThread)
+│   │
+│   ├── utils/
+│   │   └── tactile.py                      # Composants Qt tactiles (ScrollAreaTactile, BoutonTactile, EnTeteCliquable)
 │   │
 │   └── modules/
 │       ├── commandes_saisie/               # Saisie des commandes (UI + backend + dialogue paiement)
@@ -99,6 +121,13 @@ Morphoz_SnackApp/
 │           ├── salade_composee/            # Sélection des ingrédients
 │           ├── crepe/                      # Choix du type de crêpe
 │           └── frites/                     # Choix de la taille
+│
+├── .github/
+│   └── workflows/
+│       └── build.yml                       # CI/CD : 4 builds PyInstaller (Windows/Linux × main/prep)
+│
+├── morphoz_snackapp.spec                   # Configuration PyInstaller (application principale)
+├── morphoz_prep.spec                       # Configuration PyInstaller (application légère)
 │
 ├── archive/
 │   ├── libusb-1.0.dll                      # Bibliothèque USB (requis Windows)
@@ -136,7 +165,12 @@ Projet open-source sous licence MIT.
   <tr>
     <td>2.0.0</td>
     <td>11/06/2026</td>
-    <td>Réécriture complète en Qt (PySide6) — version actuelle</td>
+    <td>Réécriture complète en Qt (PySide6)</td>
+  </tr>
+  <tr>
+    <td>2.1.0</td>
+    <td><em>16/06/2026</em></td>
+    <td>Navigation tactile (volet latéral), logos SVG, application légère postes cuisine, compilation PyInstaller multi-plateforme, vérificateur de mises à jour</td>
   </tr>
 </table>
 

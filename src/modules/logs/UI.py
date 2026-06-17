@@ -11,7 +11,7 @@ Description:
     une fenêtre dédiée.
     Chaque entrée affiche : index, horodatage, catégorie, événement et détails.
 
-Auteur :
+Author :
     Dracudar
 
 Version:
@@ -19,6 +19,9 @@ Version:
 
 Date de création :
     2026.06.11
+
+Date de modification:
+    2026.06.14
 """
 
 from __future__ import annotations
@@ -36,11 +39,11 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
-    QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
+from src.utils.tactile import ScrollAreaTactile
 from src.backend.app_config import get_logs_folder_path
 from src.modules.logs.filtre_tri_dialog import FILTERS_DEFAULT, FiltreTriLogDialog
 
@@ -183,12 +186,7 @@ class LogsModule(QFrame):
         main_layout.addWidget(self.filter_indicator)
 
         # Zone scrollable
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        self.scroll_area.setStyleSheet(
-            f"QScrollArea, QScrollArea > QWidget > QWidget {{ background-color: {_BG_MAIN}; }}"
-        )
+        self.scroll_area = ScrollAreaTactile(_BG_MAIN)
         main_layout.addWidget(self.scroll_area, 1)
 
         self.list_container = QWidget()

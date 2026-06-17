@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    1.4
+    1.6
 
 Date de création :
     2026.06.05
 
 Date de modification:
-    2026.06.09
+    2026.06.15
 """
 
 from typing import Dict, List, Optional
@@ -27,18 +27,18 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QButtonGroup,
     QDialog,
-    QFrame,
     QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
     QRadioButton,
-    QScrollArea,
     QSizePolicy,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
+
+from src.utils.tactile import BoutonIngredientTactile, ScrollAreaTactile
 
 
 # ── Feuilles de style ──────────────────────────────────────────────────────────
@@ -105,21 +105,23 @@ _RADIO_STYLE = """
     QRadioButton {
         color: #f5f5f5;
         font-size: 13px;
-        spacing: 8px;
-    }
-    QRadioButton::indicator {
-        width: 18px;
-        height: 18px;
-        border-radius: 9px;
-        border: 2px solid #b0b0b0;
+        spacing: 0px;
+        padding: 5px 14px;
+        border: 2px solid #7d8390;
+        border-radius: 14px;
         background-color: transparent;
     }
-    QRadioButton::indicator:hover {
-        border-color: #f5f5f5;
+    QRadioButton:hover {
+        border-color: #c0c0c0;
     }
-    QRadioButton::indicator:checked {
-        border: 5px solid #2f3136;
-        background-color: #f5f5f5;
+    QRadioButton:checked {
+        border-color: #f5f5f5;
+        background-color: rgba(245, 245, 245, 0.15);
+    }
+    QRadioButton::indicator {
+        width: 0px;
+        height: 0px;
+        image: none;
     }
 """
 
@@ -397,9 +399,7 @@ class PizzaDialog(QDialog):
         lbl.setStyleSheet(_SECTION_STYLE)
         layout.addWidget(lbl)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll = ScrollAreaTactile()
 
         scroll_widget = QWidget()
         scroll_layout = QVBoxLayout(scroll_widget)
@@ -414,7 +414,7 @@ class PizzaDialog(QDialog):
             cat_lbl.setStyleSheet(_CATEGORY_STYLE)
             scroll_layout.addWidget(cat_lbl)
             for ingr in sorted(recette_only):
-                btn = QPushButton(ingr)
+                btn = BoutonIngredientTactile(ingr, scroll)
                 btn.setStyleSheet(_INGREDIENT_BTN_STYLE)
                 btn.setCheckable(True)
                 btn.setChecked(True)
@@ -429,7 +429,7 @@ class PizzaDialog(QDialog):
             cat_lbl.setStyleSheet(_CATEGORY_STYLE)
             scroll_layout.addWidget(cat_lbl)
             for ingr in items:
-                btn = QPushButton(ingr)
+                btn = BoutonIngredientTactile(ingr, scroll)
                 btn.setStyleSheet(_INGREDIENT_BTN_STYLE)
                 btn.setCheckable(True)
                 btn.setChecked(ingr in recette_ingr)
@@ -521,6 +521,8 @@ class PizzaDialog(QDialog):
             "Composition": {
                 "Base": base,
                 "Ingrédients": ingredients,
+                "Ajouts": sorted(ingr_supplementaires),
+                "Retraits": sorted(ingr_retires),
             },
         }
 

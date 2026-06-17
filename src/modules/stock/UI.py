@@ -45,13 +45,13 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QScrollArea,
     QSpinBox,
     QSplitter,
     QVBoxLayout,
     QWidget,
 )
 
+from src.utils.tactile import ScrollAreaTactile
 from src.backend import logger
 from src.backend.data_sources import (
     get_card_data,
@@ -287,12 +287,7 @@ class StockModule(QFrame):
         search_row.addWidget(add_btn)
         left_layout.addLayout(search_row)
 
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        self.scroll_area.setStyleSheet(
-            f"QScrollArea, QScrollArea > QWidget > QWidget {{ background-color: {_BG_MAIN}; }}"
-        )
+        self.scroll_area = ScrollAreaTactile(_BG_MAIN)
         self.list_container = QWidget()
         self.list_layout = QVBoxLayout(self.list_container)
         self.list_layout.setContentsMargins(0, 0, 4, 0)
@@ -309,12 +304,7 @@ class StockModule(QFrame):
         right_frame_lyt = QVBoxLayout(right_frame)
         right_frame_lyt.setContentsMargins(2, 2, 2, 2)
         right_frame_lyt.setSpacing(0)
-        self.right_scroll = QScrollArea()
-        self.right_scroll.setWidgetResizable(True)
-        self.right_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        self.right_scroll.setStyleSheet(
-            f"QScrollArea, QScrollArea > QWidget > QWidget {{ background-color: {_BG_RIGHT}; }}"
-        )
+        self.right_scroll = ScrollAreaTactile(_BG_RIGHT)
         right_frame_lyt.addWidget(self.right_scroll)
         self._detail_widget: Optional[QWidget] = None
         self._show_empty_detail()
@@ -532,7 +522,7 @@ class StockModule(QFrame):
         lyt.addWidget(suivi_chk)
 
         fichier_qty    = int(node.get("Quantité", 0) or 0)
-        stock_reel_val = (cache_qty + prep) if cache_qty is not None else None
+        stock_reel_val = (fichier_qty + prep) if has_qty else None
 
         qty_block = QWidget(content)
         qty_hbox  = QHBoxLayout(qty_block)
@@ -816,11 +806,10 @@ class StockModule(QFrame):
         if not isinstance(node, dict):
             return
         cache_node   = _resolve_path(cache_data, path) or {}
-        cache_qty    = cache_node.get("Quantité")
-        prep         = _get_prep_count(path, node, by_nom, by_plat)
-        stock_reel   = (cache_qty + prep) if cache_qty is not None else None
-
+        cache_qty   = cache_node.get("Quantité")
+        prep        = _get_prep_count(path, node, by_nom, by_plat)
         fichier_qty = int(node.get("Quantité", 0) or 0)
+        stock_reel  = (fichier_qty + prep) if "Quantité" in node else None
         self._detail_fichier_lbl.setText(str(fichier_qty))
         self._detail_cache_lbl.setText("—" if cache_qty is None else str(cache_qty))
         self._detail_prep_lbl.setText(str(prep))
@@ -1164,8 +1153,9 @@ class StockModule(QFrame):
         if not isinstance(node, dict):
             return
 
-        en_prepa    = _get_prep_count(path, node, by_nom, by_plat)
-        new_fichier = max(0, stock_reel_saisi - en_prepa)
+        en_prepa       = _get_prep_count(path, node, by_nom, by_plat)
+        fichier_before = int(node.get("Quantité", 0) or 0)
+        new_fichier    = max(0, stock_reel_saisi - en_prepa)
 
         # Mettre à jour le nœud
         node["Quantité"] = new_fichier
@@ -1178,10 +1168,14 @@ class StockModule(QFrame):
             QMessageBox.critical(self, "Stock", "Impossible d'enregistrer le stock.")
             return
 
-        # Mettre à jour le cache en mémoire pour cohérence immédiate
+        # Mettre à jour le cache en mémoire en préservant les déductions de saisie en cours
         cache_obj = get_stock_cache()
         if cache_obj is not None:
-            cache_obj.set_quantite(path, new_fichier)
+            cache_node_before = _resolve_path(cache_obj.data, path) or {}
+            cache_before      = cache_node_before.get("Quantité")
+            saisie_delta      = max(0, fichier_before - (cache_before if cache_before is not None else fichier_before))
+            new_cache         = max(0, new_fichier - saisie_delta)
+            cache_obj.set_quantite(path, new_cache)
 
         logger.log(logger.MODIFICATION_STOCK_MANUELLE, {
             "action":            "mise_a_jour_stock_reel",

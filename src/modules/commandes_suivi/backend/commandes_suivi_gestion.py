@@ -130,7 +130,7 @@ def terminer_commande(chemin_fichier):
             (plat["Date de livraison"] for plat in plats if plat["Statut"] == "Livré"),
             default=["", ""]
         )
-        commande["Informations"]["Date de livraison"] = dernier_livraison
+        commande["Informations"]["Date de finalisation"] = dernier_livraison
 
         with open(chemin_fichier, "w", encoding="utf-8") as fichier:
             json.dump(commande, fichier, indent=4, ensure_ascii=False)
