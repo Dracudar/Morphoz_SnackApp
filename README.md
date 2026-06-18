@@ -170,8 +170,13 @@ Projet open-source sous licence MIT.
   </tr>
   <tr>
     <td>2.1.0</td>
-    <td><em>16/06/2026</em></td>
+    <td>16/06/2026</td>
     <td>Navigation tactile (volet latéral), logos SVG, application légère postes cuisine, compilation PyInstaller multi-plateforme, vérificateur de mises à jour</td>
+  </tr>
+  <tr>
+    <td>2.1.1</td>
+    <td><em>18/06/2026</em></td>
+    <td>Correction du pipeline CI/CD : le tag et la compilation/release s'enchaînent désormais dans le même run GitHub Actions</td>
   </tr>
 </table>
 
