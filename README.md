@@ -35,7 +35,7 @@ Pour les paramètres (dossier de données, imprimante, options d'impression), ac
 
 2. **Créer et activer un environnement virtuel**
 
-   Python 3.14 ou supérieur recommandé.
+   Python 3.12 ou supérieur recommandé.
    ```bash
    python -m venv .venv
    .\.venv\Scripts\activate
@@ -124,7 +124,8 @@ Morphoz_SnackApp/
 │
 ├── .github/
 │   └── workflows/
-│       └── build.yml                       # CI/CD : 4 builds PyInstaller (Windows/Linux × main/prep)
+│       ├── auto-tag.yml                    # Crée le tag vX.Y.Z (depuis version.py) et déclenche build.yml
+│       └── build.yml                       # CI/CD : 4 builds PyInstaller (Windows/Linux × main/prep), appelé par auto-tag.yml
 │
 ├── morphoz_snackapp.spec                   # Configuration PyInstaller (application principale)
 ├── morphoz_prep.spec                       # Configuration PyInstaller (application légère)
@@ -169,8 +170,13 @@ Projet open-source sous licence MIT.
   </tr>
   <tr>
     <td>2.1.0</td>
-    <td><em>16/06/2026</em></td>
+    <td>16/06/2026</td>
     <td>Navigation tactile (volet latéral), logos SVG, application légère postes cuisine, compilation PyInstaller multi-plateforme, vérificateur de mises à jour</td>
+  </tr>
+  <tr>
+    <td>2.1.1</td>
+    <td><em>18/06/2026</em></td>
+    <td>Correction du pipeline CI/CD : le tag et la compilation/release s'enchaînent désormais dans le même run GitHub Actions</td>
   </tr>
 </table>
 
