@@ -49,6 +49,16 @@ _DEFAULT_PRINTER = {
 }
 
 
+def get_assets_path(*parts: str) -> str:
+    """Retourne le chemin absolu vers un fichier du dossier assets/.
+
+    Un chemin relatif du type "assets/imgs/logo.svg" ne fonctionne que si le
+    répertoire de travail courant est la racine du projet (ou de l'exécutable
+    PyInstaller), ce qui n'est pas garanti — d'où la résolution via PROJECT_ROOT.
+    """
+    return str(PROJECT_ROOT / "assets" / Path(*parts))
+
+
 def _default_data_folder() -> Path:
     """Retourne le dossier data par défaut selon l'environnement d'exécution."""
     if getattr(sys, "frozen", False):
@@ -217,6 +227,11 @@ def _create_data_structure(data_folder: Path) -> bool:
     except OSError:
         return False
     return True
+
+
+def initialiser_dossier_data() -> bool:
+    """Crée la structure du dossier data courant si elle n'existe pas encore (premier lancement)."""
+    return _create_data_structure(get_data_folder())
 
 
 def save_app_config(

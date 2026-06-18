@@ -49,12 +49,15 @@ def _build_dark_palette() -> QPalette:
 
 if __name__ == "__main__":
     import sys
-    from src.backend import logger
+    from src.backend import app_config, logger
 
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
     app.setPalette(_build_dark_palette())
-    app.setWindowIcon(QIcon("assets/imgs/logo_snack.svg"))
+    app.setWindowIcon(QIcon(app_config.get_assets_path("imgs", "logo_snack.svg")))
+
+    # Crée le dossier data et ses fichiers JSON vides si absents (premier lancement)
+    app_config.initialiser_dossier_data()
 
     logger.log(logger.DEMARRAGE_APP, {})
     app.aboutToQuit.connect(lambda: logger.log(logger.ARRET_APP, {}))
