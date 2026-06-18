@@ -35,7 +35,7 @@ Pour les paramètres (dossier de données, imprimante, options d'impression), ac
 
 2. **Créer et activer un environnement virtuel**
 
-   Python 3.14 ou supérieur recommandé.
+   Python 3.12 ou supérieur recommandé.
    ```bash
    python -m venv .venv
    .\.venv\Scripts\activate
