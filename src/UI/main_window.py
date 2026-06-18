@@ -27,6 +27,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QMainWindow, QPushBut
 from src.UI.view.interface_principale import InterfacePrincipaleWidget
 from src.UI.suivi_exterieur_window import SuiviExterieurWindow
 from src.backend import logger
+from src.backend.app_config import get_assets_path
 from src.backend.update_checker import UpdateChecker
 from src.core.version import APP_VERSION
 
@@ -35,7 +36,7 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         # Configuration de la fenêtre
-        self.setWindowIcon(QIcon("assets/imgs/logo_snack.svg"))
+        self.setWindowIcon(QIcon(get_assets_path("imgs", "logo_snack.svg")))
         self.setWindowTitle("Morphoz SnackApp")
         self.setGeometry(100, 100, 1200, 800)
 

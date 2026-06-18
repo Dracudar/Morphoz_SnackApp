@@ -175,8 +175,13 @@ Projet open-source sous licence MIT.
   </tr>
   <tr>
     <td>2.1.1</td>
-    <td><em>18/06/2026</em></td>
+    <td>18/06/2026</td>
     <td>Correction du pipeline CI/CD : le tag et la compilation/release s'enchaînent désormais dans le même run GitHub Actions</td>
+  </tr>
+  <tr>
+    <td>2.1.2</td>
+    <td><em>18/06/2026</em></td>
+    <td>Correction de bugs de compilation PyInstaller : capabilities.json d'escpos non inclus, dossier data non créé au premier lancement, chemins d'assets relatifs invalides dans le dossier _internal</td>
   </tr>
 </table>
 

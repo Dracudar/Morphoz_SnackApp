@@ -37,6 +37,7 @@ _PAGES_MODE_SPLIT = frozenset({"saisie"})
 
 from src.modules.carte.UI import CarteModule
 from src.modules.commandes_historique.UI import CommandesHistoriqueModule
+from src.backend.app_config import get_assets_path
 from src.modules.commandes_poste_preparation.UI.poste_preparation import PostePreparationModule
 from src.modules.commandes_saisie.UI.commande_saisie import SaisieCommandeModule
 from src.modules.commandes_suivi.UI.UI import SuiviCommandesModule
@@ -140,7 +141,7 @@ class InterfacePrincipaleWidget(QWidget):
         btn_menu.clicked.connect(self._basculer_volet)
         layout.addWidget(btn_menu)
 
-        logo = QSvgWidget("assets/imgs/MegaSnack.svg")
+        logo = QSvgWidget(get_assets_path("imgs", "MegaSnack.svg"))
         logo.setFixedSize(130, 28)
         layout.addWidget(logo)
         layout.addStretch(1)
