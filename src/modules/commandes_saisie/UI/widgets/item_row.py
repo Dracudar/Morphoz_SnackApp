@@ -25,6 +25,8 @@ from PySide6.QtGui import QColor, QIcon, QPixmap, QPainter
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
 
+from src.backend.app_config import get_assets_path
+
 
 ROW_HEIGHT = 48
 
@@ -43,7 +45,7 @@ CANCEL_BUTTON_STYLE = """
 def _make_cancel_icon(size: int = 26) -> QIcon:
     """Charge cancel.svg et retourne un QIcon avec modes normal (blanc) et désactivé (gris)."""
     def _colorize(color: str) -> QPixmap:
-        renderer = QSvgRenderer("assets/icons/cancel.svg")
+        renderer = QSvgRenderer(get_assets_path("icons", "cancel.svg"))
         raw = QPixmap(size, size)
         raw.fill(Qt.transparent)
         p = QPainter(raw)

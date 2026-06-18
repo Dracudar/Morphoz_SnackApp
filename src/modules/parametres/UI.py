@@ -41,6 +41,7 @@ from PySide6.QtWidgets import (
 from pathlib import Path
 
 from src.backend.app_config import (
+	get_assets_path,
 	get_data_folder,
 	get_print_options,
 	get_printer_config,
@@ -160,12 +161,12 @@ class ParametresModule(QFrame):
 
 		self.back_button = QPushButton("  Retour")
 		self.back_button.setObjectName("backButton")
-		self.back_button.setIcon(QIcon("assets/icons/return.svg"))
+		self.back_button.setIcon(QIcon(get_assets_path("icons", "return.svg")))
 		self.back_button.setIconSize(QSize(18, 18))
 		self.back_button.clicked.connect(self.go_back.emit)
 
 		self.save_button = QPushButton("  Enregistrer")
-		self.save_button.setIcon(QIcon("assets/icons/save.svg"))
+		self.save_button.setIcon(QIcon(get_assets_path("icons", "save.svg")))
 		self.save_button.setIconSize(QSize(18, 18))
 		self.save_button.clicked.connect(self.save_config)
 

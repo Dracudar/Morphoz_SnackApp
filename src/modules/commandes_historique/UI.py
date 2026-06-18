@@ -47,7 +47,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.utils.tactile import EnTeteCliquable, ScrollAreaTactile
-from src.backend.app_config import get_print_options
+from src.backend.app_config import get_assets_path, get_print_options
 from src.backend.data_sources import get_all_history_orders
 from src.backend.printer import reprint_all_active_cuisine, reprint_ticket_cuisine_plat, reprint_ticket_recap
 from src.modules.commandes_historique.filtre_dialog import FiltreHistoriqueDialog
@@ -93,7 +93,7 @@ _STYLE_BTN_PRINT = (
 def _make_cancel_icon(size: int = 14) -> QIcon:
 	"""Crée un QIcon cancel.svg colorisé blanc (normal) et gris (désactivé)."""
 	def _colorize(color: str) -> QPixmap:
-		renderer = QSvgRenderer("assets/icons/cancel.svg")
+		renderer = QSvgRenderer(get_assets_path("icons", "cancel.svg"))
 		raw = QPixmap(size, size)
 		raw.fill(Qt.GlobalColor.transparent)
 		painter = QPainter(raw)
@@ -195,7 +195,7 @@ class CommandesHistoriqueModule(QFrame):
 
 		self.filter_btn = QPushButton(" Filtres")
 		self.filter_btn.setObjectName("filterOpenButton")
-		self.filter_btn.setIcon(QIcon("assets/icons/filter.svg"))
+		self.filter_btn.setIcon(QIcon(get_assets_path("icons", "filter.svg")))
 		self.filter_btn.setIconSize(QSize(16, 16))
 		self.filter_btn.clicked.connect(self._open_filter_dialog)
 
@@ -226,7 +226,7 @@ class CommandesHistoriqueModule(QFrame):
 
 		self.back_button = QPushButton("  Retour")
 		self.back_button.setObjectName("backButton")
-		self.back_button.setIcon(QIcon("assets/icons/return.svg"))
+		self.back_button.setIcon(QIcon(get_assets_path("icons", "return.svg")))
 		self.back_button.setIconSize(QSize(18, 18))
 		self.back_button.clicked.connect(self.go_back.emit)
 
@@ -236,7 +236,7 @@ class CommandesHistoriqueModule(QFrame):
 
 		self.print_all_btn = QPushButton("  Tickets cuisine (en cours)")
 		self.print_all_btn.setObjectName("printAllButton")
-		self.print_all_btn.setIcon(QIcon("assets/icons/print.svg"))
+		self.print_all_btn.setIcon(QIcon(get_assets_path("icons", "print.svg")))
 		self.print_all_btn.setIconSize(QSize(16, 16))
 		self.print_all_btn.setToolTip("Imprimer les tickets cuisine de tous les plats en préparation ou prêts")
 		self.print_all_btn.clicked.connect(self._on_print_all_active)
@@ -652,7 +652,7 @@ class CommandesHistoriqueModule(QFrame):
 		# Bouton impression ticket récap (le plus à droite, désactivé si impression globalement off)
 		options = get_print_options()
 		btn_recap = QPushButton()
-		btn_recap.setIcon(QIcon("assets/icons/print.svg"))
+		btn_recap.setIcon(QIcon(get_assets_path("icons", "print.svg")))
 		btn_recap.setIconSize(QSize(14, 14))
 		btn_recap.setToolTip("Réimprimer ticket récap" if options["impression_active"] else "Impression désactivée")
 		btn_recap.setEnabled(options["impression_active"])
@@ -795,7 +795,7 @@ class CommandesHistoriqueModule(QFrame):
 
 		# Bouton impression cuisine (le plus à droite, désactivé si terminal ou impression off)
 		btn_print = QPushButton()
-		btn_print.setIcon(QIcon("assets/icons/print.svg"))
+		btn_print.setIcon(QIcon(get_assets_path("icons", "print.svg")))
 		btn_print.setIconSize(QSize(12, 12))
 		btn_print.setToolTip(
 			"Réimprimer ticket cuisine pour ce plat" if print_enabled else "Impression désactivée"

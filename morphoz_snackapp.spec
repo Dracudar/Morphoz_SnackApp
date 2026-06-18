@@ -10,6 +10,8 @@ Note Linux : libusb-1.0-0 doit être installé sur la machine cible.
     Règles udev pour accès imprimante sans sudo : voir docs/udev.md
 """
 
+from PyInstaller.utils.hooks import collect_data_files
+
 a = Analysis(
     ["src/core/app.py"],
     pathex=["."],
@@ -19,6 +21,9 @@ a = Analysis(
         ("assets", "assets"),
         # Fichiers descripteurs et icônes des modules (chargés par module_registry)
         ("src/modules", "src/modules"),
+        # capabilities.json : chargé par escpos.capabilities via importlib_resources,
+        # non inclus automatiquement par PyInstaller (pas un fichier .py)
+        *collect_data_files("escpos"),
     ],
     hiddenimports=[
         # Backends libusb chargés dynamiquement par pyusb

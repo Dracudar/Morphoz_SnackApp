@@ -20,13 +20,14 @@ Date de modification:
 """
 
 import unicodedata
-from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap, QPainter
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QPushButton, QVBoxLayout, QLabel
+
+from src.backend.app_config import PROJECT_ROOT, get_assets_path
 
 
 BOUTON_MENU_STYLE = """
@@ -89,12 +90,12 @@ class BoutonMenu(QPushButton):
         normalized = unicodedata.normalize("NFD", self.category_name)
         ascii_name = "".join(c for c in normalized if unicodedata.category(c) != "Mn")
         plat_name_lower = ascii_name.lower().replace(" ", "_")
-        category_folder = Path(f"src/modules/plats/{plat_name_lower}/")
+        category_folder = PROJECT_ROOT / "src" / "modules" / "plats" / plat_name_lower
         category_icon = category_folder / "icon.svg"
 
         if category_icon.exists():
             return str(category_icon)
-        return "assets/icons/void.svg"
+        return get_assets_path("icons", "void.svg")
 
     def _load_svg_icon(self, svg_path: str, size: int = 80) -> QPixmap:
         """Charge et rastérise un fichier SVG en QPixmap de la taille donnée."""

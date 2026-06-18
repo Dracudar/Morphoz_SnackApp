@@ -24,6 +24,8 @@ from PySide6.QtGui import QPixmap, QPainter
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
 
+from src.backend.app_config import get_assets_path
+
 
 PAYMENT_BUTTON_STYLE = """
     QPushButton {
@@ -72,9 +74,9 @@ class PaymentDialog(QDialog):
 
         # Define payment options: (label, icon_path, payment_type)
         payments = [
-            ("Gratuit", "assets/icons/free.svg", "Gratuit"),
-            ("Carte", "assets/icons/card.svg", "Carte"),
-            ("Espèces", "assets/icons/coin.svg", "Espèces"),
+            ("Gratuit", get_assets_path("icons", "free.svg"), "Gratuit"),
+            ("Carte", get_assets_path("icons", "card.svg"), "Carte"),
+            ("Espèces", get_assets_path("icons", "coin.svg"), "Espèces"),
         ]
 
         for label, icon_path, payment_type in payments:
