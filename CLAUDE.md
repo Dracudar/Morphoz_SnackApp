@@ -65,16 +65,17 @@ python -m venv .venv
 source .venv/bin/activate        # Linux/macOS
 # .\.venv\Scripts\activate       # Windows
 pip install -r requirements.txt
+pip install -r requirements-dev.txt   # nécessaire pour lancer les tests
 
 # Lancer l'application
 python -m src.core.app
 
-# Tests (aucun test n'existe pour l'instant, mais pytest est configuré)
+# Tests (configuration dans pytest.ini, 201 tests dans tests/unit/ et tests/ui/)
 pytest .
 pytest chemin/vers/test_fichier.py::nom_du_test   # test unique
 ```
 
-Pas de configuration ruff/pyproject.toml dans le dépôt — le linter est présent (`.ruff_cache/` ignoré par git) mais non configuré explicitement.
+Pas de configuration ruff dans le dépôt — le linter est présent (`.ruff_cache/` ignoré par git) mais non configuré explicitement.
 
 ## Architecture
 
