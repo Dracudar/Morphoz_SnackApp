@@ -124,7 +124,8 @@ Morphoz_SnackApp/
 │
 ├── .github/
 │   └── workflows/
-│       └── build.yml                       # CI/CD : 4 builds PyInstaller (Windows/Linux × main/prep)
+│       ├── auto-tag.yml                    # Crée le tag vX.Y.Z (depuis version.py) et déclenche build.yml
+│       └── build.yml                       # CI/CD : 4 builds PyInstaller (Windows/Linux × main/prep), appelé par auto-tag.yml
 │
 ├── morphoz_snackapp.spec                   # Configuration PyInstaller (application principale)
 ├── morphoz_prep.spec                       # Configuration PyInstaller (application légère)

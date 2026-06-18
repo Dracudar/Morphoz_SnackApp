@@ -1,9 +1,12 @@
 name: Build
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+  workflow_call:
+    inputs:
+      tag:
+        description: "Tag de version à publier (ex: v2.1.0)"
+        required: true
+        type: string
 
 jobs:
   build-windows:
@@ -105,11 +108,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ github.ref_name }}" \
+          gh release create "${{ inputs.tag }}" \
             MorphozSnackApp-windows.zip \
             MorphozSnackApp-linux.tar.gz \
             MorphozSnackApp_prep-windows.zip \
             MorphozSnackApp_prep-linux.tar.gz \
             --repo "${{ github.repository }}" \
-            --title "Release ${{ github.ref_name }}" \
+            --title "Release ${{ inputs.tag }}" \
             --generate-notes
