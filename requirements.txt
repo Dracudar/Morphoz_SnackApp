@@ -5,8 +5,9 @@ PySide6
 filelock
 
 # Impression de tickets
+svglib
+reportlab
 pillow
 pyusb
 python-escpos
-svglib
-reportlab
+
