@@ -124,7 +124,7 @@ Morphoz_SnackApp/
 │
 ├── .github/
 │   └── workflows/
-│       ├── auto-tag.yml                    # Crée le tag vX.Y.Z (depuis version.py) et déclenche build.yml
+│       ├── auto-tag.yml                    # Vérifie la doc, génère le CHANGELOG, crée le tag vX.Y.Z et déclenche build.yml
 │       └── build.yml                       # CI/CD : 4 builds PyInstaller (Windows/Linux × main/prep), appelé par auto-tag.yml
 │
 ├── morphoz_snackapp.spec                   # Configuration PyInstaller (application principale)
@@ -135,9 +135,15 @@ Morphoz_SnackApp/
 │   └── zadig-2.9.exe                       # Installateur de pilote USB pour l'imprimante
 │
 ├── scripts/
+│   ├── generate_changelog.py               # Génère l'entrée CHANGELOG.md d'une version (utilisé par auto-tag.yml)
 │   └── printer_tickets_repas.py            # Utilitaire d'impression des tickets pour repas gratuits
 │
+├── docs/
+│   ├── ARCHITECTURE.md                     # Documentation d'architecture détaillée
+│   └── PatchNote_VX.Y.0.md                 # Patch note utilisateur par version majeure/mineure
+│
 ├── requirements.txt                        # Fichier des dépendances Python
+├── CHANGELOG.md                            # Historique détaillé généré automatiquement à chaque version
 ├── README.md
 └── CLAUDE.md
 ```
