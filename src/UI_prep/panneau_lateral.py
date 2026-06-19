@@ -13,13 +13,13 @@ Author :
     Dracudar
 
 Version:
-    2.1
+    2.2
 
 Date de création :
     2026.06.14
 
 Date de modification:
-    2026.06.19
+    2026.06.20
 """
 
 from PySide6.QtCore import Qt, Signal
@@ -88,6 +88,7 @@ class VoletPrep(QFrame):
 
     action_app_demande = Signal(str)  # "fullscreen" | "quit"
     dossier_applique   = Signal()     # nouveau dossier data persisté → demande un refresh
+    fermeture_demandee = Signal()     # croix cliquée → la fenêtre parente doit aussi masquer l'overlay
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -149,7 +150,7 @@ class VoletPrep(QFrame):
         btn_fermer = QPushButton("✕")
         btn_fermer.setFixedSize(44, 44)
         btn_fermer.setStyleSheet(_STYLE_FERMER)
-        btn_fermer.clicked.connect(self.hide)
+        btn_fermer.clicked.connect(self.fermeture_demandee.emit)
         layout.addWidget(btn_fermer)
 
         return header

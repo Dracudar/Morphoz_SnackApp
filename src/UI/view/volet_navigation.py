@@ -11,13 +11,13 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.06.13
 
 Date de modification:
-    2026.06.14
+    2026.06.20
 """
 
 from PySide6.QtCore import Qt, Signal
@@ -99,6 +99,7 @@ class VoletNavigation(QFrame):
 
     page_demandee    = Signal(str)  # identifiant de page à afficher
     action_app_demande = Signal(str)  # "fullscreen" | "quit" | "suivi_ext_toggle"
+    fermeture_demandee = Signal()  # croix ou item de nav cliqué → la fenêtre parente doit aussi masquer l'overlay
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -181,7 +182,7 @@ class VoletNavigation(QFrame):
         btn_fermer = QPushButton("✕")
         btn_fermer.setFixedSize(44, 44)
         btn_fermer.setStyleSheet(_STYLE_FERMER)
-        btn_fermer.clicked.connect(self.hide)
+        btn_fermer.clicked.connect(self.fermeture_demandee.emit)
         layout.addWidget(btn_fermer)
 
         return header
@@ -203,7 +204,7 @@ class VoletNavigation(QFrame):
 
     def _naviguer(self, page_id: str):
         self.page_demandee.emit(page_id)
-        self.hide()
+        self.fermeture_demandee.emit()
 
 
 class OverlayFermeture(QWidget):
