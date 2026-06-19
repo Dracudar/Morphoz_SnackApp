@@ -140,7 +140,7 @@ Morphoz_SnackApp/
 │
 ├── docs/
 │   ├── ARCHITECTURE.md                     # Documentation d'architecture détaillée
-│   └── PatchNote_VX.Y.0.md                 # Patch note utilisateur par version majeure/mineure
+│   └── PATCHNOTE_VX.Y.0.md                  # Patch note utilisateur par version majeure/mineure
 │
 ├── requirements.txt                        # Fichier des dépendances Python
 ├── CHANGELOG.md                            # Historique détaillé généré automatiquement à chaque version
@@ -188,6 +188,11 @@ Projet open-source sous licence MIT.
     <td>2.1.2</td>
     <td><em>18/06/2026</em></td>
     <td>Correction de bugs de compilation PyInstaller : capabilities.json d'escpos non inclus, dossier data non créé au premier lancement, chemins d'assets relatifs invalides dans le dossier _internal</td>
+  </tr>
+  <tr>
+    <td>2.2.0</td>
+    <td><em>20/06/2026</em></td>
+    <td>Sécurisation des accès concurrents aux fichiers JSON partagés en LAN (verrouillage inter-processus, écriture atomique), correction d'un bug d'affichage du volet de navigation, vérification automatique de la documentation et CHANGELOG généré automatiquement avant chaque release</td>
   </tr>
 </table>
 

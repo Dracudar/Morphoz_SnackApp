@@ -57,7 +57,7 @@ jobs:
           VERSION="${{ needs.version.outputs.version }}"
           CORRECTIF=$(echo "$VERSION" | cut -d. -f3)
           if [ "$CORRECTIF" = "0" ]; then
-            FICHIER="docs/PatchNote_V${VERSION}.md"
+            FICHIER="docs/PATCHNOTE_V${VERSION}.md"
             if [ ! -f "$FICHIER" ]; then
               echo "::error::$FICHIER est manquant. Les versions majeures et mineures (X.Y.0) doivent avoir un patch note utilisateur dans docs/."
               exit 1
