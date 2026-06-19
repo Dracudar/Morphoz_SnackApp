@@ -15,11 +15,13 @@ Toute la documentation, les commentaires, les noms de variables, de fonctions et
 - Ne jamais travailler directement sur `main` ou `develop`.
 - Toute nouvelle branche se base sur `develop`, sauf indication contraire explicite.
 - Après toute modification de l'UI, lancer l'application et fournir des captures d'écran du résultat avant de considérer la tâche terminée.
-- Avant de fusionner vers `main` pour une nouvelle version (bump de `APP_VERSION`, y compris les correctifs mineurs), s'assurer que :
-  - `docs/PatchNote_V{version}.md` existe pour la nouvelle version.
+- Tout push sur `main` correspond obligatoirement à une nouvelle version : le job `version` de `auto-tag.yml` échoue si `APP_VERSION` (`src/core/version.py`) n'a pas été incrémenté depuis le dernier tag, y compris pour un simple correctif.
+- Avant de fusionner vers `main` pour une nouvelle version, s'assurer que :
+  - `docs/PatchNote_V{version}.md` existe **pour les versions majeures et mineures** (`X.Y.0`) — pas requis pour un correctif (`X.Y.Z`, `Z` > 0).
   - Le tableau « Historique des versions » du `README.md` mentionne la nouvelle version.
   - `docs/ARCHITECTURE.md` est à jour si `src/` a changé depuis le dernier tag.
-  - Ces points sont vérifiés automatiquement par le job `verify-docs` de `auto-tag.yml` et bloquent la création du tag/la release en cas d'échec.
+  - `CHANGELOG.md` est généré automatiquement (job `changelog` de `auto-tag.yml`, via `scripts/generate_changelog.py`) à partir des commits Conventional Commits depuis le dernier tag — aucune action manuelle requise.
+  - Ces points sont vérifiés automatiquement par les jobs `version` et `verify-docs` de `auto-tag.yml` et bloquent la création du tag/la release en cas d'échec.
 
 ### Conventions de commit
 

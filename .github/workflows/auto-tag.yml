@@ -4,15 +4,16 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - CHANGELOG.md
 
 jobs:
   version:
-    name: Lire la version et vérifier l'existence du tag
+    name: Lire la version et vérifier qu'elle a été incrémentée
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
-      exists: ${{ steps.check.outputs.exists }}
       previous_tag: ${{ steps.previous.outputs.tag }}
 
     steps:
@@ -28,24 +29,21 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Vérifier si le tag existe déjà
-        id: check
-        run: |
-          if git tag --list | grep -qx "${{ steps.version.outputs.tag }}"; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Déterminer le tag précédent
         id: previous
         run: |
           echo "tag=$(git tag --list --sort=-v:refname | head -n1)" >> $GITHUB_OUTPUT
 
+      - name: Bloquer si la version n'a pas été incrémentée
+        run: |
+          if git tag --list | grep -qx "${{ steps.version.outputs.tag }}"; then
+            echo "::error::Le tag ${{ steps.version.outputs.tag }} existe déjà. Tout push sur main correspond à une nouvelle version : incrémentez APP_VERSION dans src/core/version.py (y compris pour un simple correctif) avant de fusionner vers main."
+            exit 1
+          fi
+
   verify-docs:
     name: Vérifier la documentation de version
     needs: version
-    if: needs.version.outputs.exists == 'false'
     runs-on: ubuntu-latest
 
     steps:
@@ -54,13 +52,18 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Vérifier la présence du patch note de version
+      - name: Vérifier le patch note pour les versions majeures et mineures
         run: |
           VERSION="${{ needs.version.outputs.version }}"
-          FICHIER="docs/PatchNote_V${VERSION}.md"
-          if [ ! -f "$FICHIER" ]; then
-            echo "::error::$FICHIER est manquant. Chaque version (y compris les correctifs) doit avoir son patch note dans docs/."
-            exit 1
+          CORRECTIF=$(echo "$VERSION" | cut -d. -f3)
+          if [ "$CORRECTIF" = "0" ]; then
+            FICHIER="docs/PatchNote_V${VERSION}.md"
+            if [ ! -f "$FICHIER" ]; then
+              echo "::error::$FICHIER est manquant. Les versions majeures et mineures (X.Y.0) doivent avoir un patch note utilisateur dans docs/."
+              exit 1
+            fi
+          else
+            echo "Version de correctif (${VERSION}) : patch note non requis, seul le CHANGELOG est obligatoire."
           fi
 
       - name: Vérifier la mention de la version dans le README
@@ -88,10 +91,37 @@ jobs:
       - name: Vérifier la syntaxe des fichiers de compilation (*.spec)
         run: python3 -m py_compile morphoz_snackapp.spec morphoz_prep.spec
 
+  changelog:
+    name: Générer l'entrée CHANGELOG.md de la version
+    needs: [version, verify-docs]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Générer la section de version
+        run: |
+          python3 scripts/generate_changelog.py \
+            --previous "${{ needs.version.outputs.previous_tag }}" \
+            --version "${{ needs.version.outputs.version }}" \
+            --date "$(date -u +%Y-%m-%d)"
+
+      - name: Committer et pousser le CHANGELOG
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "docs(changelog): ajoute l'entrée v${{ needs.version.outputs.version }}"
+          git push origin HEAD:main
+
   tag:
     name: Créer le tag de version
-    needs: [version, verify-docs]
-    if: needs.version.outputs.exists == 'false'
+    needs: [version, changelog]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -101,6 +131,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main
           fetch-tags: true
 
       - name: Créer et pousser le tag
