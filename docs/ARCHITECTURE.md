@@ -54,6 +54,7 @@ L'application couvre l'intégralité du cycle de vente :
 | Impression thermique USB (ESC-POS) | `backend/printer.py` |
 | Journalisation exhaustive (JSON Lines) | `backend/logger.py` |
 | Configuration (dossier data, imprimante) | `parametres` |
+| Accès concurrent aux fichiers JSON partagés en LAN | `backend/file_io.py` |
 
 ---
 
@@ -77,6 +78,7 @@ pyusb
 python-escpos
 svglib
 reportlab
+filelock
 ```
 
 ---
@@ -104,7 +106,8 @@ reportlab
 │   commandes_historique        │  │   commandes_utils.py       │
 │   commandes_poste_preparation │  │   logger.py                │
 │   carte / stock / logs        │  │   printer.py               │
-│   parametres                  │  └────────────────────────────┘
+│   parametres                  │  │   file_io.py               │
+│                               │  └────────────────────────────┘
 │   plats/{pizza,grillade,...}  │
 └───────────────────────────────┘
              │
@@ -334,6 +337,19 @@ Volet de configuration minimal accessible depuis un bouton flottant.
 ---
 
 ## 7. Couche `backend`
+
+### `src/backend/file_io.py`
+
+**Accès bas niveau aux fichiers JSON partagés en LAN.** Plusieurs postes (caisse, cuisine, suivi…) peuvent lire et écrire les mêmes fichiers (stock, commandes, IDs journaliers) depuis le réseau local. Ce module garantit l'écriture atomique (fichier temporaire + `os.replace`) et le verrouillage inter-processus/inter-machine via `filelock`, pour éviter qu'un crash laisse un JSON à moitié écrit ou que deux postes s'écrasent mutuellement leurs modifications.
+
+| Fonction | Description |
+|---|---|
+| `verrou_fichier(chemin)` | Retourne un `FileLock` (timeout 15 s) sur le fichier `<chemin>.lock` associé. |
+| `charger_json(chemin)` | Charge un JSON et retourne `{}` si absent ou invalide. |
+| `sauvegarder_json(chemin, payload)` | Écrit un dict en JSON de façon atomique, sans verrou — pour une écriture isolée par un seul poste. |
+| `acceder_json(chemin)` | Context manager : verrouille, charge la dernière version sur disque, fournit le dict pour modification, puis sauvegarde atomiquement en sortie de bloc. À utiliser pour toute séquence "charger → modifier → sauvegarder" sur un fichier partagé. Ne sauvegarde rien si une exception est levée dans le bloc. |
+
+---
 
 ### `src/backend/app_config.py`
 
@@ -1052,6 +1068,7 @@ Couche backend (partagée par tous les modules) :
   commandes_utils.py ──► generer_ID_commande/plat() · restaurer_stock_plat() · ...
   logger.py       ──► log(evenement, details)
   printer.py      ──► charger_logo() (PNG+SVG) · print_ticket_recap/cuisine() · reprint_*()
+  file_io.py      ──► acceder_json() · charger_json() · sauvegarder_json()
   update_checker.py ──► UpdateChecker(QThread) · update_available(Signal)
 ```
 
