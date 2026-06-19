@@ -189,6 +189,11 @@ Projet open-source sous licence MIT.
     <td><em>18/06/2026</em></td>
     <td>Correction de bugs de compilation PyInstaller : capabilities.json d'escpos non inclus, dossier data non créé au premier lancement, chemins d'assets relatifs invalides dans le dossier _internal</td>
   </tr>
+  <tr>
+    <td>2.1.3</td>
+    <td><em>20/06/2026</em></td>
+    <td>Sécurisation des accès concurrents aux fichiers JSON partagés en LAN (verrouillage inter-processus, écriture atomique), vérification automatique de la documentation avant tag/release, CHANGELOG généré automatiquement</td>
+  </tr>
 </table>
 
 ---
