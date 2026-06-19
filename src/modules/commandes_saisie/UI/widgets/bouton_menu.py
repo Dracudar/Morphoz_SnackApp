@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.06
+    2026.06.19
 """
 
 import unicodedata
@@ -28,6 +28,7 @@ from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QPushButton, QVBoxLayout, QLabel
 
 from src.backend.app_config import PROJECT_ROOT, get_assets_path
+from src.backend import logger
 
 
 BOUTON_MENU_STYLE = """
@@ -108,8 +109,12 @@ class BoutonMenu(QPushButton):
             painter.end()
             return pixmap
         except Exception as e:
-            print(f"Error loading SVG {svg_path}: {e}")
-            # Return gray placeholder
+            logger.log(logger.ERREUR, {
+                "contexte": "bouton_menu_chargement_svg",
+                "type_erreur": type(e).__name__,
+                "message": str(e),
+                "chemin_svg": svg_path,
+            })
             pixmap = QPixmap(size, size)
             pixmap.fill(Qt.gray)
             return pixmap

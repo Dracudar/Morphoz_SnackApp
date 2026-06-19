@@ -13,16 +13,14 @@ Author :
     Dracudar
 
 Version:
-    2.0
+    2.2
 
 Date de création :
     2026.06.14
 
 Date de modification:
-    2026.06.14
+    2026.06.20
 """
-
-import json
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -37,6 +35,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from src.backend import file_io
 from src.backend.app_config import CONFIG_FILE, get_data_folder
 
 # ── Palette ───────────────────────────────────────────────────────────────────
@@ -89,6 +88,7 @@ class VoletPrep(QFrame):
 
     action_app_demande = Signal(str)  # "fullscreen" | "quit"
     dossier_applique   = Signal()     # nouveau dossier data persisté → demande un refresh
+    fermeture_demandee = Signal()     # croix cliquée → la fenêtre parente doit aussi masquer l'overlay
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -150,7 +150,7 @@ class VoletPrep(QFrame):
         btn_fermer = QPushButton("✕")
         btn_fermer.setFixedSize(44, 44)
         btn_fermer.setStyleSheet(_STYLE_FERMER)
-        btn_fermer.clicked.connect(self.hide)
+        btn_fermer.clicked.connect(self.fermeture_demandee.emit)
         layout.addWidget(btn_fermer)
 
         return header
@@ -254,14 +254,10 @@ class VoletPrep(QFrame):
         if not new_path:
             return
         try:
-            config = {}
-            if CONFIG_FILE.exists():
-                with CONFIG_FILE.open("r", encoding="utf-8") as f:
-                    config = json.load(f)
-            config["data_folder"] = new_path
-            CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-            with CONFIG_FILE.open("w", encoding="utf-8") as f:
-                json.dump(config, f, ensure_ascii=False, indent=4)
+            with file_io.verrou_fichier(CONFIG_FILE):
+                config = file_io.charger_json(CONFIG_FILE)
+                config["data_folder"] = new_path
+                file_io.sauvegarder_json(CONFIG_FILE, config)
             self._btn_appliquer.setEnabled(False)
             self._lbl_status.setStyleSheet("color: #4caf50; font-size: 11px;")
             self._lbl_status.setText("✓ Appliqué")

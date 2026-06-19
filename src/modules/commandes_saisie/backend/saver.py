@@ -10,21 +10,21 @@ Author :
     Dracudar
 
 Version:
-    3.0
+    3.1
 
 Date de création :
     2026.06.02
 
 Date de modification:
-    2026.06.08
+    2026.06.19
 """
 
 import os
-import json
 from datetime import datetime
 from collections import OrderedDict
+from src.backend import file_io
 from src.backend.commandes_utils import (
-    charger_fichier_commande,
+    acceder_commande,
     generer_ID_commande,
     generer_ID_plat,
 )
@@ -146,25 +146,22 @@ def MAJ_commande(commandes_path, logs_path, plat):
         fichiers_commandes.sort()
         chemin_fichier = os.path.join(commandes_path, fichiers_commandes[-1])
 
-        commande = charger_fichier_commande(chemin_fichier)
-        if not commande:
-            return
+        with acceder_commande(chemin_fichier) as commande:
+            if not commande:
+                return
 
-        id_type = generer_ID_plat(plat["Plat"])  # ex: "P030"
-        plat_id = f"{commande['Informations']['ID']}-{id_type}"  # ex: "20260606-007-P030"
-        commande["Commande"][id_type] = creer_dict_plat(plat_id, plat)
+            id_type = generer_ID_plat(plat["Plat"])  # ex: "P030"
+            plat_id = f"{commande['Informations']['ID']}-{id_type}"  # ex: "20260606-007-P030"
+            commande["Commande"][id_type] = creer_dict_plat(plat_id, plat)
 
-        commande["Informations"]["Montant"] = sum(
-            p["Prix"] for p in commande["Commande"].values() if p["Statut"] != "Annulé"
-        )
+            commande["Informations"]["Montant"] = sum(
+                p["Prix"] for p in commande["Commande"].values() if p["Statut"] != "Annulé"
+            )
 
-        # Trier les plats par type alphabétique puis numéro croissant (ex: B001 < G001 < P001)
-        commande["Commande"] = dict(
-            sorted(commande["Commande"].items(), key=lambda kv: _sort_key_plat(kv[0]))
-        )
-
-        with open(chemin_fichier, "w", encoding="utf-8") as fichier:
-            json.dump(commande, fichier, indent=4, ensure_ascii=False)
+            # Trier les plats par type alphabétique puis numéro croissant (ex: B001 < G001 < P001)
+            commande["Commande"] = dict(
+                sorted(commande["Commande"].items(), key=lambda kv: _sort_key_plat(kv[0]))
+            )
 
         logger.log(logger.AJOUT_PLAT, {
             "id_commande": commande["Informations"]["ID"],
@@ -199,8 +196,7 @@ def MAJ_commande(commandes_path, logs_path, plat):
             }
         }
 
-        with open(chemin_fichier, "w", encoding="utf-8") as fichier:
-            json.dump(nouvelle_commande, fichier, indent=4, ensure_ascii=False)
+        file_io.sauvegarder_json(chemin_fichier, nouvelle_commande)
 
         logger.log(logger.AJOUT_PLAT, {
             "id_commande": nouvel_id,

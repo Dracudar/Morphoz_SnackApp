@@ -4,47 +4,145 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - CHANGELOG.md
 
 jobs:
-  tag:
-    name: Créer le tag de version si absent
+  version:
+    name: Lire la version et vérifier qu'elle a été incrémentée
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     outputs:
       tag: ${{ steps.version.outputs.tag }}
-      exists: ${{ steps.check.outputs.exists }}
+      version: ${{ steps.version.outputs.version }}
+      previous_tag: ${{ steps.previous.outputs.tag }}
 
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           fetch-tags: true
 
       - name: Lire APP_VERSION depuis version.py
         id: version
         run: |
           VERSION=$(python3 -c "exec(open('src/core/version.py').read()); print(APP_VERSION)")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Vérifier si le tag existe déjà
-        id: check
+      - name: Déterminer le tag précédent
+        id: previous
+        run: |
+          echo "tag=$(git tag --list --sort=-v:refname | head -n1)" >> $GITHUB_OUTPUT
+
+      - name: Bloquer si la version n'a pas été incrémentée
         run: |
           if git tag --list | grep -qx "${{ steps.version.outputs.tag }}"; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "::error::Le tag ${{ steps.version.outputs.tag }} existe déjà. Tout push sur main correspond à une nouvelle version : incrémentez APP_VERSION dans src/core/version.py (y compris pour un simple correctif) avant de fusionner vers main."
+            exit 1
           fi
 
-      - name: Créer et pousser le tag
-        if: steps.check.outputs.exists == 'false'
+  verify-docs:
+    name: Vérifier la documentation de version
+    needs: version
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Vérifier le patch note pour les versions majeures et mineures
         run: |
-          git tag "${{ steps.version.outputs.tag }}"
-          git push origin "${{ steps.version.outputs.tag }}"
+          VERSION="${{ needs.version.outputs.version }}"
+          CORRECTIF=$(echo "$VERSION" | cut -d. -f3)
+          if [ "$CORRECTIF" = "0" ]; then
+            FICHIER="docs/PatchNote_V${VERSION}.md"
+            if [ ! -f "$FICHIER" ]; then
+              echo "::error::$FICHIER est manquant. Les versions majeures et mineures (X.Y.0) doivent avoir un patch note utilisateur dans docs/."
+              exit 1
+            fi
+          else
+            echo "Version de correctif (${VERSION}) : patch note non requis, seul le CHANGELOG est obligatoire."
+          fi
+
+      - name: Vérifier la mention de la version dans le README
+        run: |
+          VERSION="${{ needs.version.outputs.version }}"
+          if ! grep -q "<td>${VERSION}</td>" README.md; then
+            echo "::error::README.md ne mentionne pas la version ${VERSION} dans le tableau « Historique des versions »."
+            exit 1
+          fi
+
+      - name: Vérifier la mise à jour d'ARCHITECTURE.md si src/ a changé
+        run: |
+          PREV="${{ needs.version.outputs.previous_tag }}"
+          if [ -z "$PREV" ]; then
+            echo "Aucun tag précédent, vérification ignorée."
+            exit 0
+          fi
+          if git diff --name-only "$PREV"..HEAD -- src/ | grep -q .; then
+            if ! git diff --name-only "$PREV"..HEAD -- docs/ARCHITECTURE.md | grep -q .; then
+              echo "::error::src/ a changé depuis $PREV mais docs/ARCHITECTURE.md n'a pas été mis à jour."
+              exit 1
+            fi
+          fi
+
+      - name: Vérifier la syntaxe des fichiers de compilation (*.spec)
+        run: python3 -m py_compile morphoz_snackapp.spec morphoz_prep.spec
+
+  changelog:
+    name: Générer l'entrée CHANGELOG.md de la version
+    needs: [version, verify-docs]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Générer la section de version
+        run: |
+          python3 scripts/generate_changelog.py \
+            --previous "${{ needs.version.outputs.previous_tag }}" \
+            --version "${{ needs.version.outputs.version }}" \
+            --date "$(date -u +%Y-%m-%d)"
+
+      - name: Committer et pousser le CHANGELOG
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "docs(changelog): ajoute l'entrée v${{ needs.version.outputs.version }}"
+          git push origin HEAD:main
+
+  tag:
+    name: Créer le tag de version
+    needs: [version, changelog]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ needs.version.outputs.tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-tags: true
+
+      - name: Créer et pousser le tag
+        run: |
+          git tag "${{ needs.version.outputs.tag }}"
+          git push origin "${{ needs.version.outputs.tag }}"
 
   build:
     name: Compiler et publier la release
     needs: tag
-    if: needs.tag.outputs.exists == 'false'
+    if: needs.tag.result == 'success'
     permissions:
       contents: write
     uses: ./.github/workflows/build.yml
