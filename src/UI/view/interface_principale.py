@@ -11,13 +11,13 @@ Author :
     Dracudar
 
 Version:
-    1.3
+    1.4
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.14
+    2026.06.20
 """
 
 from PySide6.QtCore import QEvent, Qt, Signal
@@ -110,6 +110,7 @@ class InterfacePrincipaleWidget(QWidget):
         self._volet = VoletNavigation(self._content_area)
         self._volet.page_demandee.connect(self._on_nav_page)
         self._volet.action_app_demande.connect(self.action_app_demande)
+        self._volet.fermeture_demandee.connect(self._fermer_volet)
         self._volet.hide()
 
         # Listener de redimensionnement sur _content_area pour repositionner l'overlay/volet

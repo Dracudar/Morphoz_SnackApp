@@ -1,9 +1,13 @@
 # UI
 PySide6
 
+# Accès concurrent aux fichiers JSON partagés (réseau local)
+filelock
+
 # Impression de tickets
+svglib
+reportlab
 pillow
 pyusb
 python-escpos
-svglib
-reportlab
+

@@ -28,6 +28,10 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from filelock import Timeout
+
+from src.backend import file_io
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_FILE = PROJECT_ROOT / "assets" / "config.json"
@@ -69,25 +73,23 @@ def _default_data_folder() -> Path:
 
 def _load_json_file(file_path: Path) -> Dict[str, Any]:
     """Charge un fichier JSON et retourne un dict, ou {} si absent ou invalide."""
-    if not file_path.exists():
-        return {}
-    try:
-        with file_path.open("r", encoding="utf-8") as fh:
-            data = json.load(fh)
-    except (OSError, json.JSONDecodeError):
-        return {}
-    return data if isinstance(data, dict) else {}
+    return file_io.charger_json(file_path)
 
 
 def _write_json_file(file_path: Path, payload: Dict[str, Any]) -> bool:
-    """Écrit un dict dans un fichier JSON (crée les dossiers parents si nécessaire). Retourne True si succès."""
+    """
+    Écrit un dict dans un fichier JSON de façon atomique et sous verrou
+    (crée les dossiers parents si nécessaire). Retourne True si succès.
+
+    Le verrou protège stock.json et carte_active.json, partagés par les
+    différents postes connectés sur le réseau local.
+    """
+    file_path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        with file_path.open("w", encoding="utf-8") as fh:
-            json.dump(payload, fh, ensure_ascii=False, indent=4)
-    except OSError:
+        with file_io.verrou_fichier(file_path):
+            return file_io.sauvegarder_json(file_path, payload)
+    except Timeout:
         return False
-    return True
 
 
 def _load_app_config() -> Dict[str, Any]:

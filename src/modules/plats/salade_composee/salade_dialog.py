@@ -11,13 +11,13 @@ Author :
     Dracudar
 
 Version:
-    1.2
+    1.3
 
 Date de création :
     2026.06.05
 
 Date de modification:
-    2026.06.13
+    2026.06.19
 """
 
 from typing import Dict, List, Optional
@@ -33,82 +33,27 @@ from PySide6.QtWidgets import (
 )
 
 from src.utils.tactile import BoutonIngredientTactile, ScrollAreaTactile
+from src.utils import styles_plats
 
 
 # ── Feuilles de style ──────────────────────────────────────────────────────────
+# Styles communs centralisés dans src/utils/styles_plats.py.
 
-_DIALOG_STYLE = """
-    QDialog {
-        background-color: #2f3136;
-    }
-    QWidget {
-        background-color: #2f3136;
-        color: #f5f5f5;
-    }
-    QScrollArea, QScrollArea > QWidget > QWidget {
-        background-color: #2f3136;
-    }
-"""
+_DIALOG_STYLE = styles_plats.DIALOG_STYLE
+_BTN_STYLE = styles_plats.BTN_STYLE
+_VALIDATE_BTN_STYLE = styles_plats.VALIDATE_BTN_STYLE
 
-_BTN_STYLE = """
-    QPushButton {
-        background-color: #4f545e;
-        border: 2px solid #7d8390;
-        border-radius: 8px;
-        color: #f5f5f5;
-        font-size: 13px;
-        font-weight: 600;
-        padding: 8px 16px;
-        min-height: 38px;
-    }
-    QPushButton:hover { background-color: #626978; border-color: #8fa3b6; }
-    QPushButton:pressed { background-color: #3a3d43; }
-"""
+_INGREDIENT_BTN_STYLE = styles_plats.style_bouton_toggle(
+    font_size=12, padding="4px 10px", min_height=28, text_align="left"
+)
 
-_VALIDATE_BTN_STYLE = """
-    QPushButton {
-        background-color: #3a7a3a;
-        border: 2px solid #4d9c4d;
-        border-radius: 8px;
-        color: #f5f5f5;
-        font-size: 14px;
-        font-weight: 700;
-        padding: 10px 24px;
-        min-height: 44px;
-    }
-    QPushButton:hover { background-color: #4d9c4d; }
-    QPushButton:pressed { background-color: #2e5e2e; }
-"""
+_TITLE_STYLE = styles_plats.TITLE_STYLE
+_SECTION_STYLE = styles_plats.SECTION_STYLE
+_CATEGORY_STYLE = styles_plats.CATEGORY_STYLE
+_PRIX_TOTAL_STYLE = styles_plats.PRIX_TOTAL_STYLE
+_WARNING_STYLE = styles_plats.WARNING_STYLE
 
-_INGREDIENT_BTN_STYLE = """
-    QPushButton {
-        background-color: transparent;
-        border: 2px solid #7d8390;
-        border-radius: 5px;
-        color: #f5f5f5;
-        font-size: 12px;
-        padding: 4px 10px;
-        min-height: 28px;
-        text-align: left;
-    }
-    QPushButton:hover {
-        border-color: #c0c0c0;
-    }
-    QPushButton:checked {
-        background-color: #f5f5f5;
-        border-color: #f5f5f5;
-        color: #2f3136;
-        font-weight: 600;
-    }
-"""
-
-_TITLE_STYLE = "font-size: 18px; font-weight: 700; color: #f5f5f5;"
-_SECTION_STYLE = "font-size: 14px; font-weight: 700; color: #f5f5f5;"
-_CATEGORY_STYLE = "font-size: 12px; font-weight: 700; color: #a8d08d; margin-top: 6px;"
-_PRIX_TOTAL_STYLE = "font-size: 13px; font-weight: 600; color: #a8d08d; padding: 4px 0;"
-_WARNING_STYLE = "font-size: 12px; color: #e07070; padding: 2px 0;"
-
-SUPPLEMENT_VIANDE = 1.0  # € par viande sélectionnée
+SUPPLEMENT_VIANDE = styles_plats.SUPPLEMENT_VIANDE
 
 
 # ── Dialogue ───────────────────────────────────────────────────────────────────

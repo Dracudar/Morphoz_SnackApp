@@ -13,13 +13,13 @@ Author :
     Dracudar
 
 Version:
-    2.0
+    2.1
 
 Date de création :
     2026.06.14
 
 Date de modification:
-    2026.06.14
+    2026.06.20
 """
 
 from PySide6.QtCore import QEvent, Qt
@@ -75,6 +75,7 @@ class MainWindowPrep(QMainWindow):
         self._volet = VoletPrep(self._content_area)
         self._volet.action_app_demande.connect(self._on_action_app)
         self._volet.dossier_applique.connect(self._poste.refresh)
+        self._volet.fermeture_demandee.connect(self._fermer_volet)
         self._volet.hide()
 
         # Repositionne overlay/volet lors des redimensionnements
