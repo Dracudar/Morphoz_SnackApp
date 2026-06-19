@@ -6,24 +6,26 @@ on:
       - main
 
 jobs:
-  tag:
-    name: Créer le tag de version si absent
+  version:
+    name: Lire la version et vérifier l'existence du tag
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     outputs:
       tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
       exists: ${{ steps.check.outputs.exists }}
+      previous_tag: ${{ steps.previous.outputs.tag }}
 
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           fetch-tags: true
 
       - name: Lire APP_VERSION depuis version.py
         id: version
         run: |
           VERSION=$(python3 -c "exec(open('src/core/version.py').read()); print(APP_VERSION)")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
 
       - name: Vérifier si le tag existe déjà
@@ -35,16 +37,81 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Créer et pousser le tag
-        if: steps.check.outputs.exists == 'false'
+      - name: Déterminer le tag précédent
+        id: previous
         run: |
-          git tag "${{ steps.version.outputs.tag }}"
-          git push origin "${{ steps.version.outputs.tag }}"
+          echo "tag=$(git tag --list --sort=-v:refname | head -n1)" >> $GITHUB_OUTPUT
+
+  verify-docs:
+    name: Vérifier la documentation de version
+    needs: version
+    if: needs.version.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Vérifier la présence du patch note de version
+        run: |
+          VERSION="${{ needs.version.outputs.version }}"
+          FICHIER="docs/PatchNote_V${VERSION}.md"
+          if [ ! -f "$FICHIER" ]; then
+            echo "::error::$FICHIER est manquant. Chaque version (y compris les correctifs) doit avoir son patch note dans docs/."
+            exit 1
+          fi
+
+      - name: Vérifier la mention de la version dans le README
+        run: |
+          VERSION="${{ needs.version.outputs.version }}"
+          if ! grep -q "<td>${VERSION}</td>" README.md; then
+            echo "::error::README.md ne mentionne pas la version ${VERSION} dans le tableau « Historique des versions »."
+            exit 1
+          fi
+
+      - name: Vérifier la mise à jour d'ARCHITECTURE.md si src/ a changé
+        run: |
+          PREV="${{ needs.version.outputs.previous_tag }}"
+          if [ -z "$PREV" ]; then
+            echo "Aucun tag précédent, vérification ignorée."
+            exit 0
+          fi
+          if git diff --name-only "$PREV"..HEAD -- src/ | grep -q .; then
+            if ! git diff --name-only "$PREV"..HEAD -- docs/ARCHITECTURE.md | grep -q .; then
+              echo "::error::src/ a changé depuis $PREV mais docs/ARCHITECTURE.md n'a pas été mis à jour."
+              exit 1
+            fi
+          fi
+
+      - name: Vérifier la syntaxe des fichiers de compilation (*.spec)
+        run: python3 -m py_compile morphoz_snackapp.spec morphoz_prep.spec
+
+  tag:
+    name: Créer le tag de version
+    needs: [version, verify-docs]
+    if: needs.version.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ needs.version.outputs.tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+
+      - name: Créer et pousser le tag
+        run: |
+          git tag "${{ needs.version.outputs.tag }}"
+          git push origin "${{ needs.version.outputs.tag }}"
 
   build:
     name: Compiler et publier la release
     needs: tag
-    if: needs.tag.outputs.exists == 'false'
+    if: needs.tag.result == 'success'
     permissions:
       contents: write
     uses: ./.github/workflows/build.yml

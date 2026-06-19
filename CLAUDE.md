@@ -15,6 +15,11 @@ Toute la documentation, les commentaires, les noms de variables, de fonctions et
 - Ne jamais travailler directement sur `main` ou `develop`.
 - Toute nouvelle branche se base sur `develop`, sauf indication contraire explicite.
 - Après toute modification de l'UI, lancer l'application et fournir des captures d'écran du résultat avant de considérer la tâche terminée.
+- Avant de fusionner vers `main` pour une nouvelle version (bump de `APP_VERSION`, y compris les correctifs mineurs), s'assurer que :
+  - `docs/PatchNote_V{version}.md` existe pour la nouvelle version.
+  - Le tableau « Historique des versions » du `README.md` mentionne la nouvelle version.
+  - `docs/ARCHITECTURE.md` est à jour si `src/` a changé depuis le dernier tag.
+  - Ces points sont vérifiés automatiquement par le job `verify-docs` de `auto-tag.yml` et bloquent la création du tag/la release en cas d'échec.
 
 ### Conventions de commit
 
