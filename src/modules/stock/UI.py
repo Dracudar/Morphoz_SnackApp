@@ -18,13 +18,13 @@ Author :
     Dracudar
 
 Version:
-    2.3
+    2.4
 
 Date de création :
     2025.05.29
 
 Date de modification:
-    2026.06.11
+    2026.06.19
 """
 
 from __future__ import annotations
@@ -106,7 +106,12 @@ def _build_carte_ingredients_set() -> Set[str]:
     """Collecte tous les noms d'ingrédients référencés dans la carte active."""
     try:
         card = get_card_data()
-    except Exception:
+    except Exception as e:
+        logger.log(logger.ERREUR, {
+            "contexte": "stock_build_carte_ingredients_set",
+            "type_erreur": type(e).__name__,
+            "message": str(e),
+        })
         return set()
     names: Set[str] = set()
 
@@ -141,8 +146,12 @@ def _build_prep_data() -> Tuple[Dict[Tuple[str, str], int], Dict[str, int]]:
             nom  = item.get("nom", "")
             by_nom[(plat, nom)] = by_nom.get((plat, nom), 0) + 1
             by_plat[plat]       = by_plat.get(plat, 0) + 1
-    except Exception:
-        pass
+    except Exception as e:
+        logger.log(logger.ERREUR, {
+            "contexte": "stock_build_prep_data",
+            "type_erreur": type(e).__name__,
+            "message": str(e),
+        })
     return by_nom, by_plat
 
 
