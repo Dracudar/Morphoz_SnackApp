@@ -22,10 +22,11 @@ Date de modification:
     2026.06.15
 """
 
-import os
-from datetime import datetime
 import json
-from src.backend import logger
+import os
+from contextlib import contextmanager
+from datetime import datetime
+from src.backend import file_io, logger
 
 # Préfixe par type de plat pour les ID_plat (P001, G001, etc.)
 PREFIXES_PLAT = {
@@ -53,12 +54,15 @@ class DerniersIDCache:
         self._date = datetime.now().strftime("%Y%m%d")
         self._data = self._load()
 
+    def _chemin_fichier(self) -> str:
+        """Chemin du fichier de compteurs (utilisé pour la persistance et le verrou)."""
+        return os.path.join(self._logs_path, self._FILENAME)
+
     def _load(self) -> dict:
         for filename in [self._FILENAME, self._FILENAME_OLD]:
             log_file = os.path.join(self._logs_path, filename)
             if os.path.exists(log_file):
-                with open(log_file, "r", encoding="utf-8") as f:
-                    contenu = json.load(f)
+                contenu = file_io.charger_json(log_file)
                 valeur = contenu.get(self._date, {})
                 # Migration ancien format : {"20260606": 8} → {"20260606": {"commande": 8, ...}}
                 if isinstance(valeur, int):
@@ -88,25 +92,34 @@ class DerniersIDCache:
         return valeur
 
     def save(self):
-        """Persiste les compteurs sur disque."""
-        os.makedirs(self._logs_path, exist_ok=True)
-        log_file = os.path.join(self._logs_path, self._FILENAME)
-        with open(log_file, "w", encoding="utf-8") as f:
-            json.dump({self._date: self._data}, f, indent=4, ensure_ascii=False)
+        """Persiste les compteurs sur disque (écriture atomique)."""
+        file_io.sauvegarder_json(self._chemin_fichier(), {self._date: self._data})
 
     # ── Commande ──────────────────────────────────────────────────────────────
 
     def prochain_id_commande(self) -> str:
-        """Incrémente le compteur commande, le persiste sur disque et retourne le nouvel ID (aaaammjj-000)."""
-        self._data["commande"] += 1
-        self.save()
+        """
+        Incrémente le compteur commande, le persiste sur disque et retourne le
+        nouvel ID (aaaammjj-000).
+
+        Recharge la valeur la plus récente depuis le disque sous verrou avant
+        d'incrémenter : plusieurs postes du réseau local peuvent générer un ID
+        le même jour, donc le compteur gardé en mémoire seul produirait des
+        doublons si un autre poste a incrémenté entre-temps.
+        """
+        with file_io.verrou_fichier(self._chemin_fichier()):
+            self._data = self._load()
+            self._data["commande"] += 1
+            self.save()
         return f"{self._date}-{self._data['commande']:03d}"
 
     def decrementer_commande(self):
         """Décrémente le compteur commande (annulation en saisie) et persiste sur disque."""
-        if self._data["commande"] > 0:
-            self._data["commande"] -= 1
-            self.save()
+        with file_io.verrou_fichier(self._chemin_fichier()):
+            self._data = self._load()
+            if self._data["commande"] > 0:
+                self._data["commande"] -= 1
+                self.save()
 
     # ── Plats ─────────────────────────────────────────────────────────────────
 
@@ -117,6 +130,9 @@ class DerniersIDCache:
         1. PREFIXES_PLAT (plats historiques codés en dur)
         2. Champ "Lettre_ID" dans la carte active (nouveaux plats sans code)
         3. Repli sur "X" si rien n'est défini
+
+        Comme `prochain_id_commande`, recharge la valeur depuis le disque sous
+        verrou avant d'incrémenter (même risque de doublon entre postes).
         """
         cle = type_plat.lower()
         prefixe = PREFIXES_PLAT.get(cle)
@@ -125,8 +141,10 @@ class DerniersIDCache:
             from src.backend.data_sources import get_card_data
             prefixe = get_card_data().get(type_plat, {}).get("Lettre_ID", "X")
 
-        self._data[prefixe] = self._data.get(prefixe, 0) + 1
-        self.save()
+        with file_io.verrou_fichier(self._chemin_fichier()):
+            self._data = self._load()
+            self._data[prefixe] = self._data.get(prefixe, 0) + 1
+            self.save()
         return f"{prefixe}{self._data[prefixe]:03d}"
 
 
@@ -253,10 +271,8 @@ def trouver_candidat_transfert(plat_ref: dict, chemin_commande_source: str):
     autres = []
 
     for order_file in sorted(live_folder.glob("commande_*.json")):
-        try:
-            with open(str(order_file), "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except (OSError, json.JSONDecodeError):
+        data = file_io.charger_json(order_file)
+        if not data:
             continue
 
         infos = data.get("Informations", {})
@@ -312,3 +328,46 @@ def charger_fichier_commande(chemin_fichier):
             "chemin_destination": chemin_destination,
         })
         return None
+
+
+def sauvegarder_fichier_commande(chemin_fichier, commande: dict) -> bool:
+    """
+    Sauvegarde un fichier de commande de façon atomique (fichier temporaire +
+    remplacement), pour ne jamais laisser un JSON à moitié écrit en cas de
+    crash ou de coupure réseau en plein milieu de l'écriture.
+
+    :param chemin_fichier: Chemin vers le fichier JSON de la commande.
+    :param commande: Contenu à sauvegarder.
+    :return: True si la sauvegarde a réussi.
+    """
+    return file_io.sauvegarder_json(chemin_fichier, commande)
+
+
+@contextmanager
+def acceder_commande(chemin_fichier):
+    """
+    Verrouille un fichier de commande partagé, le charge, le fournit pour
+    modification, puis le sauvegarde de façon atomique en sortie de bloc.
+
+    Plusieurs postes du réseau local (caisse, cuisine, suivi...) peuvent ouvrir
+    le même fichier de commande en même temps (ex. la cuisine marque un plat
+    "Prêt" pendant que la caisse annule la commande) : sans verrou, le second
+    qui sauvegarde écraserait la modification du premier sans le savoir. Le
+    verrou garantit qu'un seul poste à la fois exécute la séquence
+    "charger → modifier → sauvegarder" sur ce fichier.
+
+    Fournit None si le fichier est introuvable ou corrompu : l'appelant doit
+    vérifier avant de modifier, comme avec `charger_fichier_commande`.
+    Si une exception est levée dans le bloc, rien n'est sauvegardé.
+
+    Exemple :
+        with acceder_commande(chemin_fichier) as commande:
+            if not commande:
+                return
+            commande["Informations"]["Prioritaire"] = True
+    """
+    with file_io.verrou_fichier(chemin_fichier):
+        commande = charger_fichier_commande(chemin_fichier)
+        yield commande
+        if commande is not None:
+            sauvegarder_fichier_commande(chemin_fichier, commande)

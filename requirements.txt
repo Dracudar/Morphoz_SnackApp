@@ -1,6 +1,9 @@
 # UI
 PySide6
 
+# Accès concurrent aux fichiers JSON partagés (réseau local)
+filelock
+
 # Impression de tickets
 pillow
 pyusb
