@@ -125,7 +125,7 @@ Morphoz_SnackApp/
 ├── .github/
 │   └── workflows/
 │       ├── auto-tag.yml                    # Vérifie la doc, génère le CHANGELOG, crée le tag vX.Y.Z et déclenche build.yml
-│       └── build.yml                       # CI/CD : 4 builds PyInstaller (Windows/Linux × main/prep), appelé par auto-tag.yml
+│       └── build.yml                       # CI/CD : 6 builds PyInstaller (Windows + Linux x86_64/aarch64 × main/prep), appelé par auto-tag.yml
 │
 ├── morphoz_snackapp.spec                   # Configuration PyInstaller (application principale)
 ├── morphoz_prep.spec                       # Configuration PyInstaller (application légère)
@@ -193,6 +193,11 @@ Projet open-source sous licence MIT.
     <td>2.2.0</td>
     <td><em>20/06/2026</em></td>
     <td>Sécurisation des accès concurrents aux fichiers JSON partagés en LAN (verrouillage inter-processus, écriture atomique), correction d'un bug d'affichage du volet de navigation, vérification automatique de la documentation et CHANGELOG généré automatiquement avant chaque release</td>
+  </tr>
+  <tr>
+    <td>2.2.1</td>
+    <td><em>20/06/2026</em></td>
+    <td>Ajout de la compilation Linux <code>aarch64</code> (Raspberry Pi 5) dans le pipeline CI, en complément de <code>x86_64</code></td>
   </tr>
 </table>
 

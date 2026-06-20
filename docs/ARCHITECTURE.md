@@ -1022,7 +1022,7 @@ Utilitaire standalone d'impression des tickets pour les repas gratuits, indépen
 | `morphoz_snackapp.spec` | Configuration PyInstaller pour l'application principale (`src/core/app.py`). Mode `onedir`, inclut `assets/`, `module_registry` data et hidden imports USB. |
 | `morphoz_prep.spec` | Configuration PyInstaller pour l'application légère (`src/core/app_prep.py`). Mode `onedir`, sans imports USB ni modules de gestion. |
 
-Le pipeline CI/CD est scindé en deux workflows : `.github/workflows/auto-tag.yml` crée le tag `vX.Y.Z` (lu depuis `version.py`) à chaque push sur `main`, puis appelle `.github/workflows/build.yml` (workflow réutilisable, déclenché via `workflow_call`) qui compile les deux applications en parallèle sur Windows et Linux et publie 4 archives sur la release GitHub. Les deux étapes s'exécutent dans le même run, car un tag poussé avec le `GITHUB_TOKEN` par défaut ne déclenche pas d'autre workflow par déclenchement `push: tags:`.
+Le pipeline CI/CD est scindé en deux workflows : `.github/workflows/auto-tag.yml` crée le tag `vX.Y.Z` (lu depuis `version.py`) à chaque push sur `main`, puis appelle `.github/workflows/build.yml` (workflow réutilisable, déclenché via `workflow_call`) qui compile les deux applications en parallèle sur Windows et sur Linux (matrice `x86_64` / `aarch64`, ce dernier pour cibler le Raspberry Pi 5) et publie 6 archives sur la release GitHub. Les deux étapes s'exécutent dans le même run, car un tag poussé avec le `GITHUB_TOKEN` par défaut ne déclenche pas d'autre workflow par déclenchement `push: tags:`.
 
 ---
 
