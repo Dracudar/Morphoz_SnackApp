@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
+## [2.2.1] - 2026-06-20
+
+### Ajouté
+- **ci** : build PyInstaller natif aarch64 pour Raspberry Pi 5
+
+### Divers
+- Merge branch 'fix/ci-doc-linux-aarch64'
+
+
 ## [2.2.0] - 2026-06-19
 
 ### Ajouté
