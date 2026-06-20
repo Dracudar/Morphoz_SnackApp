@@ -4,6 +4,20 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
+## [2.2.2] - 2026-06-20
+
+### Corrigé
+- **ci** : exécute les vérifications de version/doc dès la PR vers main
+- **ci** : utilise ubuntu-22.04-arm pour le build aarch64
+
+### Documentation
+- **architecture** : confirme ARCHITECTURE.md à jour pour la v2.2.2
+- ajoute l'entrée 2.2.2 au tableau Historique des versions du README
+
+### Maintenance
+- **release** : prépare la version 2.2.2
+
+
 ## [2.2.1] - 2026-06-20
 
 ### Ajouté
