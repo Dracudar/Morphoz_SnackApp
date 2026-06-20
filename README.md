@@ -199,11 +199,6 @@ Projet open-source sous licence MIT.
     <td><em>20/06/2026</em></td>
     <td>Ajout de la compilation Linux <code>aarch64</code> (Raspberry Pi 5) dans le pipeline CI, en complément de <code>x86_64</code></td>
   </tr>
-  <tr>
-    <td>2.2.2</td>
-    <td><em>20/06/2026</em></td>
-    <td>Correction du build <code>aarch64</code> : utilisation du runner <code>ubuntu-22.04-arm</code> (glibc 2.35) pour rester compatible avec Raspberry Pi OS Bookworm (glibc 2.36)</td>
-  </tr>
 </table>
 
 ---
