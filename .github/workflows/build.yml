@@ -45,8 +45,15 @@ jobs:
           path: MorphozSnackApp_prep-windows.zip
 
   build-linux:
-    name: Build Linux
-    runs-on: ubuntu-latest
+    name: Build Linux (${{ matrix.arch }})
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
 
@@ -68,18 +75,18 @@ jobs:
 
       - name: Archiver les builds Linux
         run: |
-          tar -czf MorphozSnackApp-linux.tar.gz -C dist MorphozSnackApp
-          tar -czf MorphozSnackApp_prep-linux.tar.gz -C dist MorphozSnackApp_prep
+          tar -czf MorphozSnackApp-linux-${{ matrix.arch }}.tar.gz -C dist MorphozSnackApp
+          tar -czf MorphozSnackApp_prep-linux-${{ matrix.arch }}.tar.gz -C dist MorphozSnackApp_prep
 
       - uses: actions/upload-artifact@v4
         with:
-          name: build-linux-main
-          path: MorphozSnackApp-linux.tar.gz
+          name: build-linux-main-${{ matrix.arch }}
+          path: MorphozSnackApp-linux-${{ matrix.arch }}.tar.gz
 
       - uses: actions/upload-artifact@v4
         with:
-          name: build-linux-prep
-          path: MorphozSnackApp_prep-linux.tar.gz
+          name: build-linux-prep-${{ matrix.arch }}
+          path: MorphozSnackApp_prep-linux-${{ matrix.arch }}.tar.gz
 
   release:
     name: Créer la release GitHub
@@ -98,21 +105,31 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: build-linux-main
+          name: build-linux-main-x86_64
 
       - uses: actions/download-artifact@v4
         with:
-          name: build-linux-prep
+          name: build-linux-prep-x86_64
 
-      - name: Publier la release avec les quatre exécutables
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-linux-main-aarch64
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-linux-prep-aarch64
+
+      - name: Publier la release avec les six exécutables
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "${{ inputs.tag }}" \
             MorphozSnackApp-windows.zip \
-            MorphozSnackApp-linux.tar.gz \
+            MorphozSnackApp-linux-x86_64.tar.gz \
+            MorphozSnackApp-linux-aarch64.tar.gz \
             MorphozSnackApp_prep-windows.zip \
-            MorphozSnackApp_prep-linux.tar.gz \
+            MorphozSnackApp_prep-linux-x86_64.tar.gz \
+            MorphozSnackApp_prep-linux-aarch64.tar.gz \
             --repo "${{ github.repository }}" \
             --title "Release ${{ inputs.tag }}" \
             --generate-notes
