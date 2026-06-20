@@ -1,6 +1,6 @@
 # Morphoz SnackApp — Documentation d'architecture
 
-> Version du document : 1.0 — 12/06/2026
+> Version du document : 1.0 — 20/06/2026 (vérifié à jour pour `APP_VERSION = "2.2.2"`)
 > Branche de référence : `develop` (équivalent `main` au moment de la rédaction)
 
 ---

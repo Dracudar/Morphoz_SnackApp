@@ -6,6 +6,9 @@ on:
       - main
     paths-ignore:
       - CHANGELOG.md
+  pull_request:
+    branches:
+      - main
 
 jobs:
   version:
@@ -94,6 +97,7 @@ jobs:
   changelog:
     name: Générer l'entrée CHANGELOG.md de la version
     needs: [version, verify-docs]
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -122,6 +126,7 @@ jobs:
   tag:
     name: Créer le tag de version
     needs: [version, changelog]
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -142,7 +147,7 @@ jobs:
   build:
     name: Compiler et publier la release
     needs: tag
-    if: needs.tag.result == 'success'
+    if: github.event_name == 'push' && needs.tag.result == 'success'
     permissions:
       contents: write
     uses: ./.github/workflows/build.yml
