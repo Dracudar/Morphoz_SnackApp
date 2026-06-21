@@ -204,6 +204,11 @@ Projet open-source sous licence MIT.
     <td><em>20/06/2026</em></td>
     <td>Correction du build <code>aarch64</code> : utilisation du runner <code>ubuntu-22.04-arm</code> (glibc 2.35) pour rester compatible avec Raspberry Pi OS Bookworm (glibc 2.36)</td>
   </tr>
+  <tr>
+    <td>2.3.0</td>
+    <td><em>22/06/2026</em></td>
+    <td>Correction des dialogues de personnalisation des plats absents de l'exécutable compilé ; remplacement des emojis du volet de navigation par des icônes SVG (centralisées dans <code>src/UI/utils/icones.py</code>, réutilisables par tous les écrans)</td>
+  </tr>
 </table>
 
 ---
