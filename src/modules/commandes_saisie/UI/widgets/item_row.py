@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    2.1
+    2.2
 
 Date de création :
     2026.05.31
 
 Date de modification:
-    2026.06.09
+    2026.06.21
 """
 
 from typing import Dict
@@ -25,6 +25,7 @@ from PySide6.QtGui import QColor, QIcon, QPixmap, QPainter
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
 
+from src.UI.utils.icones import icone_action
 from src.backend.app_config import get_assets_path
 
 
@@ -123,7 +124,7 @@ class ItemRow(QFrame):
 
         # Cancel button (left)
         cancel_btn = QPushButton()
-        cancel_btn.setIcon(_make_cancel_icon(26))
+        cancel_btn.setIcon(icone_action("cancel.svg", 26, "white", "#595d64"))
         cancel_btn.setIconSize(QSize(26, 26))
         cancel_btn.setFixedSize(36, 36)
         cancel_btn.setStyleSheet(CANCEL_BUTTON_STYLE)

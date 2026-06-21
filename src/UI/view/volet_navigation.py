@@ -11,7 +11,7 @@ Author :
     Dracudar
 
 Version:
-    1.4
+    1.5
 
 Date de création :
     2026.06.13
@@ -20,9 +20,8 @@ Date de modification:
     2026.06.21
 """
 
-from PySide6.QtCore import QRect, QRectF, QSize, Qt, Signal
-from PySide6.QtGui import QIcon, QImage, QPainter, QColor, QPixmap
-from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtGui import QPainter, QColor
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -33,7 +32,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from src.backend.app_config import get_assets_path
+from src.UI.utils.icones import icone_coloree
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 _BG          = "#1e2124"
@@ -98,71 +97,6 @@ _ITEMS_NAV = [
 ]
 
 _ICON_SIZE = QSize(20, 20)
-_RESOLUTION_RENDU = 128  # canvas haute résolution utilisé pour détecter le tracé réel
-
-
-def _rect_trace_opaque(image: QImage) -> QRect:
-    """Calcule le rectangle englobant des pixels non transparents d'une image.
-
-    Nécessaire car les SVG sources contiennent une marge variable autour du
-    tracé (parfois mal centré dans leur propre viewBox) : sans ce recadrage,
-    les icônes apparaissent petites et décentrées une fois mises à l'échelle.
-    """
-    alpha = image.convertToFormat(QImage.Format.Format_Alpha8)
-    largeur, hauteur = alpha.width(), alpha.height()
-    octets_par_ligne = alpha.bytesPerLine()
-    donnees = bytes(alpha.constBits())[: octets_par_ligne * hauteur]
-
-    haut = bas = gauche = droite = None
-    for y in range(hauteur):
-        ligne = donnees[y * octets_par_ligne: y * octets_par_ligne + largeur]
-        if not any(ligne):
-            continue
-        if haut is None:
-            haut = y
-        bas = y
-        for x, valeur in enumerate(ligne):
-            if valeur:
-                if gauche is None or x < gauche:
-                    gauche = x
-                if droite is None or x > droite:
-                    droite = x
-
-    if haut is None:
-        return image.rect()
-    return QRect(gauche, haut, droite - gauche + 1, bas - haut + 1)
-
-
-def _icone_coloree(nom_fichier: str, couleur: str) -> QIcon:
-    """Charge une icône SVG, recadrée sur son tracé réel et recolorée en aplat
-    (lisibilité sur fond sombre, les SVG sources conservant leurs couleurs
-    d'origine sinon)."""
-    renderer = QSvgRenderer(get_assets_path("icons", nom_fichier))
-    rendu = QImage(_RESOLUTION_RENDU, _RESOLUTION_RENDU, QImage.Format.Format_ARGB32_Premultiplied)
-    rendu.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(rendu)
-    renderer.render(painter, QRectF(0, 0, _RESOLUTION_RENDU, _RESOLUTION_RENDU))
-    painter.end()
-
-    trace = _rect_trace_opaque(rendu)
-
-    pixmap = QPixmap(_ICON_SIZE)
-    pixmap.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(pixmap)
-    echelle = min(_ICON_SIZE.width() / trace.width(), _ICON_SIZE.height() / trace.height())
-    largeur_cible = round(trace.width() * echelle)
-    hauteur_cible = round(trace.height() * echelle)
-    cible = QRect(
-        (_ICON_SIZE.width() - largeur_cible) // 2,
-        (_ICON_SIZE.height() - hauteur_cible) // 2,
-        largeur_cible,
-        hauteur_cible,
-    )
-    painter.drawImage(cible, rendu, trace)
-    painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
-    painter.fillRect(pixmap.rect(), QColor(couleur))
-    painter.end()
-    return QIcon(pixmap)
 
 
 class VoletNavigation(QFrame):
@@ -276,7 +210,7 @@ class VoletNavigation(QFrame):
         btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         btn.setFixedHeight(_HAUTEUR_ITEM)
         if icone:
-            btn.setIcon(_icone_coloree(icone, couleur_icone))
+            btn.setIcon(icone_coloree(icone, couleur_icone, _ICON_SIZE))
             btn.setIconSize(_ICON_SIZE)
         return btn
 

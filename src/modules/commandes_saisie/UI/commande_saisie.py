@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    1.5
+    1.6
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.15
+    2026.06.21
 """
 
 from __future__ import annotations
@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.utils.tactile import ScrollAreaTactile
+from src.UI.utils.icones import icone_action
 from src.backend.data_sources import get_draft_orders, get_menu_categories
 from src.backend.app_config import get_archive_folder_path, get_assets_path, get_logs_folder_path
 from src.modules.commandes_saisie.UI.widgets.bouton_menu import BoutonMenu
@@ -194,7 +195,7 @@ class SaisieCommandeModule(QFrame):
         actions_layout.setSpacing(10)
 
         self.button_cancel = QPushButton()
-        self.button_cancel.setIcon(_make_cancel_icon(22))
+        self.button_cancel.setIcon(icone_action("cancel.svg", 22, "white", "#595d64"))
         self.button_cancel.setIconSize(QSize(22, 22))
         self.button_cancel.setObjectName("cancelButton")
         self.button_cancel.setEnabled(False)
