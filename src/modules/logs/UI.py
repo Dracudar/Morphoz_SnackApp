@@ -15,13 +15,13 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.06.11
 
 Date de modification:
-    2026.06.14
+    2026.06.21
 """
 
 from __future__ import annotations
@@ -32,7 +32,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 from PySide6.QtCore import QSize, QTimer, Qt, Signal
-from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -44,7 +43,8 @@ from PySide6.QtWidgets import (
 )
 
 from src.utils.tactile import ScrollAreaTactile
-from src.backend.app_config import get_assets_path, get_logs_folder_path
+from src.UI.utils.icones import icone
+from src.backend.app_config import get_logs_folder_path
 from src.modules.logs.filtre_tri_dialog import FILTERS_DEFAULT, FiltreTriLogDialog
 
 
@@ -171,7 +171,7 @@ class LogsModule(QFrame):
 
         self.filter_btn = QPushButton(" Filtres & Tri")
         self.filter_btn.setObjectName("filterOpenButton")
-        self.filter_btn.setIcon(QIcon(get_assets_path("icons", "filter.svg")))
+        self.filter_btn.setIcon(icone("filter.svg", 16))
         self.filter_btn.setIconSize(QSize(16, 16))
         self.filter_btn.clicked.connect(self._open_filter_dialog)
 
@@ -202,7 +202,7 @@ class LogsModule(QFrame):
 
         self.back_button = QPushButton("  Retour")
         self.back_button.setObjectName("backButton")
-        self.back_button.setIcon(QIcon(get_assets_path("icons", "return.svg")))
+        self.back_button.setIcon(icone("return.svg", 18))
         self.back_button.setIconSize(QSize(18, 18))
         self.back_button.clicked.connect(self.go_back.emit)
 

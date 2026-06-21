@@ -11,19 +11,19 @@ Author :
     Dracudar
 
 Version:
-    2.7
+    2.8
 
 Date de création :
     2025.05.29
 
 Date de modification:
-    2026.06.15
+    2026.06.21
 """
 
 from __future__ import annotations
 
 from PySide6.QtCore import Signal, Qt, QSize
-from PySide6.QtGui import QIcon, QIntValidator
+from PySide6.QtGui import QIntValidator
 from PySide6.QtWidgets import (
 	QCheckBox,
 	QFileDialog,
@@ -40,8 +40,8 @@ from PySide6.QtWidgets import (
 
 from pathlib import Path
 
+from src.UI.utils.icones import icone
 from src.backend.app_config import (
-	get_assets_path,
 	get_data_folder,
 	get_print_options,
 	get_printer_config,
@@ -161,12 +161,12 @@ class ParametresModule(QFrame):
 
 		self.back_button = QPushButton("  Retour")
 		self.back_button.setObjectName("backButton")
-		self.back_button.setIcon(QIcon(get_assets_path("icons", "return.svg")))
+		self.back_button.setIcon(icone("return.svg", 18))
 		self.back_button.setIconSize(QSize(18, 18))
 		self.back_button.clicked.connect(self.go_back.emit)
 
 		self.save_button = QPushButton("  Enregistrer")
-		self.save_button.setIcon(QIcon(get_assets_path("icons", "save.svg")))
+		self.save_button.setIcon(icone("save.svg", 18))
 		self.save_button.setIconSize(QSize(18, 18))
 		self.save_button.clicked.connect(self.save_config)
 

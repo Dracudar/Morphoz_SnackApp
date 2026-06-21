@@ -11,13 +11,13 @@ Author :
     Dracudar
 
 Version:
-    1.3
+    1.4
 
 Date de création :
     2026.06.14
 
 Date de modification:
-    2026.06.20
+    2026.06.22
 """
 
-APP_VERSION = "2.2.2"
+APP_VERSION = "2.3.0"

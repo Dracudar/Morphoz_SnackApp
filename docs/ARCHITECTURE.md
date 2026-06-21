@@ -1,6 +1,6 @@
 # Morphoz SnackApp — Documentation d'architecture
 
-> Version du document : 1.0 — 20/06/2026 (vérifié à jour pour `APP_VERSION = "2.2.2"`)
+> Version du document : 1.0 — 22/06/2026 (vérifié à jour pour `APP_VERSION = "2.3.0"`)
 > Branche de référence : `develop` (équivalent `main` au moment de la rédaction)
 
 ---
@@ -265,6 +265,20 @@ data/
 | `_load_module(module_path) → module` | Charge dynamiquement un fichier Python via `importlib.util` et retourne le module, ou `None` en cas d'échec. |
 | `_pick_icon(folder) → Optional[str]` | Retourne le chemin de la première icône trouvée (`icon.svg` ou `icon.png`) dans le dossier d'un module. |
 | `discover_module_registry() → Dict` | Parcourt `src/modules/`, charge le `module.py` si présent (cherche `get_module_descriptor()` ou les constantes `LABEL`, `ICON_PATH`…), et construit un registre indexé par label normalisé et par slug. |
+
+---
+
+### `src/UI/utils/icones.py`
+
+**Utilitaires de rendu d'icônes SVG**, partagés par tous les écrans qui chargent des icônes depuis `assets/icons/` (volet de navigation, historique, saisie de commande, paiement, boutons plats, logs, paramètres). Centralise un problème récurrent : les SVG sources ont des marges/viewBox incohérents, ce qui donnait des icônes de tailles et de centrages différents selon le fichier une fois rastérisées.
+
+| Fonction | Description |
+|---|---|
+| `_rect_trace_opaque(image) → QRect` | Calcule le rectangle englobant des pixels non transparents d'une image, pour recadrer sur le tracé réel plutôt que sur le viewBox brut. |
+| `pixmap_depuis_svg(chemin_svg, taille, *, recadrer=True) → QPixmap` | Rend un SVG (chemin arbitraire), recadré et mis à l'échelle/centré dans `taille` (`int` pour un carré, `QSize` pour un rectangle libre, ex. logo), sans recoloration. |
+| `icone(nom_fichier, taille, *, recadrer=True) → QIcon` | Charge une icône depuis `assets/icons/`, sans recoloration. |
+| `icone_coloree(nom_fichier, couleur, taille, *, recadrer=True) → QIcon` | Charge une icône depuis `assets/icons/`, recolorée en aplat (lisibilité sur fond sombre ou clair). |
+| `icone_action(nom_fichier, taille, couleur_normale, couleur_desactivee, *, recadrer=True) → QIcon` | Variante à deux états (`QIcon.Mode.Normal` / `Disabled`), pour les boutons d'action dont l'icône doit s'effacer visuellement une fois désactivés (ex. annulation). |
 
 ---
 
@@ -985,15 +999,23 @@ Configuration applicative (hors dossier data pour permettre la reconfiguration m
 | `card.svg` | Tag "Carte" dans le stock |
 | `coin.svg` | Paiement espèces |
 | `edit.svg` | Édition |
-| `exit.svg` | Quitter / retour |
+| `exit.svg` | Quitter / retour ; bouton "Quitter" du volet de navigation |
 | `filter.svg` | Bouton filtres |
 | `free.svg` | Repas gratuit |
+| `historique.svg` | Volet de navigation — "Historique" |
+| `log.svg` | Volet de navigation — "Journal" |
+| `menu.svg` | Volet de navigation — "Carte" |
+| `null.svg` | Bouton plat sans icône dédiée dans son dossier `src/modules/plats/` (état vide) |
+| `prepa.svg` | Volet de navigation — "Poste de préparation" |
 | `print.svg` | Impression |
 | `return.svg` | Retour |
+| `saisie.svg` | Volet de navigation — "Saisie commande" |
 | `save.svg` | Sauvegarder |
-| `settings.svg` | Paramètres |
+| `screen.svg` | Volet de navigation — "Plein écran" |
+| `settings.svg` | Paramètres ; volet de navigation — "Paramètres" |
 | `sort.svg` | Tri |
-| `void.svg` | Vide / état nul |
+| `stock.svg` | Volet de navigation — "Stock" |
+| `suivi.svg` | Volet de navigation — "Affichage extérieur" |
 
 ### `assets/imgs/`
 
@@ -1019,7 +1041,7 @@ Utilitaire standalone d'impression des tickets pour les repas gratuits, indépen
 
 | Fichier | Description |
 |---|---|
-| `morphoz_snackapp.spec` | Configuration PyInstaller pour l'application principale (`src/core/app.py`). Mode `onedir`, inclut `assets/`, `module_registry` data et hidden imports USB. |
+| `morphoz_snackapp.spec` | Configuration PyInstaller pour l'application principale (`src/core/app.py`). Mode `onedir`, inclut `assets/`, `module_registry` data, `src/utils` (modules chargés uniquement via `plats_router` par import dynamique, non détectés par l'analyse statique de PyInstaller) et hidden imports USB. |
 | `morphoz_prep.spec` | Configuration PyInstaller pour l'application légère (`src/core/app_prep.py`). Mode `onedir`, sans imports USB ni modules de gestion. |
 
 Le pipeline CI/CD est scindé en deux workflows : `.github/workflows/auto-tag.yml` crée le tag `vX.Y.Z` (lu depuis `version.py`) à chaque push sur `main`, puis appelle `.github/workflows/build.yml` (workflow réutilisable, déclenché via `workflow_call`) qui compile les deux applications en parallèle sur Windows et sur Linux (matrice `x86_64` / `aarch64`, ce dernier pour cibler le Raspberry Pi 5) et publie 6 archives sur la release GitHub. Les deux étapes s'exécutent dans le même run, car un tag poussé avec le `GITHUB_TOKEN` par défaut ne déclenche pas d'autre workflow par déclenchement `push: tags:`.

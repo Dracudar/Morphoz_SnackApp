@@ -10,20 +10,19 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.05.31
 
 Date de modification:
-    2026.06.03
+    2026.06.21
 """
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QPixmap, QPainter
-from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
 
+from src.UI.utils.icones import pixmap_depuis_svg
 from src.backend.app_config import get_assets_path
 
 
@@ -105,7 +104,7 @@ class PaymentDialog(QDialog):
 
         # Icon (SVG)
         icon_label = QLabel()
-        pixmap = self._load_svg_icon(icon_path, size=50)
+        pixmap = pixmap_depuis_svg(icon_path, 50)
         icon_label.setPixmap(pixmap)
         icon_label.setAlignment(Qt.AlignCenter)
         btn_layout.addWidget(icon_label)
@@ -121,21 +120,6 @@ class PaymentDialog(QDialog):
         btn.clicked.connect(lambda: self._on_payment_selected(payment_type))
 
         return btn
-
-    def _load_svg_icon(self, svg_path: str, size: int = 50) -> QPixmap:
-        """Charge et rastérise un fichier SVG en QPixmap de la taille donnée."""
-        try:
-            engine = QSvgRenderer(svg_path)
-            pixmap = QPixmap(size, size)
-            pixmap.fill(Qt.transparent)
-            painter = QPainter(pixmap)
-            engine.render(painter)
-            painter.end()
-            return pixmap
-        except Exception:
-            pixmap = QPixmap(size, size)
-            pixmap.fill(Qt.gray)
-            return pixmap
 
     def _on_payment_selected(self, payment_type: str):
         """Émet le signal avec le mode de paiement sélectionné et ferme le dialogue."""

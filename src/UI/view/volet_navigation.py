@@ -11,16 +11,16 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.5
 
 Date de création :
     2026.06.13
 
 Date de modification:
-    2026.06.20
+    2026.06.21
 """
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QPainter, QColor
 from PySide6.QtWidgets import (
     QFrame,
@@ -32,11 +32,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from src.UI.utils.icones import icone_coloree
+
 # ── Palette ───────────────────────────────────────────────────────────────────
 _BG          = "#1e2124"
 _BG_HOVER    = "#2c2f33"
 _BG_ACTIF    = "#4a7fcb"
 _CLR_TEXTE   = "#e8e8e8"
+_CLR_DANGER  = "#e05c5c"
 _CLR_SEP     = "#36393f"
 _HAUTEUR_ITEM = 50
 
@@ -57,7 +60,7 @@ _STYLE_ITEM = f"""
 _STYLE_DANGER = f"""
     QPushButton {{
         background-color: {_BG};
-        color: #e05c5c;
+        color: {_CLR_DANGER};
         border: none;
         text-align: left;
         padding: 0 20px;
@@ -77,21 +80,23 @@ _STYLE_FERMER = f"""
     QPushButton:hover {{ color: {_CLR_TEXTE}; background-color: {_BG_HOVER}; }}
 """
 
-# (icone, label affiché, identifiant d'action)
+# (icône SVG, label affiché, identifiant d'action)
 # None = séparateur visuel
 _ITEMS_NAV = [
-    ("📝", "Saisie commande",       "saisie"),
-    ("🍳", "Poste de préparation",  "poste_preparation"),
+    ("saisie.svg",      "Saisie commande",       "saisie"),
+    ("prepa.svg",       "Poste de préparation",  "poste_preparation"),
     None,
-    ("🗺", "Carte",                 "carte"),
-    ("📦", "Stock",                 "stock"),
-    ("📋", "Historique",            "historique"),
+    ("menu.svg",        "Carte",                 "carte"),
+    ("stock.svg",       "Stock",                 "stock"),
+    ("historique.svg",  "Historique",            "historique"),
     None,
-    ("📺", "Affichage extérieur",   "suivi_ext"),
+    ("suivi.svg",       "Affichage extérieur",   "suivi_ext"),
     None,
-    ("⚙",  "Paramètres",           "parametres"),
-    ("📄", "Journal",               "logs"),
+    ("settings.svg",    "Paramètres",            "parametres"),
+    ("log.svg",         "Journal",               "logs"),
 ]
+
+_ICON_SIZE = QSize(20, 20)
 
 
 class VoletNavigation(QFrame):
@@ -116,7 +121,7 @@ class VoletNavigation(QFrame):
         if self._btn_plein_ecran:
             self._btn_plein_ecran.setChecked(actif)
             self._btn_plein_ecran.setText(
-                "⛶  Quitter plein écran" if actif else "⛶  Plein écran"
+                "  Quitter plein écran" if actif else "  Plein écran"
             )
 
     def maj_etat_suivi_ext(self, actif: bool):
@@ -139,7 +144,7 @@ class VoletNavigation(QFrame):
                 layout.addWidget(self._separateur())
             else:
                 icone, label, action_id = item
-                btn = self._bouton_item(f"  {icone}  {label}")
+                btn = self._bouton_item(f"  {label}", icone=icone)
                 if action_id == "suivi_ext":
                     btn.setCheckable(True)
                     btn.clicked.connect(
@@ -153,13 +158,17 @@ class VoletNavigation(QFrame):
         layout.addStretch(1)
         layout.addWidget(self._separateur())
 
-        self._btn_plein_ecran = self._bouton_item("⛶  Plein écran", checkable=True)
+        self._btn_plein_ecran = self._bouton_item(
+            "  Plein écran", checkable=True, icone="screen.svg"
+        )
         self._btn_plein_ecran.clicked.connect(
             lambda: self.action_app_demande.emit("fullscreen")
         )
         layout.addWidget(self._btn_plein_ecran)
 
-        btn_quitter = self._bouton_item("✕  Quitter", style=_STYLE_DANGER)
+        btn_quitter = self._bouton_item(
+            "  Quitter", style=_STYLE_DANGER, icone="exit.svg", couleur_icone=_CLR_DANGER
+        )
         btn_quitter.clicked.connect(lambda: self.action_app_demande.emit("quit"))
         layout.addWidget(btn_quitter)
 
@@ -187,12 +196,22 @@ class VoletNavigation(QFrame):
 
         return header
 
-    def _bouton_item(self, label: str, checkable: bool = False, style: str = _STYLE_ITEM) -> QPushButton:
+    def _bouton_item(
+        self,
+        label: str,
+        checkable: bool = False,
+        style: str = _STYLE_ITEM,
+        icone: str | None = None,
+        couleur_icone: str = _CLR_TEXTE,
+    ) -> QPushButton:
         btn = QPushButton(label)
         btn.setCheckable(checkable)
         btn.setStyleSheet(style)
         btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         btn.setFixedHeight(_HAUTEUR_ITEM)
+        if icone:
+            btn.setIcon(icone_coloree(icone, couleur_icone, _ICON_SIZE))
+            btn.setIconSize(_ICON_SIZE)
         return btn
 
     def _separateur(self) -> QFrame:

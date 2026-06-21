@@ -10,23 +10,23 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.3
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.19
+    2026.06.21
 """
 
 import unicodedata
 from typing import Optional
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPixmap, QPainter
-from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QPushButton, QVBoxLayout, QLabel
 
+from src.UI.utils.icones import pixmap_depuis_svg
 from src.backend.app_config import PROJECT_ROOT, get_assets_path
 from src.backend import logger
 
@@ -96,18 +96,12 @@ class BoutonMenu(QPushButton):
 
         if category_icon.exists():
             return str(category_icon)
-        return get_assets_path("icons", "void.svg")
+        return get_assets_path("icons", "null.svg")
 
     def _load_svg_icon(self, svg_path: str, size: int = 80) -> QPixmap:
         """Charge et rastérise un fichier SVG en QPixmap de la taille donnée."""
         try:
-            engine = QSvgRenderer(svg_path)
-            pixmap = QPixmap(size, size)
-            pixmap.fill(Qt.transparent)
-            painter = QPainter(pixmap)
-            engine.render(painter)
-            painter.end()
-            return pixmap
+            return pixmap_depuis_svg(svg_path, size)
         except Exception as e:
             logger.log(logger.ERREUR, {
                 "contexte": "bouton_menu_chargement_svg",
