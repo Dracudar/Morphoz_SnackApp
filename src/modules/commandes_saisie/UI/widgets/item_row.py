@@ -10,7 +10,7 @@ Author :
     Dracudar
 
 Version:
-    2.2
+    2.3
 
 Date de création :
     2026.05.31
@@ -21,12 +21,9 @@ Date de modification:
 
 from typing import Dict
 from PySide6.QtCore import Qt, Signal, QSize
-from PySide6.QtGui import QColor, QIcon, QPixmap, QPainter
-from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
 
 from src.UI.utils.icones import icone_action
-from src.backend.app_config import get_assets_path
 
 
 ROW_HEIGHT = 48
@@ -42,29 +39,6 @@ CANCEL_BUTTON_STYLE = """
     QPushButton:hover { background-color: #c9302c; }
 """
 
-
-def _make_cancel_icon(size: int = 26) -> QIcon:
-    """Charge cancel.svg et retourne un QIcon avec modes normal (blanc) et désactivé (gris)."""
-    def _colorize(color: str) -> QPixmap:
-        renderer = QSvgRenderer(get_assets_path("icons", "cancel.svg"))
-        raw = QPixmap(size, size)
-        raw.fill(Qt.transparent)
-        p = QPainter(raw)
-        renderer.render(p)
-        p.end()
-        result = QPixmap(size, size)
-        result.fill(Qt.transparent)
-        p2 = QPainter(result)
-        p2.drawPixmap(0, 0, raw)
-        p2.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
-        p2.fillRect(result.rect(), QColor(color))
-        p2.end()
-        return result
-
-    icon = QIcon()
-    icon.addPixmap(_colorize("white"), QIcon.Mode.Normal)
-    icon.addPixmap(_colorize("#595d64"), QIcon.Mode.Disabled)
-    return icon
 
 ITEM_ROW_STYLE = """
     QFrame#itemRow {

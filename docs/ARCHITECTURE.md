@@ -268,6 +268,20 @@ data/
 
 ---
 
+### `src/UI/utils/icones.py`
+
+**Utilitaires de rendu d'icônes SVG**, partagés par tous les écrans qui chargent des icônes depuis `assets/icons/` (volet de navigation, historique, saisie de commande, paiement, boutons plats, logs, paramètres). Centralise un problème récurrent : les SVG sources ont des marges/viewBox incohérents, ce qui donnait des icônes de tailles et de centrages différents selon le fichier une fois rastérisées.
+
+| Fonction | Description |
+|---|---|
+| `_rect_trace_opaque(image) → QRect` | Calcule le rectangle englobant des pixels non transparents d'une image, pour recadrer sur le tracé réel plutôt que sur le viewBox brut. |
+| `pixmap_depuis_svg(chemin_svg, taille, *, recadrer=True) → QPixmap` | Rend un SVG (chemin arbitraire), recadré et mis à l'échelle/centré dans `taille` (`int` pour un carré, `QSize` pour un rectangle libre, ex. logo), sans recoloration. |
+| `icone(nom_fichier, taille, *, recadrer=True) → QIcon` | Charge une icône depuis `assets/icons/`, sans recoloration. |
+| `icone_coloree(nom_fichier, couleur, taille, *, recadrer=True) → QIcon` | Charge une icône depuis `assets/icons/`, recolorée en aplat (lisibilité sur fond sombre ou clair). |
+| `icone_action(nom_fichier, taille, couleur_normale, couleur_desactivee, *, recadrer=True) → QIcon` | Variante à deux états (`QIcon.Mode.Normal` / `Disabled`), pour les boutons d'action dont l'icône doit s'effacer visuellement une fois désactivés (ex. annulation). |
+
+---
+
 ### `src/UI/view/volet_navigation.py`
 
 **Volet de navigation latéral tactile.** Remplace la `QMenuBar` classique. S'affiche en superposition sur le contenu principal.

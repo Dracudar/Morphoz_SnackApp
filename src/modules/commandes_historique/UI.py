@@ -18,7 +18,7 @@ Author :
     Dracudar
 
 Version:
-    3.7
+    3.8
 
 Date de création :
     2026.05.26
@@ -33,8 +33,6 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Set
 
 from PySide6.QtCore import QSize, QTimer, Qt, Signal
-from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap
-from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
 	QFrame,
 	QHBoxLayout,
@@ -48,7 +46,7 @@ from PySide6.QtWidgets import (
 
 from src.utils.tactile import EnTeteCliquable, ScrollAreaTactile
 from src.UI.utils.icones import icone, icone_action
-from src.backend.app_config import get_assets_path, get_print_options
+from src.backend.app_config import get_print_options
 from src.backend.data_sources import get_all_history_orders
 from src.backend.printer import reprint_all_active_cuisine, reprint_ticket_cuisine_plat, reprint_ticket_recap
 from src.modules.commandes_historique.filtre_dialog import FiltreHistoriqueDialog
@@ -90,29 +88,6 @@ _STYLE_BTN_PRINT = (
 	" QPushButton:disabled { background-color: #3b3f46; border: 1px solid #4a4e55; }"
 )
 
-
-def _make_cancel_icon(size: int = 14) -> QIcon:
-	"""Crée un QIcon cancel.svg colorisé blanc (normal) et gris (désactivé)."""
-	def _colorize(color: str) -> QPixmap:
-		renderer = QSvgRenderer(get_assets_path("icons", "cancel.svg"))
-		raw = QPixmap(size, size)
-		raw.fill(Qt.GlobalColor.transparent)
-		painter = QPainter(raw)
-		renderer.render(painter)
-		painter.end()
-		result = QPixmap(size, size)
-		result.fill(Qt.GlobalColor.transparent)
-		p2 = QPainter(result)
-		p2.drawPixmap(0, 0, raw)
-		p2.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
-		p2.fillRect(result.rect(), QColor(color))
-		p2.end()
-		return result
-
-	icon = QIcon()
-	icon.addPixmap(_colorize("white"), QIcon.Mode.Normal)
-	icon.addPixmap(_colorize("#595d64"), QIcon.Mode.Disabled)
-	return icon
 
 # ── Couleurs (identiques à conteneur_suivi_commande) ─────────────────────────
 _BG_MAIN       = "#2f3136"
