@@ -21,6 +21,9 @@ a = Analysis(
         ("assets", "assets"),
         # Fichiers descripteurs et icônes des modules (chargés par module_registry)
         ("src/modules", "src/modules"),
+        # Modules chargés uniquement via plats_router (import dynamique non détecté
+        # par l'analyse statique de PyInstaller, ex. styles_plats.py)
+        ("src/utils", "src/utils"),
         # capabilities.json : chargé par escpos.capabilities via importlib_resources,
         # non inclus automatiquement par PyInstaller (pas un fichier .py)
         *collect_data_files("escpos"),
