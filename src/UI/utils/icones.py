@@ -14,7 +14,7 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.06.21
@@ -29,7 +29,9 @@ from PySide6.QtSvg import QSvgRenderer
 
 from src.backend.app_config import get_assets_path
 
-_RESOLUTION_RENDU = 128  # canvas haute résolution utilisé pour détecter le tracé réel
+_RESOLUTION_BASE = 128  # passe légère : suffisante pour détecter le tracé réel
+_RESOLUTION_MAX = 1024  # plafond de sécurité pour la passe haute résolution
+_MARGE_QUALITE = 1.5  # marge au-delà de la taille cible, pour un dernier lissage net
 
 
 def _vers_qsize(taille: int | QSize) -> QSize:
@@ -69,19 +71,44 @@ def _rect_trace_opaque(image: QImage) -> QRect:
     return QRect(gauche, haut, droite - gauche + 1, bas - haut + 1)
 
 
-def _rendu_recadre(chemin_svg: str, recadrer: bool) -> tuple[QImage, QRect]:
-    """Rend un SVG en haute résolution et retourne l'image avec le rectangle à
-    utiliser comme source (tracé réel si recadrer, image entière sinon)."""
+def _rendu_svg(chemin_svg: str, resolution: int) -> QImage:
+    """Rend un SVG dans un canvas carré transparent de la résolution donnée."""
     renderer = QSvgRenderer(chemin_svg)
-    rendu = QImage(
-        _RESOLUTION_RENDU, _RESOLUTION_RENDU, QImage.Format.Format_ARGB32_Premultiplied
-    )
-    rendu.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(rendu)
-    renderer.render(painter, QRectF(0, 0, _RESOLUTION_RENDU, _RESOLUTION_RENDU))
+    image = QImage(resolution, resolution, QImage.Format.Format_ARGB32_Premultiplied)
+    image.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(image)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    renderer.render(painter, QRectF(0, 0, resolution, resolution))
     painter.end()
+    return image
 
+
+def _rendu_recadre(chemin_svg: str, taille: QSize, recadrer: bool) -> tuple[QImage, QRect]:
+    """Rend un SVG net à la résolution nécessaire pour la taille demandée, et
+    retourne l'image avec le rectangle à utiliser comme source (tracé réel si
+    recadrer, image entière sinon).
+
+    Le tracé réel est d'abord détecté sur un rendu basse résolution (rapide à
+    scanner pixel par pixel), puis remis à l'échelle géométriquement si la
+    taille cible l'exige — un second rendu vectoriel direct à la résolution
+    nécessaire, jamais un agrandissement du premier rendu (qui produirait du
+    flou et perdrait l'intérêt du format vectoriel).
+    """
+    rendu = _rendu_svg(chemin_svg, _RESOLUTION_BASE)
     trace = _rect_trace_opaque(rendu) if recadrer else rendu.rect()
+
+    echelle_necessaire = max(taille.width() / trace.width(), taille.height() / trace.height())
+    if echelle_necessaire > 1:
+        resolution = min(round(_RESOLUTION_BASE * echelle_necessaire * _MARGE_QUALITE), _RESOLUTION_MAX)
+        ratio = resolution / _RESOLUTION_BASE
+        rendu = _rendu_svg(chemin_svg, resolution)
+        trace = QRect(
+            round(trace.x() * ratio),
+            round(trace.y() * ratio),
+            round(trace.width() * ratio),
+            round(trace.height() * ratio),
+        )
+
     return rendu, trace
 
 
@@ -89,11 +116,12 @@ def pixmap_depuis_svg(chemin_svg: str, taille: int | QSize, *, recadrer: bool = 
     """Charge un fichier SVG (chemin absolu ou relatif) et le rastérise, mis à
     l'échelle et centré dans la taille demandée, sans recoloration."""
     taille = _vers_qsize(taille)
-    rendu, trace = _rendu_recadre(chemin_svg, recadrer)
+    rendu, trace = _rendu_recadre(chemin_svg, taille, recadrer)
 
     pixmap = QPixmap(taille)
     pixmap.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
     echelle = min(taille.width() / trace.width(), taille.height() / trace.height())
     largeur_cible = round(trace.width() * echelle)
     hauteur_cible = round(trace.height() * echelle)
