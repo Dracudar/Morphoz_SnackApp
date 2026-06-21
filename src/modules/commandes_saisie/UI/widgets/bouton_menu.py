@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.2
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.19
+    2026.06.21
 """
 
 import unicodedata
@@ -96,7 +96,7 @@ class BoutonMenu(QPushButton):
 
         if category_icon.exists():
             return str(category_icon)
-        return get_assets_path("icons", "void.svg")
+        return get_assets_path("icons", "null.svg")
 
     def _load_svg_icon(self, svg_path: str, size: int = 80) -> QPixmap:
         """Charge et rastérise un fichier SVG en QPixmap de la taille donnée."""
