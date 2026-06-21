@@ -985,15 +985,23 @@ Configuration applicative (hors dossier data pour permettre la reconfiguration m
 | `card.svg` | Tag "Carte" dans le stock |
 | `coin.svg` | Paiement espèces |
 | `edit.svg` | Édition |
-| `exit.svg` | Quitter / retour |
+| `exit.svg` | Quitter / retour ; bouton "Quitter" du volet de navigation |
 | `filter.svg` | Bouton filtres |
 | `free.svg` | Repas gratuit |
+| `historique.svg` | Volet de navigation — "Historique" |
+| `log.svg` | Volet de navigation — "Journal" |
+| `menu.svg` | Volet de navigation — "Carte" |
+| `null.svg` | Bouton plat sans icône dédiée dans son dossier `src/modules/plats/` (état vide) |
+| `prepa.svg` | Volet de navigation — "Poste de préparation" |
 | `print.svg` | Impression |
 | `return.svg` | Retour |
+| `saisie.svg` | Volet de navigation — "Saisie commande" |
 | `save.svg` | Sauvegarder |
-| `settings.svg` | Paramètres |
+| `screen.svg` | Volet de navigation — "Plein écran" |
+| `settings.svg` | Paramètres ; volet de navigation — "Paramètres" |
 | `sort.svg` | Tri |
-| `void.svg` | Vide / état nul |
+| `stock.svg` | Volet de navigation — "Stock" |
+| `suivi.svg` | Volet de navigation — "Affichage extérieur" |
 
 ### `assets/imgs/`
 
