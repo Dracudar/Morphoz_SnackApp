@@ -38,6 +38,8 @@ from typing import Any, Dict, Iterator, Union
 
 from filelock import FileLock, Timeout
 
+from src.backend import logger
+
 # Délai d'attente avant d'abandonner l'acquisition d'un verrou. Au-delà, on
 # considère qu'un autre poste (ou un crash ayant laissé le verrou en place) bloque
 # l'accès anormalement longtemps.
@@ -60,14 +62,25 @@ def verrou_fichier(chemin: Union[str, Path]) -> FileLock:
 
 
 def charger_json(chemin: Union[str, Path]) -> Dict[str, Any]:
-    """Charge un fichier JSON et retourne un dict, ou {} si absent ou invalide."""
+    """Charge un fichier JSON et retourne un dict, ou {} si absent ou invalide.
+
+    Un échec de lecture (fichier corrompu, verrou réseau, montage indisponible...)
+    est journalisé : un dict vide retourné silencieusement masquerait la cause
+    réelle d'un dysfonctionnement en aval (ex. stock vide alors que le fichier
+    existe mais n'a pas pu être lu).
+    """
     chemin = Path(chemin)
     if not chemin.exists():
         return {}
     try:
         with chemin.open("r", encoding="utf-8") as fh:
             data = json.load(fh)
-    except (OSError, json.JSONDecodeError):
+    except (OSError, json.JSONDecodeError) as e:
+        logger.log(logger.ERREUR, {
+            "contexte": "lecture_json",
+            "chemin": str(chemin),
+            "detail": str(e),
+        })
         return {}
     return data if isinstance(data, dict) else {}
 

@@ -28,7 +28,7 @@ Date de modification:
 
 import copy
 
-from src.backend import file_io
+from src.backend import file_io, logger
 
 
 class StockCache:
@@ -110,16 +110,33 @@ class StockCache:
             elem["Quantité"] = valeur
         elem["OutOfStock"] = elem["Quantité"] <= 0
 
+    def _log_chemin_introuvable(self, action: str, chemin) -> None:
+        """Journalise une tentative d'accès à un chemin de stock absent du cache.
+
+        Un stock incomplet (dossier data non synchronisé entre postes, fichier
+        partiellement initialisé...) ne doit pas faire planter l'appli avec un
+        KeyError silencieux : on logue et on laisse l'appelant gérer l'échec.
+        """
+        logger.log(logger.ERREUR, {
+            "contexte": "stock_cache_chemin_introuvable",
+            "action": action,
+            "chemin": list(chemin),
+        })
+
     def get_quantite(self, chemin):
         """
         Retourne la quantité d'un article identifié par son chemin de clés.
 
         :param chemin: Liste de clés JSON (ex. ['Plats', 'Pizza', 'Pâte à pizza']).
         """
-        ref = self._stock_cache
-        for key in chemin:
-            ref = ref[key]
-        return ref.get("Quantité", None)
+        try:
+            ref = self._stock_cache
+            for key in chemin:
+                ref = ref[key]
+            return ref.get("Quantité", None)
+        except (KeyError, TypeError):
+            self._log_chemin_introuvable("get_quantite", chemin)
+            return None
 
     def decrementer(self, chemin, n=1):
         """
@@ -127,12 +144,16 @@ class StockCache:
 
         :param chemin: Liste de clés JSON vers l'article.
         :param n: Nombre d'unités à décrémenter (défaut : 1).
-        :return: True si l'opération a réussi, False sinon.
+        :return: True si l'opération a réussi, False sinon (y compris chemin introuvable).
         """
-        ref = self._stock_cache
-        for key in chemin[:-1]:
-            ref = ref[key]
-        elem = ref[chemin[-1]]
+        try:
+            ref = self._stock_cache
+            for key in chemin[:-1]:
+                ref = ref[key]
+            elem = ref[chemin[-1]]
+        except (KeyError, TypeError):
+            self._log_chemin_introuvable("decrementer", chemin)
+            return False
         if "Quantité" in elem and elem["Quantité"] >= n:
             elem["Quantité"] -= n
             if elem["Quantité"] == 0:
@@ -147,12 +168,16 @@ class StockCache:
 
         :param chemin: Liste de clés JSON vers l'article.
         :param n: Nombre d'unités à incrémenter (défaut : 1).
-        :return: True si l'opération a réussi, False sinon.
+        :return: True si l'opération a réussi, False sinon (y compris chemin introuvable).
         """
-        ref = self._stock_cache
-        for key in chemin[:-1]:
-            ref = ref[key]
-        elem = ref[chemin[-1]]
+        try:
+            ref = self._stock_cache
+            for key in chemin[:-1]:
+                ref = ref[key]
+            elem = ref[chemin[-1]]
+        except (KeyError, TypeError):
+            self._log_chemin_introuvable("incrementer", chemin)
+            return False
         if "Quantité" in elem:
             elem["Quantité"] += n
             if elem["Quantité"] > 0:
@@ -163,14 +188,20 @@ class StockCache:
 
     def is_out_of_stock(self, chemin):
         """
-        Retourne True si l'article est marqué comme hors stock dans le cache.
+        Retourne True si l'article est marqué comme hors stock dans le cache
+        (ou si le chemin est introuvable : un article absent du stock est
+        considéré indisponible).
 
         :param chemin: Liste de clés JSON vers l'article.
         """
-        ref = self._stock_cache
-        for key in chemin:
-            ref = ref[key]
-        return ref.get("OutOfStock", False)
+        try:
+            ref = self._stock_cache
+            for key in chemin:
+                ref = ref[key]
+            return ref.get("OutOfStock", False)
+        except (KeyError, TypeError):
+            self._log_chemin_introuvable("is_out_of_stock", chemin)
+            return True
 
     def set_out_of_stock(self, chemin, valeur):
         """
@@ -188,6 +219,7 @@ class StockCache:
             self._operations.append(("set_out_of_stock", list(chemin), valeur))
             return True
         except (KeyError, TypeError):
+            self._log_chemin_introuvable("set_out_of_stock", chemin)
             return False
 
     def set_quantite(self, chemin, valeur):
@@ -205,17 +237,18 @@ class StockCache:
             for key in chemin[:-1]:
                 ref = ref[key]
             elem = ref[chemin[-1]]
-            if "Quantité" not in elem:
-                return False
-            elem["Quantité"] = valeur
-            if valeur == 0:
-                elem["OutOfStock"] = True
-            elif valeur > 0 and elem.get("OutOfStock", False):
-                elem["OutOfStock"] = False
-            self._operations.append(("set_quantite", list(chemin), valeur))
-            return True
         except (KeyError, TypeError):
+            self._log_chemin_introuvable("set_quantite", chemin)
             return False
+        if "Quantité" not in elem:
+            return False
+        elem["Quantité"] = valeur
+        if valeur == 0:
+            elem["OutOfStock"] = True
+        elif valeur > 0 and elem.get("OutOfStock", False):
+            elem["OutOfStock"] = False
+        self._operations.append(("set_quantite", list(chemin), valeur))
+        return True
 
     @property
     def data(self):
