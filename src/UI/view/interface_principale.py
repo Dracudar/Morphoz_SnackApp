@@ -11,17 +11,17 @@ Author :
     Dracudar
 
 Version:
-    1.4
+    1.5
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.20
+    2026.06.24
 """
 
-from PySide6.QtCore import QEvent, Qt, Signal
-from PySide6.QtSvgWidgets import QSvgWidget
+from PySide6.QtCore import QEvent, QSize, Qt, Signal
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -132,19 +132,17 @@ class InterfacePrincipaleWidget(QWidget):
         layout.setContentsMargins(0, 0, 8, 0)
         layout.setSpacing(0)
 
-        btn_menu = QPushButton("☰")
-        btn_menu.setFixedSize(52, 44)
-        btn_menu.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_menu.setStyleSheet(
-            "QPushButton { color: #d6d6d6; background: transparent; border: none; font-size: 20px; }"
-            "QPushButton:hover { color: #f5f5f5; background-color: #2c2f33; }"
+        logo_btn = QPushButton()
+        logo_btn.setIcon(QIcon(get_assets_path("imgs", "MegaSnack.svg")))
+        logo_btn.setIconSize(QSize(130, 28))
+        logo_btn.setFixedSize(146, 44)
+        logo_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        logo_btn.setStyleSheet(
+            "QPushButton { background: transparent; border: none; }"
+            "QPushButton:hover { background-color: #2c2f33; }"
         )
-        btn_menu.clicked.connect(self._basculer_volet)
-        layout.addWidget(btn_menu)
-
-        logo = QSvgWidget(get_assets_path("imgs", "MegaSnack.svg"))
-        logo.setFixedSize(130, 28)
-        layout.addWidget(logo)
+        logo_btn.clicked.connect(self._basculer_volet)
+        layout.addWidget(logo_btn)
         layout.addStretch(1)
 
         return barre
