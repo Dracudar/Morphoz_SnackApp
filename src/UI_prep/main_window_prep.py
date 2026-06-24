@@ -13,16 +13,16 @@ Author :
     Dracudar
 
 Version:
-    2.1
+    2.2
 
 Date de création :
     2026.06.14
 
 Date de modification:
-    2026.06.20
+    2026.06.24
 """
 
-from PySide6.QtCore import QEvent, Qt
+from PySide6.QtCore import QEvent, QSize, Qt
 from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.backend.app_config import get_assets_path
+from src.UI.utils.icones import icone_coloree
 from src.modules.commandes_poste_preparation.UI.poste_preparation import PostePreparationModule
 from src.UI.view.volet_navigation import OverlayFermeture
 from src.UI_prep.panneau_lateral import VoletPrep
@@ -100,12 +101,15 @@ class MainWindowPrep(QMainWindow):
         layout.setContentsMargins(0, 0, 8, 0)
         layout.setSpacing(0)
 
-        btn_menu = QPushButton("☰")
+        _icone_menu = QSize(22, 22)
+        btn_menu = QPushButton()
+        btn_menu.setIcon(icone_coloree("menu.svg", "#d6d6d6", _icone_menu))
+        btn_menu.setIconSize(_icone_menu)
         btn_menu.setFixedSize(52, 44)
         btn_menu.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_menu.setStyleSheet(
-            "QPushButton { color: #d6d6d6; background: transparent; border: none; font-size: 20px; }"
-            "QPushButton:hover { color: #f5f5f5; background-color: #2c2f33; }"
+            "QPushButton { background: transparent; border: none; }"
+            "QPushButton:hover { background-color: #2c2f33; }"
         )
         btn_menu.clicked.connect(self._basculer_volet)
         layout.addWidget(btn_menu)
