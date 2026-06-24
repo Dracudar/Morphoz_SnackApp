@@ -161,6 +161,13 @@ def icone_coloree(
     return QIcon(_pixmap_coloree(nom_fichier, couleur, taille, recadrer=recadrer))
 
 
+def pixmap_coloree(
+    nom_fichier: str, couleur: str, taille: int | QSize, *, recadrer: bool = True
+) -> QPixmap:
+    """Charge une icône SVG depuis assets/icons/, recadrée et recolorée en aplat."""
+    return _pixmap_coloree(nom_fichier, couleur, taille, recadrer=recadrer)
+
+
 def icone_action(
     nom_fichier: str,
     taille: int | QSize,

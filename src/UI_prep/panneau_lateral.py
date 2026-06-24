@@ -13,16 +13,16 @@ Author :
     Dracudar
 
 Version:
-    2.2
+    2.3
 
 Date de création :
     2026.06.14
 
 Date de modification:
-    2026.06.20
+    2026.06.24
 """
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -37,13 +37,16 @@ from PySide6.QtWidgets import (
 
 from src.backend import file_io
 from src.backend.app_config import CONFIG_FILE, get_data_folder
+from src.UI.utils.icones import icone_coloree
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 _BG          = "#1e2124"
 _BG_HOVER    = "#2c2f33"
 _CLR_TEXTE   = "#e8e8e8"
+_CLR_DANGER  = "#e05c5c"
 _CLR_SEP     = "#36393f"
 _HAUTEUR_ITEM = 50
+_ICON_SIZE    = QSize(20, 20)
 
 _STYLE_ITEM = f"""
     QPushButton {{
@@ -62,7 +65,7 @@ _STYLE_ITEM = f"""
 _STYLE_DANGER = f"""
     QPushButton {{
         background-color: {_BG};
-        color: #e05c5c;
+        color: {_CLR_DANGER};
         border: none;
         text-align: left;
         padding: 0 20px;
@@ -104,7 +107,7 @@ class VoletPrep(QFrame):
         if self._btn_plein_ecran:
             self._btn_plein_ecran.setChecked(actif)
             self._btn_plein_ecran.setText(
-                "⛶  Quitter plein écran" if actif else "⛶  Plein écran"
+                "  Quitter plein écran" if actif else "  Plein écran"
             )
 
     # ── Construction ──────────────────────────────────────────────────────────
@@ -121,13 +124,17 @@ class VoletPrep(QFrame):
         layout.addStretch(1)
         layout.addWidget(self._separateur())
 
-        self._btn_plein_ecran = self._bouton_item("⛶  Plein écran", checkable=True)
+        self._btn_plein_ecran = self._bouton_item(
+            "  Plein écran", checkable=True, icone="screen.svg"
+        )
         self._btn_plein_ecran.clicked.connect(
             lambda: self.action_app_demande.emit("fullscreen")
         )
         layout.addWidget(self._btn_plein_ecran)
 
-        btn_quitter = self._bouton_item("✕  Quitter", style=_STYLE_DANGER)
+        btn_quitter = self._bouton_item(
+            "  Quitter", style=_STYLE_DANGER, icone="exit.svg", couleur_icone=_CLR_DANGER
+        )
         btn_quitter.clicked.connect(lambda: self.action_app_demande.emit("quit"))
         layout.addWidget(btn_quitter)
 
@@ -218,12 +225,22 @@ class VoletPrep(QFrame):
 
         return container
 
-    def _bouton_item(self, label: str, checkable: bool = False, style: str = _STYLE_ITEM) -> QPushButton:
+    def _bouton_item(
+        self,
+        label: str,
+        checkable: bool = False,
+        style: str = _STYLE_ITEM,
+        icone: str | None = None,
+        couleur_icone: str = _CLR_TEXTE,
+    ) -> QPushButton:
         btn = QPushButton(label)
         btn.setCheckable(checkable)
         btn.setStyleSheet(style)
         btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         btn.setFixedHeight(_HAUTEUR_ITEM)
+        if icone:
+            btn.setIcon(icone_coloree(icone, couleur_icone, _ICON_SIZE))
+            btn.setIconSize(_ICON_SIZE)
         return btn
 
     def _separateur(self) -> QFrame:
