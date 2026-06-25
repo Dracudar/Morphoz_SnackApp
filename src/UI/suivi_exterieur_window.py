@@ -27,7 +27,7 @@ Date de modification:
     2026.06.13
 """
 
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import Qt, QSize, QTimer, Signal
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QFrame,
@@ -41,7 +41,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.backend.data_sources import get_live_orders_prep
-from src.UI.utils.icones import pixmap_coloree
+from src.UI.utils.icones import icone_coloree
 
 # Nombre maximum de plats "En préparation" affichés par type
 _MAX_EN_PREP_PAR_TYPE = 3
@@ -259,6 +259,33 @@ class SuiviExterieurWindow(QMainWindow):
 
     # ── Utilitaires ───────────────────────────────────────────────────────────
 
+    def _build_titre(self, nom_icone: str, couleur: str, texte: str) -> QWidget:
+        """Crée un widget titre avec icône SVG colorée et libellé."""
+        sz = self._sz
+        widget = QWidget()
+        widget.setStyleSheet("background: transparent; border: none;")
+        h = QHBoxLayout(widget)
+        h.setContentsMargins(0, 0, 0, 0)
+        h.setSpacing(sz(8))
+
+        taille = sz(20)
+        icone_label = QLabel()
+        icone_label.setFixedSize(taille, taille)
+        icone_label.setPixmap(
+            icone_coloree(nom_icone, couleur, QSize(taille, taille)).pixmap(QSize(taille, taille))
+        )
+        icone_label.setStyleSheet("background: transparent; border: none;")
+        h.addWidget(icone_label)
+
+        texte_label = QLabel(texte)
+        texte_label.setStyleSheet(
+            f"color: {couleur}; font-size: {sz(18)}px; font-weight: 700;"
+        )
+        h.addWidget(texte_label)
+        h.addStretch()
+
+        return widget
+
     def _get_short_ids(self, plat: dict) -> tuple[str, str]:
         """Retourne (numéro de commande, identifiant court du plat)."""
         order_id = plat.get("order_id", "")
@@ -275,26 +302,8 @@ class SuiviExterieurWindow(QMainWindow):
     def _build_section_prêts(self, prêts_par_type: dict[str, list[dict]]) -> QFrame:
         section = self._make_section_frame(_BG_PRET, _BORDER_PRET)
         layout = section.layout()
-        sz = self._sz
 
-        titre_row = QWidget()
-        titre_row.setStyleSheet("QWidget { background: transparent; border: none; }")
-        titre_h = QHBoxLayout(titre_row)
-        titre_h.setContentsMargins(0, 0, 0, 0)
-        titre_h.setSpacing(sz(8))
-
-        icone_label = QLabel()
-        icone_label.setStyleSheet("border: none;")
-        icone_label.setPixmap(pixmap_coloree("check.svg", "#4caf50", sz(22)))
-        titre_h.addWidget(icone_label)
-
-        titre = QLabel("Prêts à récupérer")
-        titre.setStyleSheet(
-            f"color: #4caf50; font-size: {sz(18)}px; font-weight: 700; border: none;"
-        )
-        titre_h.addWidget(titre)
-        titre_h.addStretch()
-        layout.addWidget(titre_row)
+        layout.addWidget(self._build_titre("check.svg", "#4caf50", "Prêts à récupérer"))
 
         if not prêts_par_type:
             vide = QLabel("Aucune commande prête pour le moment")
@@ -311,26 +320,8 @@ class SuiviExterieurWindow(QMainWindow):
     def _build_section_prep(self, prep_par_type: dict[str, list[dict]]) -> QFrame:
         section = self._make_section_frame(_BG_PREP, _BORDER_PREP)
         layout = section.layout()
-        sz = self._sz
 
-        titre_row = QWidget()
-        titre_row.setStyleSheet("QWidget { background: transparent; border: none; }")
-        titre_h = QHBoxLayout(titre_row)
-        titre_h.setContentsMargins(0, 0, 0, 0)
-        titre_h.setSpacing(sz(8))
-
-        icone_label = QLabel()
-        icone_label.setStyleSheet("border: none;")
-        icone_label.setPixmap(pixmap_coloree("hourglass.svg", "#c97a30", sz(22)))
-        titre_h.addWidget(icone_label)
-
-        titre = QLabel("En préparation")
-        titre.setStyleSheet(
-            f"color: #c97a30; font-size: {sz(18)}px; font-weight: 700; border: none;"
-        )
-        titre_h.addWidget(titre)
-        titre_h.addStretch()
-        layout.addWidget(titre_row)
+        layout.addWidget(self._build_titre("hourglass.svg", "#c97a30", "En préparation"))
 
         if not prep_par_type:
             vide = QLabel("Aucun plat en cours de préparation")
