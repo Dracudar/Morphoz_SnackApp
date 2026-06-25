@@ -167,13 +167,11 @@ class InterfacePrincipaleWidget(QWidget):
             self.suivi_module.setVisible(page_name in _PAGES_MODE_SPLIT)
 
     def refresh_all_pages(self):
-        """Rafraîchit toutes les pages et le suivi."""
-        self.page_saisie.refresh()
-        self.page_stock.refresh()
-        self.page_carte.reload_from_disk()
-        self.page_historique.refresh_orders()
-        self.page_poste_prep.refresh()
-        self.suivi_module.tracker.refresh_orders()
+        """Rafraîchit uniquement la page active et le suivi si la saisie est visible."""
+        widget_actif = self.left_stack.currentWidget()
+        self._refresh_page(widget_actif)
+        if widget_actif is self.page_saisie:
+            self.suivi_module.tracker.refresh_orders()
 
     def _refresh_page(self, widget):
         if hasattr(widget, "refresh"):
