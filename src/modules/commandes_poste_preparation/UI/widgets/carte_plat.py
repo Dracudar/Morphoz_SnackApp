@@ -35,7 +35,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from src.modules.commandes_suivi.backend.commandes_suivi_gestion import livrer_plat, plat_prêt, retour_preparation
+from src.modules.commandes_suivi.backend.commandes_suivi_gestion import livrer_plat, plat_prêt
 from src.utils.tactile import BoutonTactile, ScrollAreaTactile
 
 # ── Dimensions ────────────────────────────────────────────────────────────────
@@ -60,9 +60,6 @@ _BTN_LABEL = {
     "en préparation": "✓  Marquer Prêt",
     "prêt":           "⬆  Livré",
 }
-
-_BTN_RETOUR_COLOR = "#5c6370"
-_BTN_RETOUR_LABEL = "↩  Prépa"
 
 _COMP_FONT = "font-size: 13px;"
 
@@ -132,14 +129,11 @@ class CartePlatWidget(QFrame):
 
         layout.addStretch(1)
 
-        # ── Bouton(s) d'action ────────────────────────────────────────────────
+        # ── Bouton contextuel unique ──────────────────────────────────────────
         btn_label = _BTN_LABEL.get(status_lower)
         btn_color = _BTN_COLOR.get(status_lower)
 
         if btn_label and btn_color:
-            btn_row = QHBoxLayout()
-            btn_row.setSpacing(6)
-
             btn = BoutonTactile(btn_label, self._scroll_area)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setMinimumHeight(44)
@@ -154,23 +148,7 @@ class CartePlatWidget(QFrame):
                 btn.clicked.connect(self._action_prêt)
             else:
                 btn.clicked.connect(self._action_livré)
-            btn_row.addWidget(btn)
-
-            if status_lower == "prêt":
-                btn_retour = BoutonTactile(_BTN_RETOUR_LABEL, self._scroll_area)
-                btn_retour.setCursor(Qt.CursorShape.PointingHandCursor)
-                btn_retour.setMinimumHeight(44)
-                btn_retour.setFixedWidth(90)
-                btn_retour.setStyleSheet(
-                    f"QPushButton {{ background-color: {_BTN_RETOUR_COLOR}; color: #d0d3d8; border: none; "
-                    f"border-radius: 6px; padding: 8px; font-weight: 600; font-size: 13px; }}"
-                    f"QPushButton:hover {{ background-color: {_BTN_RETOUR_COLOR}cc; }}"
-                    f"QPushButton:pressed {{ background-color: {_BTN_RETOUR_COLOR}99; }}"
-                )
-                btn_retour.clicked.connect(self._action_retour_preparation)
-                btn_row.addWidget(btn_retour)
-
-            layout.addLayout(btn_row)
+            layout.addWidget(btn)
 
         # Cadre : rouge complet si prioritaire, sinon bordure neutre
         if prioritaire:
@@ -307,14 +285,6 @@ class CartePlatWidget(QFrame):
 
     def _action_livré(self):
         livrer_plat(
-            None,
-            str(self._plat["file"]),
-            self._plat["id"],
-            lambda _: self._on_action(),
-        )
-
-    def _action_retour_preparation(self):
-        retour_preparation(
             None,
             str(self._plat["file"]),
             self._plat["id"],
