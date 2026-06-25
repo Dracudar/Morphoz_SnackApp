@@ -92,7 +92,8 @@ _STYLE_BTN_PRINT = (
 _STYLE_BTN_RETOUR = (
 	"QPushButton { background-color: #28292f; color: #9098a8; border: 1px solid #4a5060;"
 	" border-radius: 3px; font-size: 11px; font-weight: 600; padding: 2px 4px; min-height: 22px; }"
-	" QPushButton:hover { background-color: #32343c; color: #b0b8c8; border-color: #606878; }"
+	" QPushButton:hover:enabled { background-color: #32343c; color: #b0b8c8; border-color: #606878; }"
+	" QPushButton:disabled { background-color: #1e1f25; color: #3a4050; border-color: #252a35; }"
 )
 
 
@@ -749,59 +750,68 @@ class CommandesHistoriqueModule(QFrame):
 		else:
 			main_row.addStretch(1)
 
-		# Zone d'action à largeur fixe : [← retour | badge | → Prêt | → Livré]
-		# Chaque slot est soit un bouton soit un QWidget vide de même largeur → layout stable.
+		# ── Zone d'action à 3 colonnes fixes ──────────────────────────────────
+		# Col 1 (78px) : position "En préparation"
+		# Col 2 (62px) : position "Prêt"
+		# Col 3 (72px) : position terminal (Livré / Annulé / Non livré)
+		# Chaque colonne : badge (statut courant), bouton (avancement/retour) ou QWidget vide.
 
-		# Slot retour (62px)
-		if show_retour_preparation:
-			btn_retour = QPushButton("← Prépa")
-			btn_retour.setFixedWidth(62)
-			btn_retour.setStyleSheet(_STYLE_BTN_RETOUR)
-			btn_retour.setToolTip("Retour au statut En préparation")
-			btn_retour.clicked.connect(lambda _, o=order, i=item: self._on_retour_preparation(o, i))
-			main_row.addWidget(btn_retour)
-		elif show_retour_pret:
-			btn_retour = QPushButton("← Prêt")
-			btn_retour.setFixedWidth(62)
-			btn_retour.setStyleSheet(_STYLE_BTN_RETOUR)
-			btn_retour.setToolTip("Retour au statut Prêt (peut rouvrir la commande si terminée)")
-			btn_retour.clicked.connect(lambda _, o=order, i=item: self._on_retour_pret(o, i))
-			main_row.addWidget(btn_retour)
+		# ─ Colonne 1 : En préparation ─────────────────────────────────────────
+		if item_status == "en préparation":
+			w1 = self._build_plat_status_badge("en préparation")
+			w1.setFixedWidth(78)
+		elif item_status in ("prêt", "livré"):
+			w1 = QPushButton("En prép. ←")
+			w1.setFixedWidth(78)
+			w1.setStyleSheet(_STYLE_BTN_RETOUR)
+			w1.setEnabled(show_retour_preparation)
+			if show_retour_preparation:
+				w1.setToolTip("Retour au statut En préparation")
+				w1.clicked.connect(lambda _, o=order, i=item: self._on_retour_preparation(o, i))
+			else:
+				w1.setToolTip("Retour direct indisponible depuis ce statut")
 		else:
-			sp_retour = QWidget()
-			sp_retour.setFixedWidth(62)
-			main_row.addWidget(sp_retour)
+			w1 = QWidget()
+			w1.setFixedWidth(78)
+		main_row.addWidget(w1)
 
-		# Badge statut (68px)
-		badge = self._build_plat_status_badge(item.get("status", ""))
-		badge.setFixedWidth(68)
-		main_row.addWidget(badge)
-
-		# Slot → Prêt (62px)
-		if show_pret:
-			btn_pret = QPushButton("→ Prêt")
-			btn_pret.setFixedWidth(62)
-			btn_pret.setStyleSheet(_STYLE_BTN_PRET)
-			btn_pret.setToolTip("Passer ce plat au statut Prêt")
-			btn_pret.clicked.connect(lambda _, o=order, i=item: self._on_marquer_pret(o, i))
-			main_row.addWidget(btn_pret)
+		# ─ Colonne 2 : Prêt ───────────────────────────────────────────────────
+		if item_status == "prêt":
+			w2 = self._build_plat_status_badge("prêt")
+			w2.setFixedWidth(62)
+		elif item_status == "en préparation" and show_pret:
+			w2 = QPushButton("→ Prêt")
+			w2.setFixedWidth(62)
+			w2.setStyleSheet(_STYLE_BTN_PRET)
+			w2.setToolTip("Passer ce plat au statut Prêt")
+			w2.clicked.connect(lambda _, o=order, i=item: self._on_marquer_pret(o, i))
+		elif item_status == "livré":
+			w2 = QPushButton("Prêt ←")
+			w2.setFixedWidth(62)
+			w2.setStyleSheet(_STYLE_BTN_RETOUR)
+			w2.setEnabled(show_retour_pret)
+			if show_retour_pret:
+				w2.setToolTip("Retour au statut Prêt (peut rouvrir la commande si terminée)")
+				w2.clicked.connect(lambda _, o=order, i=item: self._on_retour_pret(o, i))
 		else:
-			sp_pret = QWidget()
-			sp_pret.setFixedWidth(62)
-			main_row.addWidget(sp_pret)
+			w2 = QWidget()
+			w2.setFixedWidth(62)
+		main_row.addWidget(w2)
 
-		# Slot → Livré (62px)
-		if show_livre:
-			btn_livre = QPushButton("→ Livré")
-			btn_livre.setFixedWidth(62)
-			btn_livre.setStyleSheet(_STYLE_BTN_LIVRE)
-			btn_livre.setToolTip("Passer ce plat au statut Livré")
-			btn_livre.clicked.connect(lambda _, o=order, i=item: self._on_marquer_livre(o, i))
-			main_row.addWidget(btn_livre)
+		# ─ Colonne 3 : terminal ────────────────────────────────────────────────
+		if item_status in ("livré", "annulé", "non livré"):
+			w3 = self._build_plat_status_badge(item_status)
+			w3.setFixedWidth(72)
+		elif show_livre:
+			w3 = QPushButton("→ Livré")
+			w3.setFixedWidth(72)
+			w3.setStyleSheet(_STYLE_BTN_LIVRE)
+			w3.setToolTip("Passer ce plat au statut Livré")
+			w3.clicked.connect(lambda _, o=order, i=item: self._on_marquer_livre(o, i))
 		else:
-			sp_livre = QWidget()
-			sp_livre.setFixedWidth(62)
-			main_row.addWidget(sp_livre)
+			w3 = QWidget()
+			w3.setFixedWidth(72)
+		main_row.addWidget(w3)
 
 		# Bouton annulation plat (toujours affiché pour commandes validées, désactivé si terminal)
 		if is_active_order:
