@@ -18,13 +18,13 @@ Author :
     Dracudar
 
 Version:
-    3.8
+    3.9
 
 Date de création :
     2026.05.26
 
 Date de modification:
-    2026.06.21
+    2026.06.25
 """
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.utils.tactile import EnTeteCliquable, ScrollAreaTactile
-from src.UI.utils.icones import icone, icone_action
+from src.UI.utils.icones import icone, icone_action, icone_coloree
 from src.backend.app_config import get_print_options
 from src.backend.data_sources import get_all_history_orders
 from src.backend.printer import reprint_all_active_cuisine, reprint_ticket_cuisine_plat, reprint_ticket_recap
@@ -761,7 +761,10 @@ class CommandesHistoriqueModule(QFrame):
 			w1 = self._build_plat_status_badge("en préparation")
 			w1.setFixedWidth(78)
 		elif item_status in ("prêt", "livré"):
-			w1 = QPushButton("En prép. ←")
+			w1 = QPushButton("En prép.")
+			w1.setIcon(icone_action("arrow_left.svg", 12, "#9098a8", "#3a4050"))
+			w1.setIconSize(QSize(12, 12))
+			w1.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 			w1.setFixedWidth(78)
 			w1.setStyleSheet(_STYLE_BTN_RETOUR)
 			w1.setEnabled(show_retour_preparation)
@@ -780,13 +783,18 @@ class CommandesHistoriqueModule(QFrame):
 			w2 = self._build_plat_status_badge("prêt")
 			w2.setFixedWidth(62)
 		elif item_status == "en préparation" and show_pret:
-			w2 = QPushButton("→ Prêt")
+			w2 = QPushButton("Prêt")
+			w2.setIcon(icone_coloree("arrow_right.svg", "#d4a017", 12))
+			w2.setIconSize(QSize(12, 12))
 			w2.setFixedWidth(62)
 			w2.setStyleSheet(_STYLE_BTN_PRET)
 			w2.setToolTip("Passer ce plat au statut Prêt")
 			w2.clicked.connect(lambda _, o=order, i=item: self._on_marquer_pret(o, i))
 		elif item_status == "livré":
-			w2 = QPushButton("Prêt ←")
+			w2 = QPushButton("Prêt")
+			w2.setIcon(icone_action("arrow_left.svg", 12, "#9098a8", "#3a4050"))
+			w2.setIconSize(QSize(12, 12))
+			w2.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 			w2.setFixedWidth(62)
 			w2.setStyleSheet(_STYLE_BTN_RETOUR)
 			w2.setEnabled(show_retour_pret)
@@ -803,7 +811,9 @@ class CommandesHistoriqueModule(QFrame):
 			w3 = self._build_plat_status_badge(item_status)
 			w3.setFixedWidth(72)
 		elif show_livre:
-			w3 = QPushButton("→ Livré")
+			w3 = QPushButton("Livré")
+			w3.setIcon(icone_coloree("arrow_right.svg", "#4caf50", 12))
+			w3.setIconSize(QSize(12, 12))
 			w3.setFixedWidth(72)
 			w3.setStyleSheet(_STYLE_BTN_LIVRE)
 			w3.setToolTip("Passer ce plat au statut Livré")

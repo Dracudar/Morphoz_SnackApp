@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    2.4
+    2.5
 
 Date de création :
     2026.06.08
 
 Date de modification:
-    2026.06.13
+    2026.06.25
 """
 
 from __future__ import annotations
@@ -163,7 +163,7 @@ class CartePlatWidget(QFrame):
             btn_row.addWidget(btn_retour)
 
             btn_livre = BoutonTactile("Livré", self._scroll_area)
-            btn_livre.setIcon(icone_coloree("arrow.svg", "#1a1a1a", 18, rotation=270))
+            btn_livre.setIcon(icone_coloree("arrow_right.svg", "#1a1a1a", 18))
             btn_livre.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_livre.setMinimumHeight(44)
             btn_livre.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
