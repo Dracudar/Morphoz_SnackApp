@@ -17,7 +17,7 @@ Date de création :
     2026.06.14
 
 Date de modification:
-    2026.06.22
+    2026.06.25
 """
 
-APP_VERSION = "2.3.0"
+APP_VERSION = "2.4.0"
