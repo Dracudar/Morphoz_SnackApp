@@ -16,7 +16,7 @@ Date de création :
     2026.06.12
 
 Date de modification:
-    2026.06.14
+    2026.06.25
 """
 
 import json
@@ -41,6 +41,7 @@ def logs_path(tmp_path, monkeypatch):
     d = tmp_path / "logs"
     d.mkdir()
     monkeypatch.setattr("src.backend.app_config.get_logs_folder_path", lambda: d)
+    monkeypatch.setattr("src.backend.app_config.data_folder_est_configure", lambda: True)
     return d
 
 
