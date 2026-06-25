@@ -34,6 +34,8 @@ from src.modules.commandes_suivi.backend.commandes_suivi_gestion import (
     marquer_plat_livre,
     marquer_plat_pret,
     plat_prêt,
+    retour_preparation,
+    retour_pret,
     terminer_commande,
 )
 
@@ -261,6 +263,114 @@ class TestAnnulerPlatValidePret:
 
         data_dest = _lire(chemin_dest)
         assert data_dest["Commande"]["P002"]["Statut"] == "Prêt"
+
+
+# ── retour_preparation ────────────────────────────────────────────────────────
+
+class TestRetourPreparation:
+    def _plat_pret(self, commandes_dir):
+        plats = {
+            "P001": {"ID": "20260101-001-P001", "Plat": "Pizza", "Nom": "A",
+                      "Statut": "Prêt", "Date de mise en livraison": ["01/01/2026", "12:00"],
+                      "Date de livraison": ["", ""], "Date d'annulation": ["", ""],
+                      "Prix": 8.5, "Composition": {}},
+        }
+        return _commande_validee(commandes_dir, plats=plats)
+
+    def test_revient_en_preparation_et_rafraichit(self, commandes_dir, mocks_suivi):
+        chemin = self._plat_pret(commandes_dir)
+        refresh = MagicMock()
+        retour_preparation(None, chemin, "20260101-001-P001", refresh)
+        data = _lire(chemin)
+        assert data["Commande"]["P001"]["Statut"] == "En préparation"
+        assert data["Commande"]["P001"]["Date de mise en livraison"] == ["", ""]
+        refresh.assert_called_once()
+
+    def test_ignore_si_statut_pas_pret(self, commandes_dir, mocks_suivi):
+        chemin = _commande_validee(commandes_dir)  # statut initial "En préparation"
+        refresh = MagicMock()
+        retour_preparation(None, chemin, "20260101-001-P001", refresh)
+        refresh.assert_not_called()
+        data = _lire(chemin)
+        assert data["Commande"]["P001"]["Statut"] == "En préparation"
+
+
+# ── retour_pret ───────────────────────────────────────────────────────────────
+
+class TestRetourPret:
+    def _commande_avec_plat_livre(self, commandes_dir, statut_commande="Validée", dossier="en_cours"):
+        plats = {
+            "P001": {"ID": "20260101-001-P001", "Plat": "Pizza", "Nom": "A",
+                      "Statut": "Livré", "Date de mise en livraison": ["01/01/2026", "11:00"],
+                      "Date de livraison": ["01/01/2026", "12:00"], "Date d'annulation": ["", ""],
+                      "Prix": 8.5, "Composition": {}},
+            "G001": {"ID": "20260101-001-G001", "Plat": "Grillade", "Nom": "B",
+                      "Statut": "En préparation", "Date de mise en livraison": ["", ""],
+                      "Date de livraison": ["", ""], "Date d'annulation": ["", ""],
+                      "Prix": 9.5, "Composition": {}},
+        }
+        data = {
+            "Informations": {
+                "ID": "20260101-001",
+                "Statut": statut_commande,
+                "Montant": 18.0,
+                "Prioritaire": False,
+            },
+            "Commande": plats,
+        }
+        sous_dossier = commandes_dir / dossier
+        sous_dossier.mkdir(exist_ok=True)
+        chemin = sous_dossier / "commande_20260101-001.json"
+        chemin.write_text(json.dumps(data), encoding="utf-8")
+        return str(chemin)
+
+    def _commande_terminee(self, commandes_dir):
+        """Commande avec un unique plat 'Livré', statut 'Terminée', dans /terminee/."""
+        plats = {
+            "P001": {"ID": "20260101-001-P001", "Plat": "Pizza", "Nom": "A",
+                      "Statut": "Livré", "Date de mise en livraison": ["01/01/2026", "11:00"],
+                      "Date de livraison": ["01/01/2026", "12:00"], "Date d'annulation": ["", ""],
+                      "Prix": 8.5, "Composition": {}},
+        }
+        data = {
+            "Informations": {
+                "ID": "20260101-001",
+                "Statut": "Terminée",
+                "Date de finalisation": ["01/01/2026", "12:00"],
+                "Montant": 8.5,
+                "Prioritaire": False,
+            },
+            "Commande": plats,
+        }
+        terminee = commandes_dir / "terminee"
+        terminee.mkdir(exist_ok=True)
+        chemin = terminee / "commande_20260101-001.json"
+        chemin.write_text(json.dumps(data), encoding="utf-8")
+        return str(chemin)
+
+    def test_plat_livre_revient_a_pret(self, commandes_dir, mocks_suivi):
+        chemin = self._commande_avec_plat_livre(commandes_dir)
+        assert retour_pret(chemin, "20260101-001-P001") is True
+        data = _lire(chemin)
+        assert data["Commande"]["P001"]["Statut"] == "Prêt"
+        assert data["Commande"]["P001"]["Date de livraison"] == ["", ""]
+        assert data["Informations"]["Statut"] == "Validée"
+
+    def test_retourne_false_si_statut_pas_livre(self, commandes_dir, mocks_suivi):
+        chemin = self._commande_avec_plat_livre(commandes_dir)
+        assert retour_pret(chemin, "20260101-001-G001") is False
+
+    def test_rouvre_commande_terminee(self, commandes_dir, mocks_suivi):
+        chemin = self._commande_terminee(commandes_dir)
+        nom = Path(chemin).name
+        assert retour_pret(chemin, "20260101-001-P001") is True
+        assert not Path(chemin).exists()
+        chemin_en_cours = commandes_dir / "en_cours" / nom
+        assert chemin_en_cours.exists()
+        data = _lire(chemin_en_cours)
+        assert data["Commande"]["P001"]["Statut"] == "Prêt"
+        assert data["Informations"]["Statut"] == "Validée"
+        assert data["Informations"]["Date de finalisation"] == ["", ""]
 
 
 class TestAnnulerCommandeComplete:
