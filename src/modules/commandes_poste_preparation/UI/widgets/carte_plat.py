@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.modules.commandes_suivi.backend.commandes_suivi_gestion import livrer_plat, plat_prêt
+from src.UI.utils.icones import icone_coloree
 from src.utils.tactile import BoutonTactile, ScrollAreaTactile
 
 # ── Dimensions ────────────────────────────────────────────────────────────────
@@ -57,8 +58,13 @@ _BTN_COLOR = {
 }
 
 _BTN_LABEL = {
-    "en préparation": "✓  Marquer Prêt",
-    "prêt":           "⬆  Livré",
+    "en préparation": "Marquer Prêt",
+    "prêt":           "Livré",
+}
+
+_BTN_ICONE = {
+    "en préparation": ("check.svg", 0),
+    "prêt":           ("arrow.svg", 270),
 }
 
 _COMP_FONT = "font-size: 13px;"
@@ -133,6 +139,7 @@ class CartePlatWidget(QFrame):
         btn_label = _BTN_LABEL.get(status_lower)
         btn_color = _BTN_COLOR.get(status_lower)
 
+        btn_icone = _BTN_ICONE.get(status_lower)
         if btn_label and btn_color:
             btn = BoutonTactile(btn_label, self._scroll_area)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -144,6 +151,9 @@ class CartePlatWidget(QFrame):
                 f"QPushButton:hover {{ background-color: {btn_color}cc; }}"
                 f"QPushButton:pressed {{ background-color: {btn_color}99; }}"
             )
+            if btn_icone:
+                nom_svg, rotation = btn_icone
+                btn.setIcon(icone_coloree(nom_svg, "#1a1a1a", 18, rotation=rotation))
             if status_lower == "en préparation":
                 btn.clicked.connect(self._action_prêt)
             else:
