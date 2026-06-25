@@ -21,6 +21,7 @@ jobs:
 
       - name: Dépendances système pour Qt (mode headless)
         run: |
+          sudo rm -f /etc/apt/sources.list.d/microsoft*.list /etc/apt/sources.list.d/azure*.list
           sudo apt-get update -q
           sudo apt-get install -y --no-install-recommends \
             libglib2.0-0 \
