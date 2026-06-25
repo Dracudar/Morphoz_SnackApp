@@ -227,6 +227,8 @@ class SuiviExterieurWindow(QMainWindow):
 
     def refresh(self):
         """Recharge les plats depuis le disque et reconstruit l'affichage."""
+        if not self.isVisible():
+            return
         plats = get_live_orders_prep()
 
         prêts   = [p for p in plats if p["status"].lower() == "prêt"]
