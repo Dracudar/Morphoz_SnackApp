@@ -36,7 +36,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.modules.commandes_suivi.backend.commandes_suivi_gestion import livrer_plat, plat_prêt
-from src.UI.utils.icones import icone_coloree
+from src.UI.utils.icones import icone_coloree, pixmap_coloree
 from src.utils.tactile import BoutonTactile, ScrollAreaTactile
 
 # ── Dimensions ────────────────────────────────────────────────────────────────
@@ -113,12 +113,16 @@ class CartePlatWidget(QFrame):
         id_row.addWidget(id_label, 1)
 
         if prioritaire:
-            badge = QLabel("⚡ PRIORITAIRE")
-            badge.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            badge.setStyleSheet(
+            flash_lbl = QLabel()
+            flash_lbl.setPixmap(pixmap_coloree("flash.svg", _PRIORITY_CLR, 13))
+            flash_lbl.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+            id_row.addWidget(flash_lbl)
+            texte_lbl = QLabel("PRIORITAIRE")
+            texte_lbl.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+            texte_lbl.setStyleSheet(
                 f"color: {_PRIORITY_CLR}; font-size: 11px; font-weight: 700;"
             )
-            id_row.addWidget(badge)
+            id_row.addWidget(texte_lbl)
 
         layout.addLayout(id_row)
 
