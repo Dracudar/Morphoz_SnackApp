@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    1.3
+    1.4
 
 Date de création :
     2026.05.31
 
 Date de modification:
-    2026.06.06
+    2026.06.25
 """
 
 from typing import Dict, Optional
@@ -44,13 +44,13 @@ def route_selection(context, command_path: str) -> Optional[Dict]:
 
     prix = card_data.get("Grillade", {}).get("Prix", 6.5)
     grillades_stock = _get_available_grillades(stock_data)
-    frites_disponibles = not stock_data.get("Accompagnement", {}).get("Frites", {}).get("OutOfStock", False)
+    accompagnements_stock = stock_data.get("Accompagnement", {})
 
     if not grillades_stock:
         return None
 
     parent = QApplication.activeWindow()
-    dialog = GrilladeDialog(prix, grillades_stock, frites_disponibles, parent=parent)
+    dialog = GrilladeDialog(prix, grillades_stock, accompagnements_stock, parent=parent)
 
     if dialog.exec() == QDialog.DialogCode.Accepted:
         # TODO : décrémenter les frites si accompagnement = "Frites" quand
