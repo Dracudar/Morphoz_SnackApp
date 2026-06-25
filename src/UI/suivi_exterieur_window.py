@@ -27,7 +27,7 @@ Date de modification:
     2026.06.13
 """
 
-from PySide6.QtCore import Qt, QSize, QTimer, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
     QFrame,
@@ -41,7 +41,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.backend.data_sources import get_live_orders_prep
-from src.UI.utils.icones import icone_coloree
+from src.UI.utils.icones import widget_icone_texte
 
 # Nombre maximum de plats "En préparation" affichés par type
 _MAX_EN_PREP_PAR_TYPE = 3
@@ -260,31 +260,15 @@ class SuiviExterieurWindow(QMainWindow):
     # ── Utilitaires ───────────────────────────────────────────────────────────
 
     def _build_titre(self, nom_icone: str, couleur: str, texte: str) -> QWidget:
-        """Crée un widget titre avec icône SVG colorée et libellé."""
+        """Crée un widget titre icône + libellé mis à l'échelle de la fenêtre."""
         sz = self._sz
-        widget = QWidget()
-        widget.setStyleSheet("background: transparent; border: none;")
-        h = QHBoxLayout(widget)
-        h.setContentsMargins(0, 0, 0, 0)
-        h.setSpacing(sz(8))
-
-        taille = sz(20)
-        icone_label = QLabel()
-        icone_label.setFixedSize(taille, taille)
-        icone_label.setPixmap(
-            icone_coloree(nom_icone, couleur, QSize(taille, taille)).pixmap(QSize(taille, taille))
+        return widget_icone_texte(
+            nom_icone, couleur, texte,
+            taille_icone=sz(20),
+            taille_police=sz(18),
+            gras=True,
+            espacement=sz(8),
         )
-        icone_label.setStyleSheet("background: transparent; border: none;")
-        h.addWidget(icone_label)
-
-        texte_label = QLabel(texte)
-        texte_label.setStyleSheet(
-            f"color: {couleur}; font-size: {sz(18)}px; font-weight: 700;"
-        )
-        h.addWidget(texte_label)
-        h.addStretch()
-
-        return widget
 
     def _get_short_ids(self, plat: dict) -> tuple[str, str]:
         """Retourne (numéro de commande, identifiant court du plat)."""
