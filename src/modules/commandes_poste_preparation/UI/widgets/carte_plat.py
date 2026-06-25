@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from typing import Callable
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -35,8 +35,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from src.modules.commandes_suivi.backend.commandes_suivi_gestion import livrer_plat, plat_prêt, retour_preparation
-from src.UI.utils.icones import icone_coloree
+from src.modules.commandes_suivi.backend.commandes_suivi_gestion import livrer_plat, plat_prêt
 from src.utils.tactile import BoutonTactile, ScrollAreaTactile
 
 # ── Dimensions ────────────────────────────────────────────────────────────────
@@ -59,7 +58,7 @@ _BTN_COLOR = {
 
 _BTN_LABEL = {
     "en préparation": "✓  Marquer Prêt",
-    "prêt":           "Livré",
+    "prêt":           "⬆  Livré",
 }
 
 _COMP_FONT = "font-size: 13px;"
@@ -130,56 +129,26 @@ class CartePlatWidget(QFrame):
 
         layout.addStretch(1)
 
-        # ── Bouton(s) d'action ────────────────────────────────────────────────
-        if status_lower == "en préparation":
-            btn = BoutonTactile(_BTN_LABEL["en préparation"], self._scroll_area)
+        # ── Bouton contextuel unique ──────────────────────────────────────────
+        btn_label = _BTN_LABEL.get(status_lower)
+        btn_color = _BTN_COLOR.get(status_lower)
+
+        if btn_label and btn_color:
+            btn = BoutonTactile(btn_label, self._scroll_area)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setMinimumHeight(44)
             btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             btn.setStyleSheet(
-                f"QPushButton {{ background-color: {_BTN_COLOR['en préparation']}; color: #1a1a1a; border: none; "
+                f"QPushButton {{ background-color: {btn_color}; color: #1a1a1a; border: none; "
                 f"border-radius: 6px; padding: 8px; font-weight: 700; font-size: 14px; }}"
-                f"QPushButton:hover {{ background-color: {_BTN_COLOR['en préparation']}cc; }}"
-                f"QPushButton:pressed {{ background-color: {_BTN_COLOR['en préparation']}99; }}"
+                f"QPushButton:hover {{ background-color: {btn_color}cc; }}"
+                f"QPushButton:pressed {{ background-color: {btn_color}99; }}"
             )
-            btn.clicked.connect(self._action_prêt)
+            if status_lower == "en préparation":
+                btn.clicked.connect(self._action_prêt)
+            else:
+                btn.clicked.connect(self._action_livré)
             layout.addWidget(btn)
-
-        elif status_lower == "prêt":
-            btn_row = QHBoxLayout()
-            btn_row.setSpacing(6)
-
-            btn_retour = BoutonTactile(" Prépa", self._scroll_area)
-            btn_retour.setIcon(icone_coloree("arrow.svg", "#c97a30", 14, rotation=180))
-            btn_retour.setIconSize(QSize(14, 14))
-            btn_retour.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn_retour.setMinimumHeight(44)
-            btn_retour.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            btn_retour.setStyleSheet(
-                "QPushButton { background-color: #3a2000; color: #c97a30; border: none; "
-                "border-radius: 6px; padding: 8px; font-weight: 700; font-size: 14px; }"
-                "QPushButton:hover { background-color: #4a2a00; }"
-                "QPushButton:pressed { background-color: #2a1500; }"
-            )
-            btn_retour.clicked.connect(self._action_retour_preparation)
-            btn_row.addWidget(btn_retour)
-
-            btn_livrer = BoutonTactile(" Livré", self._scroll_area)
-            btn_livrer.setIcon(icone_coloree("arrow.svg", "#1a1a1a", 14, rotation=270))
-            btn_livrer.setIconSize(QSize(14, 14))
-            btn_livrer.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn_livrer.setMinimumHeight(44)
-            btn_livrer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            btn_livrer.setStyleSheet(
-                f"QPushButton {{ background-color: {_BTN_COLOR['prêt']}; color: #1a1a1a; border: none; "
-                f"border-radius: 6px; padding: 8px; font-weight: 700; font-size: 14px; }}"
-                f"QPushButton:hover {{ background-color: {_BTN_COLOR['prêt']}cc; }}"
-                f"QPushButton:pressed {{ background-color: {_BTN_COLOR['prêt']}99; }}"
-            )
-            btn_livrer.clicked.connect(self._action_livré)
-            btn_row.addWidget(btn_livrer)
-
-            layout.addLayout(btn_row)
 
         # Cadre : rouge complet si prioritaire, sinon bordure neutre
         if prioritaire:
@@ -316,14 +285,6 @@ class CartePlatWidget(QFrame):
 
     def _action_livré(self):
         livrer_plat(
-            None,
-            str(self._plat["file"]),
-            self._plat["id"],
-            lambda _: self._on_action(),
-        )
-
-    def _action_retour_preparation(self):
-        retour_preparation(
             None,
             str(self._plat["file"]),
             self._plat["id"],
