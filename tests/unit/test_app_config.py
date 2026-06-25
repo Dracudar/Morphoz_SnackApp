@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.06.12
 
 Date de modification:
-    2026.06.14
+    2026.06.25
 """
 
 import json
@@ -27,9 +27,13 @@ from src.backend.app_config import (
     _load_json_file,
     _parse_hex_or_int,
     _write_json_file,
+    data_folder_est_configure,
+    get_data_folder_brut,
     get_default_config,
     get_print_options,
     get_printer_config,
+    initialiser_dossier_data,
+    save_app_config,
 )
 
 
@@ -170,3 +174,90 @@ class TestGetDefaultConfig:
         config = get_default_config()
         for champ in ("vendor_id", "product_id", "interface", "modele"):
             assert champ in config["imprimante"]
+
+    def test_data_folder_est_chaine_vide(self):
+        assert get_default_config()["data_folder"] == ""
+
+
+# ── data_folder_est_configure ─────────────────────────────────────────────────
+
+class TestDataFolderEstConfigure:
+    def test_retourne_false_si_absent(self, monkeypatch):
+        monkeypatch.setattr("src.backend.app_config._load_app_config", lambda: {})
+        assert data_folder_est_configure() is False
+
+    def test_retourne_false_si_chaine_vide(self, monkeypatch):
+        monkeypatch.setattr("src.backend.app_config._load_app_config", lambda: {"data_folder": ""})
+        assert data_folder_est_configure() is False
+
+    def test_retourne_false_si_espaces_seuls(self, monkeypatch):
+        monkeypatch.setattr("src.backend.app_config._load_app_config", lambda: {"data_folder": "   "})
+        assert data_folder_est_configure() is False
+
+    def test_retourne_true_si_chemin_defini(self, monkeypatch):
+        monkeypatch.setattr("src.backend.app_config._load_app_config", lambda: {"data_folder": "/chemin/data"})
+        assert data_folder_est_configure() is True
+
+
+# ── get_data_folder_brut ──────────────────────────────────────────────────────
+
+class TestGetDataFolderBrut:
+    def test_retourne_chaine_vide_si_absent(self, monkeypatch):
+        monkeypatch.setattr("src.backend.app_config._load_app_config", lambda: {})
+        assert get_data_folder_brut() == ""
+
+    def test_retourne_chaine_vide_si_vide(self, monkeypatch):
+        monkeypatch.setattr("src.backend.app_config._load_app_config", lambda: {"data_folder": ""})
+        assert get_data_folder_brut() == ""
+
+    def test_retourne_chemin_stripe(self, monkeypatch):
+        monkeypatch.setattr("src.backend.app_config._load_app_config", lambda: {"data_folder": "  /mon/dossier  "})
+        assert get_data_folder_brut() == "/mon/dossier"
+
+
+# ── initialiser_dossier_data ──────────────────────────────────────────────────
+
+class TestInitialiserDossierData:
+    def test_retourne_true_sans_creer_si_non_configure(self, monkeypatch):
+        monkeypatch.setattr("src.backend.app_config._load_app_config", lambda: {"data_folder": ""})
+        creations = []
+        monkeypatch.setattr("src.backend.app_config._create_data_structure", lambda p: creations.append(p) or True)
+        assert initialiser_dossier_data() is True
+        assert creations == []
+
+    def test_cree_structure_si_configure(self, monkeypatch, tmp_path):
+        monkeypatch.setattr("src.backend.app_config._load_app_config", lambda: {"data_folder": str(tmp_path)})
+        creations = []
+        monkeypatch.setattr("src.backend.app_config._create_data_structure", lambda p: creations.append(p) or True)
+        initialiser_dossier_data()
+        assert len(creations) == 1
+
+
+# ── save_app_config ───────────────────────────────────────────────────────────
+
+class TestSaveAppConfig:
+    def _appeler(self, monkeypatch, data_folder, creations, ecritures):
+        monkeypatch.setattr("src.backend.app_config._create_data_structure", lambda p: creations.append(p) or True)
+        monkeypatch.setattr("src.backend.app_config._write_json_file", lambda p, d: ecritures.append(d) or True)
+        return save_app_config(data_folder, "0x04B8", "0x0E15", 0, "TM-T20II", True, True, True)
+
+    def test_ne_cree_pas_structure_si_data_folder_vide(self, monkeypatch):
+        creations, ecritures = [], []
+        self._appeler(monkeypatch, "", creations, ecritures)
+        assert creations == []
+        assert len(ecritures) == 1
+
+    def test_cree_structure_si_data_folder_defini(self, monkeypatch, tmp_path):
+        creations, ecritures = [], []
+        self._appeler(monkeypatch, str(tmp_path), creations, ecritures)
+        assert len(creations) == 1
+
+    def test_persiste_data_folder_vide_comme_chaine_vide(self, monkeypatch):
+        creations, ecritures = [], []
+        self._appeler(monkeypatch, "", creations, ecritures)
+        assert ecritures[0]["data_folder"] == ""
+
+    def test_persiste_data_folder_defini(self, monkeypatch, tmp_path):
+        creations, ecritures = [], []
+        self._appeler(monkeypatch, str(tmp_path), creations, ecritures)
+        assert ecritures[0]["data_folder"] == str(tmp_path)
