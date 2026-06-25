@@ -137,6 +137,17 @@ def get_stock_cache():
     return _stock_cache_instance
 
 
+def invalider_cache_stock() -> None:
+    """Invalide le singleton du cache de stock.
+
+    À appeler quand le dossier de données change (Paramètres) : le prochain
+    appel à get_stock_cache() recréera un cache pointant sur le nouveau chemin
+    et rejouera la réconciliation des brouillons.
+    """
+    global _stock_cache_instance
+    _stock_cache_instance = None
+
+
 # ── Catégories et icônes ──────────────────────────────────────────────────────
 
 def _normalize_text(value: str) -> str:
