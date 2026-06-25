@@ -99,10 +99,21 @@ def _load_app_config() -> Dict[str, Any]:
 
 # ── Dossier data et chemins dérivés ───────────────────────────────────────────
 
+def data_folder_est_configure() -> bool:
+    """Retourne True si un dossier data a été explicitement défini dans la config."""
+    config = _load_app_config()
+    return bool(config.get("data_folder", "").strip())
+
+
+def get_data_folder_brut() -> str:
+    """Retourne le chemin du dossier data tel que saisi (chaîne vide si non défini)."""
+    config = _load_app_config()
+    return config.get("data_folder", "").strip()
+
+
 def get_data_folder() -> Path:
     """Retourne le dossier data configuré, ou le dossier par défaut si vide."""
-    config = _load_app_config()
-    raw = config.get("data_folder", "").strip()
+    raw = get_data_folder_brut()
     return Path(raw) if raw else _default_data_folder()
 
 
@@ -232,7 +243,9 @@ def _create_data_structure(data_folder: Path) -> bool:
 
 
 def initialiser_dossier_data() -> bool:
-    """Crée la structure du dossier data courant si elle n'existe pas encore (premier lancement)."""
+    """Crée la structure du dossier data si un chemin est configuré. Ne fait rien sinon."""
+    if not data_folder_est_configure():
+        return True
     return _create_data_structure(get_data_folder())
 
 
@@ -247,13 +260,13 @@ def save_app_config(
     ticket_cuisine: bool,
 ) -> bool:
     """Persiste toute la configuration et crée la structure data si nécessaire. Retourne True si succès."""
-    folder_path = Path(data_folder.strip()) if data_folder.strip() else _default_data_folder()
-
-    if not _create_data_structure(folder_path):
-        return False
+    if data_folder.strip():
+        folder_path = Path(data_folder.strip())
+        if not _create_data_structure(folder_path):
+            return False
 
     payload = {
-        "data_folder": str(folder_path),
+        "data_folder": data_folder.strip(),
         "imprimante": {
             "vendor_id": vendor_id.strip(),
             "product_id": product_id.strip(),
@@ -272,7 +285,7 @@ def save_app_config(
 def get_default_config() -> Dict[str, Any]:
     """Retourne la configuration par défaut complète (indépendante de toute valeur persistée)."""
     return {
-        "data_folder": str(_default_data_folder()),
+        "data_folder": "",
         "imprimante": dict(_DEFAULT_PRINTER),
         "impression": {"impression_active": True, "ticket_client": True, "ticket_cuisine": True},
     }

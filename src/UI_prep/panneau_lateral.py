@@ -36,7 +36,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.backend import file_io
-from src.backend.app_config import CONFIG_FILE, get_data_folder
+from src.backend.app_config import CONFIG_FILE, get_data_folder_brut
 from src.UI.utils.icones import icone_coloree
 
 # ── Palette ───────────────────────────────────────────────────────────────────
@@ -175,7 +175,7 @@ class VoletPrep(QFrame):
         )
         layout.addWidget(lbl_section)
 
-        self._path_edit = QLineEdit(str(get_data_folder()))
+        self._path_edit = QLineEdit(get_data_folder_brut())
         self._path_edit.setReadOnly(True)
         self._path_edit.setToolTip(self._path_edit.text())
         self._path_edit.setStyleSheet(

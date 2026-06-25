@@ -199,9 +199,12 @@ def log(evenement: str, details: dict = None) -> None:
     """Enregistre un événement dans le fichier de log journalier (data/logs/app_YYYYMMDD.log).
 
     Ne lève jamais d'exception : les erreurs disque sont silencieusement ignorées
-    pour ne pas interrompre le flux applicatif.
+    pour ne pas interrompre le flux applicatif. Ne fait rien si aucun dossier data n'est configuré.
     """
-    from src.backend.app_config import get_logs_folder_path
+    from src.backend.app_config import data_folder_est_configure, get_logs_folder_path
+
+    if not data_folder_est_configure():
+        return
 
     now = datetime.now()
     today = now.strftime("%Y%m%d")
