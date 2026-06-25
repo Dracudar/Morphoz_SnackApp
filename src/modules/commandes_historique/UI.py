@@ -45,7 +45,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.utils.tactile import EnTeteCliquable, ScrollAreaTactile
-from src.UI.utils.icones import icone, icone_action
+from src.UI.utils.icones import icone, icone_action, icone_coloree
 from src.backend.app_config import get_print_options
 from src.backend.data_sources import get_all_history_orders
 from src.backend.printer import reprint_all_active_cuisine, reprint_ticket_cuisine_plat, reprint_ticket_recap
@@ -55,6 +55,8 @@ from src.modules.commandes_suivi.backend.commandes_suivi_gestion import (
 	annuler_plat_valide,
 	marquer_plat_livre,
 	marquer_plat_pret,
+	retour_preparation,
+	retour_pret,
 )
 
 
@@ -86,6 +88,11 @@ _STYLE_BTN_PRINT = (
 	" padding: 2px 4px; min-width: 26px; min-height: 26px; }"
 	" QPushButton:hover:enabled { background-color: #4a6a90; }"
 	" QPushButton:disabled { background-color: #3b3f46; border: 1px solid #4a4e55; }"
+)
+_STYLE_BTN_RETOUR = (
+	"QPushButton { background-color: #28292f; color: #9098a8; border: 1px solid #4a5060;"
+	" border-radius: 3px; font-size: 11px; font-weight: 600; padding: 2px 6px; min-height: 22px; }"
+	" QPushButton:hover { background-color: #32343c; color: #b0b8c8; border-color: #606878; }"
 )
 
 
@@ -711,6 +718,8 @@ class CommandesHistoriqueModule(QFrame):
 		is_terminal_item = item_status in ("livré", "annulé")
 		show_pret = is_active_order and item_status == "en préparation"
 		show_livre = is_active_order and item_status in ("en préparation", "prêt")
+		show_retour_preparation = is_active_order and item_status == "prêt"
+		show_retour_pret = item_status == "livré" and order_status in ("validée", "terminée")
 
 		options = get_print_options()
 		print_enabled = options["impression_active"] and not is_terminal_item
@@ -745,18 +754,40 @@ class CommandesHistoriqueModule(QFrame):
 
 		# Boutons de changement de statut
 		if show_pret:
-			btn_pret = QPushButton("→ Prêt")
+			btn_pret = QPushButton(" Prêt")
+			btn_pret.setIcon(icone_coloree("arrow.svg", "#d4a017", 11))
+			btn_pret.setIconSize(QSize(11, 11))
 			btn_pret.setStyleSheet(_STYLE_BTN_PRET)
 			btn_pret.setToolTip("Passer ce plat au statut Prêt")
 			btn_pret.clicked.connect(lambda _, o=order, i=item: self._on_marquer_pret(o, i))
 			main_row.addWidget(btn_pret)
 
 		if show_livre:
-			btn_livre = QPushButton("→ Livré")
+			btn_livre = QPushButton(" Livré")
+			btn_livre.setIcon(icone_coloree("arrow.svg", "#4caf50", 11))
+			btn_livre.setIconSize(QSize(11, 11))
 			btn_livre.setStyleSheet(_STYLE_BTN_LIVRE)
 			btn_livre.setToolTip("Passer ce plat au statut Livré")
 			btn_livre.clicked.connect(lambda _, o=order, i=item: self._on_marquer_livre(o, i))
 			main_row.addWidget(btn_livre)
+
+		if show_retour_preparation:
+			btn_retour_prep = QPushButton(" Prépa")
+			btn_retour_prep.setIcon(icone_coloree("arrow.svg", "#9098a8", 11, rotation=180))
+			btn_retour_prep.setIconSize(QSize(11, 11))
+			btn_retour_prep.setStyleSheet(_STYLE_BTN_RETOUR)
+			btn_retour_prep.setToolTip("Retour au statut En préparation")
+			btn_retour_prep.clicked.connect(lambda _, o=order, i=item: self._on_retour_preparation(o, i))
+			main_row.addWidget(btn_retour_prep)
+
+		if show_retour_pret:
+			btn_retour_pret_w = QPushButton(" Prêt")
+			btn_retour_pret_w.setIcon(icone_coloree("arrow.svg", "#9098a8", 11, rotation=180))
+			btn_retour_pret_w.setIconSize(QSize(11, 11))
+			btn_retour_pret_w.setStyleSheet(_STYLE_BTN_RETOUR)
+			btn_retour_pret_w.setToolTip("Retour au statut Prêt")
+			btn_retour_pret_w.clicked.connect(lambda _, o=order, i=item: self._on_retour_pret(o, i))
+			main_row.addWidget(btn_retour_pret_w)
 
 		# Bouton annulation plat (toujours affiché pour commandes validées, désactivé si terminal)
 		if is_active_order:
@@ -905,4 +936,23 @@ class CommandesHistoriqueModule(QFrame):
 		)
 		if reponse == QMessageBox.StandardButton.Yes:
 			annuler_commande_complete(str(order["file"]))
+			self.refresh_orders()
+
+	def _on_retour_preparation(self, order: Dict[str, Any], item: Dict[str, Any]):
+		"""Retour du statut Prêt à En préparation (correction cuisine)."""
+		retour_preparation(None, str(order["file"]), item["id"], lambda _: None)
+		self.refresh_orders()
+
+	def _on_retour_pret(self, order: Dict[str, Any], item: Dict[str, Any]):
+		"""Retour du statut Livré à Prêt, avec confirmation (peut rouvrir une commande terminée)."""
+		nom_plat = item.get("nom") or item.get("plat") or item["id"]
+		reponse = QMessageBox.question(
+			self,
+			"Confirmer le retour",
+			f"Ramener le plat « {nom_plat} » au statut Prêt ?\n"
+			"Si la commande est terminée, elle sera réouverte.",
+			QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+		)
+		if reponse == QMessageBox.StandardButton.Yes:
+			retour_pret(str(order["file"]), item["id"])
 			self.refresh_orders()
