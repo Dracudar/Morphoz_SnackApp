@@ -47,6 +47,7 @@ from src.backend.app_config import (
 	get_printer_config,
 	save_app_config,
 )
+from src.backend.data_sources import invalider_cache_stock
 from src.backend import logger
 
 
@@ -465,5 +466,7 @@ class ParametresModule(QFrame):
 				"apres": apres_tickets,
 			})
 
+		if Path(nouveau_dossier).resolve() != Path(ancien_dossier).resolve():
+			invalider_cache_stock()
 		self.status_label.setText("Configuration enregistrée. Structure de fichiers vérifiée.")
 		self.config_changed.emit()
