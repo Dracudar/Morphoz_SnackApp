@@ -209,6 +209,11 @@ Projet open-source sous licence MIT.
     <td><em>22/06/2026</em></td>
     <td>Correction des dialogues de personnalisation des plats absents de l'exécutable compilé ; remplacement des emojis du volet de navigation par des icônes SVG (centralisées dans <code>src/UI/utils/icones.py</code>, réutilisables par tous les écrans)</td>
   </tr>
+  <tr>
+    <td>2.4.0</td>
+    <td><em>25/06/2026</em></td>
+    <td>Boutons de retour de statut (Prêt → En préparation, Livré → Prêt) depuis le poste cuisine et l'historique ; correction du calcul des quantités de grillades en préparation ; correction de la gestion du dossier data (vide par défaut, pas de création automatique, cache stock invalidé au changement) ; remplacement des emojis restants par des icônes SVG ; optimisation du rafraîchissement (widgets visibles uniquement)</td>
+  </tr>
 </table>
 
 ---
