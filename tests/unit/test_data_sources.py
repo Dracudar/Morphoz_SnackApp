@@ -23,11 +23,13 @@ import json
 import pytest
 from pathlib import Path
 
+from src.backend import data_sources
 from src.backend.data_sources import (
     _normalize_text,
     _normalized_state,
     _parse_order_file,
     get_menu_categories,
+    invalider_cache_stock,
 )
 
 
@@ -125,6 +127,31 @@ class TestGetMenuCategories:
         cat = get_menu_categories()[0]
         assert cat["has_recipes"] is False
         assert cat["recipe_count"] == 0
+
+
+# ── invalider_cache_stock ─────────────────────────────────────────────────────
+
+class TestInvaliderCacheStock:
+    def setup_method(self):
+        data_sources._stock_cache_instance = None
+
+    def teardown_method(self):
+        data_sources._stock_cache_instance = None
+
+    def test_remet_le_singleton_a_none(self):
+        data_sources._stock_cache_instance = object()
+        invalider_cache_stock()
+        assert data_sources._stock_cache_instance is None
+
+    def test_sans_effet_si_deja_none(self):
+        invalider_cache_stock()
+        assert data_sources._stock_cache_instance is None
+
+    def test_double_invalidation_ne_plante_pas(self):
+        data_sources._stock_cache_instance = object()
+        invalider_cache_stock()
+        invalider_cache_stock()
+        assert data_sources._stock_cache_instance is None
 
 
 # ── _parse_order_file ─────────────────────────────────────────────────────────
