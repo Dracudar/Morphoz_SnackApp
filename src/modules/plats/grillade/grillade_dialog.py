@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    1.4
+    1.5
 
 Date de création :
     2026.06.06
 
 Date de modification:
-    2026.06.19
+    2026.06.25
 """
 
 from typing import Dict, Optional
@@ -98,7 +98,7 @@ class GrilladeDialog(QDialog):
         self,
         prix: float,
         grillades_stock: Dict[str, Dict],
-        frites_disponibles: bool = True,
+        accompagnements_stock: Optional[Dict[str, Dict]] = None,
         parent=None,
     ):
         """
@@ -106,13 +106,15 @@ class GrilladeDialog(QDialog):
             prix: Prix de la grillade depuis la carte active.
             grillades_stock: Dict des viandes disponibles avec leur Valeur et Quantité.
                              Ex: {"Poitrine": {"Valeur": 1, "Quantité": 200, "OutOfStock": false}}
-            frites_disponibles: False si les frites sont hors stock (option accompagnement désactivée).
+            accompagnements_stock: Dict des accompagnements avec leur état de stock.
+                                   Ex: {"Frites": {"OutOfStock": false}, "Légumes": {"OutOfStock": false}}
+                                   Si None, seules les Frites (disponibles) sont proposées.
             parent: Widget parent Qt.
         """
         super().__init__(parent)
         self.prix = prix
         self.grillades_stock = grillades_stock
-        self.frites_disponibles = frites_disponibles
+        self.accompagnements_stock: Dict[str, Dict] = accompagnements_stock or {"Frites": {"OutOfStock": False}}
         self.result_data: Optional[Dict] = None
 
         # Quantités sélectionnées par viande {nom: int}
@@ -122,7 +124,11 @@ class GrilladeDialog(QDialog):
         self._btn_plus: Dict[str, QPushButton] = {}
         self._btn_moins: Dict[str, QPushButton] = {}
 
-        self._accompagnement: str = "Frites" if frites_disponibles else "Sans"
+        premier_dispo = next(
+            (nom for nom, data in self.accompagnements_stock.items() if not data.get("OutOfStock", False)),
+            None,
+        )
+        self._accompagnement: str = premier_dispo if premier_dispo else "Sans"
         self._accomp_btns: Dict[str, QPushButton] = {}
 
         self._warning_label: Optional[QLabel] = None
@@ -260,34 +266,48 @@ class GrilladeDialog(QDialog):
     # ──────────────────────────────── Accompagnement ─────────────────────────
 
     def _build_accompagnement_row(self) -> QWidget:
-        """Construit la ligne de sélection de l'accompagnement (Frites / Sans)."""
+        """Construit le bloc accompagnement : label + rangée de boutons dynamiques."""
         container = QWidget()
-        layout = QHBoxLayout(container)
-        layout.setContentsMargins(0, 4, 0, 0)
-        layout.setSpacing(8)
+        outer = QVBoxLayout(container)
+        outer.setContentsMargins(0, 4, 0, 0)
+        outer.setSpacing(6)
 
         lbl = QLabel("Accompagnement :")
         lbl.setStyleSheet(_SECTION_STYLE)
-        layout.addWidget(lbl)
+        outer.addWidget(lbl)
 
-        layout.addStretch()
+        btns_layout = QHBoxLayout()
+        btns_layout.setContentsMargins(0, 0, 0, 0)
+        btns_layout.setSpacing(8)
 
         group = QButtonGroup(self)
 
-        for choix in ("Frites", "Sans"):
-            btn = QPushButton(choix)
+        # Accompagnements issus du stock (Frites, Légumes, Salade, …)
+        for nom, data in self.accompagnements_stock.items():
+            btn = QPushButton(nom)
             btn.setStyleSheet(_ACCOMP_BTN_STYLE)
             btn.setCheckable(True)
-            btn.setChecked(choix == self._accompagnement)
-            if choix == "Frites" and not self.frites_disponibles:
+            btn.setChecked(nom == self._accompagnement)
+            if data.get("OutOfStock", False):
                 btn.setEnabled(False)
                 btn.setToolTip("Hors stock")
             else:
-                btn.clicked.connect(lambda _, c=choix: self._select_accompagnement(c))
+                btn.clicked.connect(lambda _, c=nom: self._select_accompagnement(c))
             group.addButton(btn)
-            layout.addWidget(btn)
-            self._accomp_btns[choix] = btn
+            btns_layout.addWidget(btn)
+            self._accomp_btns[nom] = btn
 
+        # Option "Sans" toujours disponible en dernier
+        sans_btn = QPushButton("Sans")
+        sans_btn.setStyleSheet(_ACCOMP_BTN_STYLE)
+        sans_btn.setCheckable(True)
+        sans_btn.setChecked(self._accompagnement == "Sans")
+        sans_btn.clicked.connect(lambda: self._select_accompagnement("Sans"))
+        group.addButton(sans_btn)
+        btns_layout.addWidget(sans_btn)
+        self._accomp_btns["Sans"] = sans_btn
+
+        outer.addLayout(btns_layout)
         return container
 
     def _select_accompagnement(self, choix: str):

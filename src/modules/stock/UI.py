@@ -18,13 +18,13 @@ Author :
     Dracudar
 
 Version:
-    2.4
+    2.5
 
 Date de création :
     2025.05.29
 
 Date de modification:
-    2026.06.19
+    2026.06.23
 """
 
 from __future__ import annotations
@@ -136,6 +136,11 @@ def _build_prep_data() -> Tuple[Dict[Tuple[str, str], int], Dict[str, int]]:
 
     Retourne :
     - by_nom  : {(catégorie_plat, nom_plat) : count}
+                Pour les grillades, la clé est (sous-catégorie de stock
+                "Grillades", nom de la viande) et la valeur est la quantité de
+                viande réellement consommée par les commandes en cours (et non
+                le nombre de plats, qui ne suffit pas puisqu'une grillade peut
+                combiner plusieurs viandes en quantités variables).
     - by_plat : {catégorie_plat : count_total}
     """
     by_nom: Dict[Tuple[str, str], int] = {}
@@ -144,8 +149,14 @@ def _build_prep_data() -> Tuple[Dict[Tuple[str, str], int], Dict[str, int]]:
         for item in get_live_orders_prep():
             plat = item.get("plat", "")
             nom  = item.get("nom", "")
-            by_nom[(plat, nom)] = by_nom.get((plat, nom), 0) + 1
-            by_plat[plat]       = by_plat.get(plat, 0) + 1
+            if plat == "Grillade":
+                viandes = item.get("composition", {}).get("Viandes", {})
+                for viande, qte in viandes.items():
+                    cle = ("Grillades", viande)
+                    by_nom[cle] = by_nom.get(cle, 0) + qte
+            else:
+                by_nom[(plat, nom)] = by_nom.get((plat, nom), 0) + 1
+            by_plat[plat] = by_plat.get(plat, 0) + 1
     except Exception as e:
         logger.log(logger.ERREUR, {
             "contexte": "stock_build_prep_data",
@@ -194,9 +205,8 @@ def _get_prep_count(
         return 0
     sub_cat   = path[1]
     item_name = path[-1]
-    valeur    = node.get("Valeur", 1)
     if "Valeur" in node:
-        return by_nom.get((sub_cat, item_name), 0) * valeur
+        return by_nom.get((sub_cat, item_name), 0)
     return by_plat.get(sub_cat, 0)
 
 

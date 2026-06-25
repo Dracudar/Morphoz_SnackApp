@@ -12,20 +12,20 @@ Author :
     Dracudar
 
 Version:
-    2.4
+    2.5
 
 Date de création :
     2026.06.08
 
 Date de modification:
-    2026.06.13
+    2026.06.25
 """
 
 from __future__ import annotations
 
 from typing import Callable
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -35,7 +35,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from src.modules.commandes_suivi.backend.commandes_suivi_gestion import livrer_plat, plat_prêt
+from src.modules.commandes_suivi.backend.commandes_suivi_gestion import livrer_plat, plat_prêt, retour_preparation
+from src.UI.utils.icones import icone_coloree, pixmap_coloree
 from src.utils.tactile import BoutonTactile, ScrollAreaTactile
 
 # ── Dimensions ────────────────────────────────────────────────────────────────
@@ -51,15 +52,9 @@ _AJOUT_CLR    = "#4caf50"
 _RETRAIT_CLR  = "#e05c5c"
 _PRIORITY_CLR = "#e53e3e"
 
-_BTN_COLOR = {
-    "en préparation": "#d4a017",
-    "prêt":           "#4caf50",
-}
-
-_BTN_LABEL = {
-    "en préparation": "✓  Marquer Prêt",
-    "prêt":           "⬆  Livré",
-}
+_CLR_BTN_PRET   = "#d4a017"
+_CLR_BTN_LIVRE  = "#4caf50"
+_CLR_BTN_RETOUR = "#e07820"
 
 _COMP_FONT = "font-size: 13px;"
 
@@ -107,12 +102,16 @@ class CartePlatWidget(QFrame):
         id_row.addWidget(id_label, 1)
 
         if prioritaire:
-            badge = QLabel("⚡ PRIORITAIRE")
-            badge.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            badge.setStyleSheet(
+            flash_lbl = QLabel()
+            flash_lbl.setPixmap(pixmap_coloree("flash.svg", _PRIORITY_CLR, 13))
+            flash_lbl.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+            id_row.addWidget(flash_lbl)
+            texte_lbl = QLabel("PRIORITAIRE")
+            texte_lbl.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+            texte_lbl.setStyleSheet(
                 f"color: {_PRIORITY_CLR}; font-size: 11px; font-weight: 700;"
             )
-            id_row.addWidget(badge)
+            id_row.addWidget(texte_lbl)
 
         layout.addLayout(id_row)
 
@@ -129,26 +128,55 @@ class CartePlatWidget(QFrame):
 
         layout.addStretch(1)
 
-        # ── Bouton contextuel unique ──────────────────────────────────────────
-        btn_label = _BTN_LABEL.get(status_lower)
-        btn_color = _BTN_COLOR.get(status_lower)
-
-        if btn_label and btn_color:
-            btn = BoutonTactile(btn_label, self._scroll_area)
+        # ── Bouton(s) contextuel(s) ──────────────────────────────────────────
+        if status_lower == "en préparation":
+            btn = BoutonTactile("Marquer Prêt", self._scroll_area)
+            btn.setIcon(icone_coloree("check.svg", "#1a1a1a", 18))
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setMinimumHeight(44)
             btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             btn.setStyleSheet(
-                f"QPushButton {{ background-color: {btn_color}; color: #1a1a1a; border: none; "
+                f"QPushButton {{ background-color: {_CLR_BTN_PRET}; color: #1a1a1a; border: none; "
                 f"border-radius: 6px; padding: 8px; font-weight: 700; font-size: 14px; }}"
-                f"QPushButton:hover {{ background-color: {btn_color}cc; }}"
-                f"QPushButton:pressed {{ background-color: {btn_color}99; }}"
+                f"QPushButton:hover {{ background-color: {_CLR_BTN_PRET}cc; }}"
+                f"QPushButton:pressed {{ background-color: {_CLR_BTN_PRET}99; }}"
             )
-            if status_lower == "en préparation":
-                btn.clicked.connect(self._action_prêt)
-            else:
-                btn.clicked.connect(self._action_livré)
+            btn.clicked.connect(self._action_prêt)
             layout.addWidget(btn)
+
+        elif status_lower == "prêt":
+            btn_row = QHBoxLayout()
+            btn_row.setSpacing(6)
+
+            btn_retour = BoutonTactile("", self._scroll_area)
+            btn_retour.setIcon(icone_coloree("return.svg", "#1a1a1a", 20))
+            btn_retour.setIconSize(QSize(20, 20))
+            btn_retour.setFixedSize(44, 44)
+            btn_retour.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn_retour.setToolTip("Retour au statut En préparation")
+            btn_retour.setStyleSheet(
+                f"QPushButton {{ background-color: {_CLR_BTN_RETOUR}; border: none; border-radius: 6px; }}"
+                f"QPushButton:hover {{ background-color: {_CLR_BTN_RETOUR}cc; }}"
+                f"QPushButton:pressed {{ background-color: {_CLR_BTN_RETOUR}99; }}"
+            )
+            btn_retour.clicked.connect(self._action_retour_preparation)
+            btn_row.addWidget(btn_retour)
+
+            btn_livre = BoutonTactile("Livré", self._scroll_area)
+            btn_livre.setIcon(icone_coloree("arrow_right.svg", "#1a1a1a", 18))
+            btn_livre.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn_livre.setMinimumHeight(44)
+            btn_livre.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            btn_livre.setStyleSheet(
+                f"QPushButton {{ background-color: {_CLR_BTN_LIVRE}; color: #1a1a1a; border: none; "
+                f"border-radius: 6px; padding: 8px; font-weight: 700; font-size: 14px; }}"
+                f"QPushButton:hover {{ background-color: {_CLR_BTN_LIVRE}cc; }}"
+                f"QPushButton:pressed {{ background-color: {_CLR_BTN_LIVRE}99; }}"
+            )
+            btn_livre.clicked.connect(self._action_livré)
+            btn_row.addWidget(btn_livre)
+
+            layout.addLayout(btn_row)
 
         # Cadre : rouge complet si prioritaire, sinon bordure neutre
         if prioritaire:
@@ -274,6 +302,14 @@ class CartePlatWidget(QFrame):
         return ""
 
     # ── Actions ───────────────────────────────────────────────────────────────
+
+    def _action_retour_preparation(self):
+        retour_preparation(
+            None,
+            str(self._plat["file"]),
+            self._plat["id"],
+            lambda _: self._on_action(),
+        )
 
     def _action_prêt(self):
         plat_prêt(

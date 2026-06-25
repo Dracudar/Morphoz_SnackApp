@@ -154,6 +154,8 @@ class PostePreparationModule(QFrame):
 
     def refresh(self):
         """Recharge les plats depuis le disque et reconstruit la grille."""
+        if not self.isVisible():
+            return
         plats = get_live_orders_prep()
         if self._active_filters:
             plats = [p for p in plats if p["plat"] in self._active_filters]

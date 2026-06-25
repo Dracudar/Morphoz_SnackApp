@@ -1,6 +1,6 @@
 # Morphoz SnackApp — Documentation d'architecture
 
-> Version du document : 1.0 — 22/06/2026 (vérifié à jour pour `APP_VERSION = "2.3.0"`)
+> Version du document : 1.1 — 25/06/2026 (vérifié à jour pour `APP_VERSION = "2.4.0"`)
 > Branche de référence : `develop` (équivalent `main` au moment de la rédaction)
 
 ---
@@ -126,7 +126,7 @@ filelock
 - **Découplage UI/backend** : les modules UI n'accèdent jamais directement aux fichiers — ils passent par `data_sources.py` ou les helpers de `commandes_utils.py`.
 - **Singleton de cache** : `StockCache` et `DerniersIDCache` sont des singletons en mémoire, persistés sur disque uniquement aux points de validation (validation d'une commande, annulation).
 - **Signaux Qt** : la communication entre modules passe par des signaux (`command_changed`, `config_changed`, `go_back`…) sans couplage direct.
-- **Rafraîchissement par timer** : les vues saisie (2 s), suivi (5 s) et extérieur (3 s) se rechargent périodiquement depuis le disque pour refléter les modifications d'autres modules.
+- **Rafraîchissement par timer** : les vues saisie (2 s), suivi (5 s) et extérieur (3 s) se rechargent périodiquement depuis le disque pour refléter les modifications d'autres modules. Les modules non visibles ne rechargent pas leurs données tant qu'ils ne sont pas affichés (optimisation disque).
 - **Routage des plats** : le système `plats_router.py` + `rooting.py` par type de plat permet d'ajouter un nouveau type de plat sans modifier le code de saisie de commande.
 
 ---
@@ -205,6 +205,8 @@ data/
 `En attente` → `En préparation` → `Prêt` → `Livré`
 `En attente` / `En préparation` / `Prêt` → `Annulé`
 `Prêt` → `Non livré` (si annulé sans candidat de transfert)
+`Prêt` → `En préparation` (correction d'erreur, via `retour_preparation`)
+`Livré` → `Prêt` (correction d'erreur, via `retour_pret`)
 
 ---
 
@@ -377,7 +379,9 @@ Volet de configuration minimal accessible depuis un bouton flottant.
 | `_default_data_folder()` | Retourne `PROJECT_ROOT/data` en développement, ou le dossier à côté de l'exécutable si compilé (PyInstaller). |
 | `_load_json_file(file_path)` | Charge un JSON et retourne `{}` si absent ou invalide — ne lève jamais d'exception. |
 | `_write_json_file(file_path, payload)` | Écrit un dict JSON en créant les dossiers parents. Retourne `True` si succès. |
-| `get_data_folder()` | Lit `data_folder` dans `config.json`, retourne le chemin configuré ou le défaut. |
+| `data_folder_est_configure()` | Retourne `True` si un chemin non vide a été explicitement défini dans `config.json`. |
+| `get_data_folder_brut()` | Retourne le chemin tel que saisi dans `config.json`, ou `""` si absent/vide. |
+| `get_data_folder()` | Retourne `get_data_folder_brut()` si défini, sinon le dossier par défaut. |
 | `get_stock_file_path()` | `get_data_folder() / "stock.json"` |
 | `get_menu_file_path()` | `get_data_folder() / "carte_active.json"` |
 | `get_archive_menu_file_path()` | `get_data_folder() / "carte_archive.json"` |
@@ -388,8 +392,9 @@ Volet de configuration minimal accessible depuis un bouton flottant.
 | `get_printer_config()` | Lit et retourne la config imprimante avec valeurs par défaut si absente. |
 | `get_print_options()` | Retourne `{impression_active, ticket_client, ticket_cuisine}` — tous `True` par défaut. |
 | `_create_data_structure(data_folder)` | Crée récursivement la structure `commandes/{en_cours,terminee,annulee,corrompu}`, `logs/`, et les fichiers JSON vides. Journalise chaque création. |
-| `save_app_config(data_folder, vendor_id, ...)` | Persiste toute la configuration dans `config.json` et appelle `_create_data_structure`. Retourne `True` si succès. |
-| `get_default_config()` | Retourne la configuration par défaut complète sans lire `config.json`. |
+| `initialiser_dossier_data()` | Crée la structure du dossier data si un chemin est configuré. Ne fait rien (retourne `True`) si `data_folder` est vide. |
+| `save_app_config(data_folder, vendor_id, ...)` | Persiste toute la configuration dans `config.json`. Appelle `_create_data_structure` uniquement si `data_folder` est non vide. Retourne `True` si succès. |
+| `get_default_config()` | Retourne la configuration par défaut (`data_folder: ""`). |
 
 ---
 
@@ -407,6 +412,7 @@ Volet de configuration minimal accessible depuis un bouton flottant.
 | `save_stock_data(payload)` | Sauvegarde `stock.json` directement. |
 | `_reconcilier_brouillons(cache)` | Au démarrage, décrémente le cache pour les plats "En attente" des brouillons existants (commandes "En saisie" en racine) pour compenser un arrêt brutal précédent. |
 | `get_stock_cache()` | Retourne le singleton `StockCache`. Le crée au premier appel (charge le JSON + réconcilie les brouillons). |
+| `invalider_cache_stock()` | Remet le singleton à `None`. À appeler quand le dossier de données change : le prochain appel à `get_stock_cache()` recrée un cache pointant sur le nouveau chemin. |
 | `_normalize_text(value)` | Normalise ASCII minuscule sans ponctuation. |
 | `_normalized_state(state)` | Normalise l'état d'une catégorie pour comparaison insensible à la casse et aux accents. |
 | `_find_category_folder(category_name)` | Cherche le dossier `src/modules/<nom normalisé>` correspondant à une catégorie. |
@@ -462,7 +468,7 @@ Cache mémoire des compteurs d'IDs journaliers. Persisté dans `logs/derniers_ID
 
 | Catégorie | Événements |
 |---|---|
-| `commande` | `AJOUT_PLAT`, `ANNULATION_PLAT`, `ANNULATION_COMMANDE`, `VALIDATION_COMMANDE`, `PLAT_PRET`, `PLAT_LIVRE`, `PLAT_NON_LIVRE`, `TRANSFERT_PRET`, `COMMANDE_TERMINEE`, `IMPRESSION_TICKET` |
+| `commande` | `AJOUT_PLAT`, `ANNULATION_PLAT`, `ANNULATION_COMMANDE`, `VALIDATION_COMMANDE`, `PLAT_PRET`, `PLAT_LIVRE`, `PLAT_NON_LIVRE`, `TRANSFERT_PRET`, `COMMANDE_TERMINEE`, `IMPRESSION_TICKET`, `RETOUR_PREPARATION`, `RETOUR_PRET`, `COMMANDE_ROUVERTE` |
 | `stock` | `MODIFICATION_STOCK_MANUELLE`, `MODIFICATION_CACHE_STOCK`, `PERSISTANCE_STOCK` |
 | `carte` | `MODIFICATION_CARTE_MANUELLE` |
 | `parametres` | `MODIFICATION_PARAMETRES_IMPRIMANTE`, `MODIFICATION_OPTIONS_IMPRESSION`, `MODIFICATION_DOSSIER_DONNEES` |
@@ -633,6 +639,8 @@ Gestion des transitions de statut pour les commandes validées.
 | `annuler_plat_valide(chemin, plat_id)` | Annulation d'un plat post-validation selon son statut : "En préparation" → restaure stock + "Annulé" ; "Prêt" → tente transfert ou "Non livré" ; autre → "Annulé". Appelle `_finaliser_apres_annulation`. |
 | `annuler_commande_complete(chemin)` | Annule tous les plats actifs d'une commande validée en appliquant la logique unitaire. |
 | `_finaliser_apres_annulation(chemin)` | Si tous les plats sont en état terminal : "Annulée" (avec horodatage `Date d'annulation`) si tous Annulés, "Terminée" (via `terminer_commande`) sinon. |
+| `retour_preparation(context, chemin, plat_id, callback)` | Ramène un plat "Prêt" → "En préparation" (correction d'erreur cuisine). Journalise `RETOUR_PREPARATION`. |
+| `retour_pret(chemin, plat_id)` | Ramène un plat "Livré" → "Prêt" (correction d'erreur). Si la commande était "Terminée", la rouvre ("Validée") et déplace le fichier vers `en_cours/`. Journalise `RETOUR_PRET` et `COMMANDE_ROUVERTE` le cas échéant. |
 
 ---
 
@@ -648,7 +656,7 @@ Fonctionnalités :
 - Recherche libre (filtre en temps réel sur ID, type de plat, statut).
 - Filtres avancés dans `FiltreHistoriqueDialog` (statut, période, type de plat, prioritaire).
 - Tri par date décroissante/croissante, montant, ID.
-- Boutons plat : → Prêt, → Livré, Annuler (avec icônes SVG colorées), réimprimer ticket cuisine.
+- Boutons plat : → Prêt, → Livré, ← Prêt (retour depuis Livré), ← En préparation (retour depuis Prêt), Annuler (avec icônes SVG colorées), réimprimer ticket cuisine.
 - Bouton commande : réimprimer ticket récap, annuler commande complète.
 - Bouton global "Réimprimer cuisine" (tous les plats actifs).
 - Signal `go_back` pour retourner à la saisie.
@@ -666,7 +674,7 @@ Dialogue de filtres avancés : statut (multi-select), période (date début/fin)
 
 #### `UI/poste_preparation.py` — `PostePreparationModule`
 
-Affiche les plats depuis `get_live_orders_prep()`, filtrable par type. Signaux `go_back` et `go_to_saisie`. Timer de rafraîchissement.
+Affiche les plats depuis `get_live_orders_prep()`, filtrable par type. Signaux `go_back` et `go_to_saisie`. Timer de rafraîchissement. Bouton de retour "Prêt → En préparation" sur chaque carte plat.
 
 #### `UI/widgets/carte_plat.py` — `CartePlatWidget`
 
@@ -1096,4 +1104,4 @@ Couche backend (partagée par tous les modules) :
 
 ---
 
-*Document généré le 12/06/2026 à partir du code source de la branche `develop`.*
+*Document mis à jour le 25/06/2026 — `APP_VERSION = "2.4.0"`.*

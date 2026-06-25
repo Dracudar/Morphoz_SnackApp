@@ -8,24 +8,26 @@ Description:
     sur le tracé réel (les fichiers sources contiennent souvent une marge ou un
     décalage variable dans leur viewBox, source d'incohérences de taille et de
     centrage une fois mis à l'échelle) et recoloration en aplat pour la
-    lisibilité sur fond sombre ou clair.
+    lisibilité sur fond sombre ou clair. Fournit également widget_icone_texte,
+    un assembleur de widget non-interactif icône + libellé réutilisable.
 
 Author :
     Dracudar
 
 Version:
-    1.1
+    1.2
 
 Date de création :
     2026.06.21
 
 Date de modification:
-    2026.06.21
+    2026.06.25
 """
 
 from PySide6.QtCore import QRect, QRectF, QSize, Qt
-from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap
+from PySide6.QtGui import QColor, QIcon, QImage, QPainter, QPixmap, QTransform
 from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 from src.backend.app_config import get_assets_path
 
@@ -112,9 +114,14 @@ def _rendu_recadre(chemin_svg: str, taille: QSize, recadrer: bool) -> tuple[QIma
     return rendu, trace
 
 
-def pixmap_depuis_svg(chemin_svg: str, taille: int | QSize, *, recadrer: bool = True) -> QPixmap:
+def pixmap_depuis_svg(
+    chemin_svg: str, taille: int | QSize, *, recadrer: bool = True, rotation: int = 0
+) -> QPixmap:
     """Charge un fichier SVG (chemin absolu ou relatif) et le rastérise, mis à
-    l'échelle et centré dans la taille demandée, sans recoloration."""
+    l'échelle et centré dans la taille demandée, sans recoloration.
+
+    rotation : angle en degrés (multiples de 90 recommandés). Permet d'utiliser
+    un seul SVG pour les quatre orientations d'une flèche, par exemple."""
     taille = _vers_qsize(taille)
     rendu, trace = _rendu_recadre(chemin_svg, taille, recadrer)
 
@@ -133,18 +140,22 @@ def pixmap_depuis_svg(chemin_svg: str, taille: int | QSize, *, recadrer: bool = 
     )
     painter.drawImage(cible, rendu, trace)
     painter.end()
+    if rotation:
+        pixmap = pixmap.transformed(
+            QTransform().rotate(rotation), Qt.TransformationMode.SmoothTransformation
+        )
     return pixmap
 
 
-def icone(nom_fichier: str, taille: int | QSize, *, recadrer: bool = True) -> QIcon:
+def icone(nom_fichier: str, taille: int | QSize, *, recadrer: bool = True, rotation: int = 0) -> QIcon:
     """Charge une icône SVG depuis assets/icons/ (sans recoloration)."""
-    return QIcon(pixmap_depuis_svg(get_assets_path("icons", nom_fichier), taille, recadrer=recadrer))
+    return QIcon(pixmap_depuis_svg(get_assets_path("icons", nom_fichier), taille, recadrer=recadrer, rotation=rotation))
 
 
 def _pixmap_coloree(
-    nom_fichier: str, couleur: str, taille: int | QSize, *, recadrer: bool = True
+    nom_fichier: str, couleur: str, taille: int | QSize, *, recadrer: bool = True, rotation: int = 0
 ) -> QPixmap:
-    pixmap = pixmap_depuis_svg(get_assets_path("icons", nom_fichier), taille, recadrer=recadrer)
+    pixmap = pixmap_depuis_svg(get_assets_path("icons", nom_fichier), taille, recadrer=recadrer, rotation=rotation)
     painter = QPainter(pixmap)
     painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
     painter.fillRect(pixmap.rect(), QColor(couleur))
@@ -153,12 +164,19 @@ def _pixmap_coloree(
 
 
 def icone_coloree(
-    nom_fichier: str, couleur: str, taille: int | QSize, *, recadrer: bool = True
+    nom_fichier: str, couleur: str, taille: int | QSize, *, recadrer: bool = True, rotation: int = 0
 ) -> QIcon:
     """Charge une icône SVG depuis assets/icons/, recadrée sur son tracé réel et
     recolorée en aplat (les SVG sources conservant leurs couleurs d'origine
     sinon)."""
-    return QIcon(_pixmap_coloree(nom_fichier, couleur, taille, recadrer=recadrer))
+    return QIcon(_pixmap_coloree(nom_fichier, couleur, taille, recadrer=recadrer, rotation=rotation))
+
+
+def pixmap_coloree(
+    nom_fichier: str, couleur: str, taille: int | QSize, *, recadrer: bool = True, rotation: int = 0
+) -> QPixmap:
+    """Charge une icône SVG depuis assets/icons/, recadrée et recolorée en aplat."""
+    return _pixmap_coloree(nom_fichier, couleur, taille, recadrer=recadrer, rotation=rotation)
 
 
 def icone_action(
@@ -168,17 +186,58 @@ def icone_action(
     couleur_desactivee: str,
     *,
     recadrer: bool = True,
+    rotation: int = 0,
 ) -> QIcon:
     """Charge une icône SVG avec deux états colorés (normal / désactivé), pour
     les boutons d'action dont l'icône doit s'effacer visuellement quand le
     bouton est désactivé (ex. annulation)."""
     icon = QIcon()
     icon.addPixmap(
-        _pixmap_coloree(nom_fichier, couleur_normale, taille, recadrer=recadrer),
+        _pixmap_coloree(nom_fichier, couleur_normale, taille, recadrer=recadrer, rotation=rotation),
         QIcon.Mode.Normal,
     )
     icon.addPixmap(
-        _pixmap_coloree(nom_fichier, couleur_desactivee, taille, recadrer=recadrer),
+        _pixmap_coloree(nom_fichier, couleur_desactivee, taille, recadrer=recadrer, rotation=rotation),
         QIcon.Mode.Disabled,
     )
     return icon
+
+
+def widget_icone_texte(
+    nom_fichier: str,
+    couleur: str,
+    texte: str,
+    taille_icone: int | QSize,
+    *,
+    taille_police: int = 14,
+    gras: bool = False,
+    espacement: int = 8,
+) -> QWidget:
+    """Crée un widget horizontal non-interactif : icône SVG colorée + libellé texte.
+
+    Analogue à _bouton_item du volet de navigation, mais pour un affichage
+    en lecture seule (QWidget + QLabel au lieu de QPushButton).
+    """
+    taille = _vers_qsize(taille_icone)
+
+    widget = QWidget()
+    widget.setStyleSheet("background: transparent; border: none;")
+    h = QHBoxLayout(widget)
+    h.setContentsMargins(0, 0, 0, 0)
+    h.setSpacing(espacement)
+
+    icone_label = QLabel()
+    icone_label.setFixedSize(taille.width(), taille.height())
+    icone_label.setPixmap(icone_coloree(nom_fichier, couleur, taille).pixmap(taille))
+    icone_label.setStyleSheet("background: transparent; border: none;")
+    h.addWidget(icone_label)
+
+    poids = "700" if gras else "400"
+    texte_label = QLabel(texte)
+    texte_label.setStyleSheet(
+        f"color: {couleur}; font-size: {taille_police}px; font-weight: {poids};"
+    )
+    h.addWidget(texte_label)
+    h.addStretch()
+
+    return widget

@@ -171,6 +171,103 @@ def terminer_commande(chemin_fichier):
     os.rename(chemin_fichier, os.path.join(dossier_terminee, os.path.basename(chemin_fichier)))
 
 
+def retour_preparation(context, chemin_fichier, plat_id_complet, affichage_commandes_validées):
+    """
+    Ramène un plat de "Prêt" à "En préparation" (correction d'erreur cuisine).
+
+    :param chemin_fichier: Chemin vers le fichier JSON de la commande.
+    :param plat_id_complet: Identifiant complet du plat (aaaammjj-000-X000).
+    :param affichage_commandes_validées: Fonction pour rafraîchir l'affichage des commandes validées.
+    """
+    plat_data = None
+    id_commande = None
+
+    with file_io.verrou_fichier(chemin_fichier):
+        commande_data = charger_fichier_commande(chemin_fichier)
+        if not commande_data:
+            return
+
+        plat_key = _trouver_cle_plat(commande_data, plat_id_complet)
+        if plat_key and commande_data["Commande"][plat_key]["Statut"] == "Prêt":
+            plat_data = commande_data["Commande"][plat_key]
+            plat_data["Statut"] = "En préparation"
+            plat_data["Date de mise en livraison"] = ["", ""]
+            id_commande = commande_data["Informations"]["ID"]
+            sauvegarder_fichier_commande(chemin_fichier, commande_data)
+
+    if plat_data is None:
+        return
+
+    logger.log(logger.RETOUR_PREPARATION, {
+        "id_commande": id_commande,
+        "id_plat": plat_id_complet,
+        "type_plat": plat_data.get("Plat", ""),
+        "nom_plat": plat_data.get("Nom", ""),
+    })
+
+    affichage_commandes_validées(context)
+
+
+def retour_pret(chemin_fichier: str, plat_id_complet: str) -> bool:
+    """
+    Ramène un plat de "Livré" à "Prêt" (correction d'erreur cuisine).
+
+    Si la commande était passée à l'état "Terminée" (fichier déplacé dans /terminee/),
+    rouvre la commande : remet le statut à "Validée", efface la date de finalisation
+    et déplace le fichier vers /en_cours/.
+
+    :param chemin_fichier: Chemin actuel du fichier JSON (en_cours ou terminee).
+    :param plat_id_complet: Identifiant complet du plat (aaaammjj-000-X000).
+    :returns: True si le retour a été appliqué, False si le plat n'était pas "Livré".
+    """
+    plat_data = None
+    id_commande = None
+    commande_rouverte = False
+
+    with file_io.verrou_fichier(chemin_fichier):
+        commande_data = charger_fichier_commande(chemin_fichier)
+        if not commande_data:
+            return False
+
+        plat_key = _trouver_cle_plat(commande_data, plat_id_complet)
+        if not plat_key or commande_data["Commande"][plat_key]["Statut"] != "Livré":
+            return False
+
+        plat_data = dict(commande_data["Commande"][plat_key])
+        id_commande = commande_data["Informations"]["ID"]
+
+        commande_data["Commande"][plat_key]["Statut"] = "Prêt"
+        commande_data["Commande"][plat_key]["Date de livraison"] = ["", ""]
+
+        if commande_data["Informations"]["Statut"] == "Terminée":
+            commande_data["Informations"]["Statut"] = "Validée"
+            commande_data["Informations"]["Date de finalisation"] = ["", ""]
+            commande_rouverte = True
+
+        sauvegarder_fichier_commande(chemin_fichier, commande_data)
+
+    logger.log(logger.RETOUR_PRET, {
+        "id_commande": id_commande,
+        "id_plat": plat_id_complet,
+        "type_plat": plat_data.get("Plat", ""),
+        "nom_plat": plat_data.get("Nom", ""),
+        "commande_rouverte": commande_rouverte,
+    })
+
+    if commande_rouverte:
+        dossier_en_cours = os.path.join(
+            os.path.dirname(os.path.dirname(chemin_fichier)), "en_cours"
+        )
+        os.makedirs(dossier_en_cours, exist_ok=True)
+        os.rename(chemin_fichier, os.path.join(dossier_en_cours, os.path.basename(chemin_fichier)))
+        logger.log(logger.COMMANDE_ROUVERTE, {
+            "id_commande": id_commande,
+            "raison": "retour_pret",
+        })
+
+    return True
+
+
 # ── Actions depuis l'historique (sans callback de rafraîchissement) ───────────
 
 def marquer_plat_pret(chemin_fichier: str, plat_id_complet: str) -> bool:

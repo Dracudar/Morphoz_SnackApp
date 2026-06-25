@@ -42,11 +42,12 @@ from pathlib import Path
 
 from src.UI.utils.icones import icone
 from src.backend.app_config import (
-	get_data_folder,
+	get_data_folder_brut,
 	get_print_options,
 	get_printer_config,
 	save_app_config,
 )
+from src.backend.data_sources import invalider_cache_stock
 from src.backend import logger
 
 
@@ -338,7 +339,7 @@ class ParametresModule(QFrame):
 
 	def load_config(self):
 		"""Charge la configuration actuelle et remplit tous les champs."""
-		self.data_folder_field.setText(str(get_data_folder()))
+		self.data_folder_field.setText(get_data_folder_brut())
 
 		printer = get_printer_config()
 		self.vendor_id_field.setText(f"0x{printer['vendor_id']:04X}")
@@ -376,20 +377,25 @@ class ParametresModule(QFrame):
 					return
 
 		# Capture de la config actuelle avant sauvegarde pour comparaison
-		ancien_dossier = str(get_data_folder())
+		ancien_dossier = get_data_folder_brut()
 		ancienne_imprimante = get_printer_config()
 		anciennes_options = get_print_options()
 
 		ticket_client = self.ticket_client_check.isChecked()
 		ticket_cuisine = self.ticket_cuisine_check.isChecked()
 
+		# Détermine si le dossier change effectivement
+		nouveau_dossier = data_folder
+		ancien_resolu = Path(ancien_dossier).resolve() if ancien_dossier else None
+		nouveau_resolu = Path(nouveau_dossier).resolve() if nouveau_dossier else None
+		dossier_change = ancien_resolu != nouveau_resolu
+
 		# Log du changement de dossier AVANT la sauvegarde : ainsi il reste dans l'ancien journal
 		# (après save_app_config, get_logs_folder_path() pointe déjà vers le nouveau dossier)
-		nouveau_dossier = data_folder or ancien_dossier
-		if Path(nouveau_dossier).resolve() != Path(ancien_dossier).resolve():
+		if dossier_change and ancien_dossier:
 			logger.log(logger.MODIFICATION_DOSSIER_DONNEES, {
-				"avant": str(Path(ancien_dossier)),
-				"apres": str(Path(nouveau_dossier)),
+				"avant": ancien_dossier,
+				"apres": nouveau_dossier,
 			})
 
 		ok = save_app_config(
@@ -407,8 +413,8 @@ class ParametresModule(QFrame):
 			QMessageBox.critical(self, "Paramètres", "Impossible d'enregistrer la configuration ou de créer le dossier data.")
 			return
 
-		# Migration du journal du jour vers le nouveau dossier si le chemin a changé
-		if Path(nouveau_dossier).resolve() != Path(ancien_dossier).resolve():
+		# Migration du journal du jour vers le nouveau dossier si les deux chemins sont définis et différents
+		if dossier_change and ancien_dossier and nouveau_dossier:
 			logger.migrer_log_journalier(
 				Path(ancien_dossier) / "logs",
 				Path(nouveau_dossier) / "logs",
@@ -460,5 +466,7 @@ class ParametresModule(QFrame):
 				"apres": apres_tickets,
 			})
 
+		if Path(nouveau_dossier).resolve() != Path(ancien_dossier).resolve():
+			invalider_cache_stock()
 		self.status_label.setText("Configuration enregistrée. Structure de fichiers vérifiée.")
 		self.config_changed.emit()

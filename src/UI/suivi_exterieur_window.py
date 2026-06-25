@@ -41,6 +41,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.backend.data_sources import get_live_orders_prep
+from src.UI.utils.icones import widget_icone_texte
 
 # Nombre maximum de plats "En préparation" affichés par type
 _MAX_EN_PREP_PAR_TYPE = 3
@@ -226,6 +227,8 @@ class SuiviExterieurWindow(QMainWindow):
 
     def refresh(self):
         """Recharge les plats depuis le disque et reconstruit l'affichage."""
+        if not self.isVisible():
+            return
         plats = get_live_orders_prep()
 
         prêts   = [p for p in plats if p["status"].lower() == "prêt"]
@@ -258,6 +261,17 @@ class SuiviExterieurWindow(QMainWindow):
 
     # ── Utilitaires ───────────────────────────────────────────────────────────
 
+    def _build_titre(self, nom_icone: str, couleur: str, texte: str) -> QWidget:
+        """Crée un widget titre icône + libellé mis à l'échelle de la fenêtre."""
+        sz = self._sz
+        return widget_icone_texte(
+            nom_icone, couleur, texte,
+            taille_icone=sz(20),
+            taille_police=sz(18),
+            gras=True,
+            espacement=sz(8),
+        )
+
     def _get_short_ids(self, plat: dict) -> tuple[str, str]:
         """Retourne (numéro de commande, identifiant court du plat)."""
         order_id = plat.get("order_id", "")
@@ -275,11 +289,7 @@ class SuiviExterieurWindow(QMainWindow):
         section = self._make_section_frame(_BG_PRET, _BORDER_PRET)
         layout = section.layout()
 
-        titre = QLabel("✓  Prêts à récupérer")
-        titre.setStyleSheet(
-            f"color: #4caf50; font-size: {self._sz(18)}px; font-weight: 700;"
-        )
-        layout.addWidget(titre)
+        layout.addWidget(self._build_titre("check.svg", "#4caf50", "Prêts à récupérer"))
 
         if not prêts_par_type:
             vide = QLabel("Aucune commande prête pour le moment")
@@ -297,11 +307,7 @@ class SuiviExterieurWindow(QMainWindow):
         section = self._make_section_frame(_BG_PREP, _BORDER_PREP)
         layout = section.layout()
 
-        titre = QLabel("⏳  En préparation")
-        titre.setStyleSheet(
-            f"color: #c97a30; font-size: {self._sz(18)}px; font-weight: 700;"
-        )
-        layout.addWidget(titre)
+        layout.addWidget(self._build_titre("hourglass.svg", "#c97a30", "En préparation"))
 
         if not prep_par_type:
             vide = QLabel("Aucun plat en cours de préparation")
