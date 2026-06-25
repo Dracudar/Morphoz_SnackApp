@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
 
 from src.utils.tactile import EnTeteCliquable, ScrollAreaTactile
 from src.backend.data_sources import get_live_orders
+from src.modules.commandes_suivi.backend.commandes_suivi_gestion import retour_pret
 
 
 # ── Couleurs ────────────────────────────────────────────────────────────────
@@ -159,9 +160,10 @@ class ConteneurSuiviCommande(QFrame):
 		plats_layout.setContentsMargins(0, 0, 0, 0)
 		plats_layout.setSpacing(6)
 
+		order_file = order.get("file")
 		visible_items = order.get("items", [])
 		for item in visible_items:
-			plats_layout.addWidget(self._build_plat_subcard(item))
+			plats_layout.addWidget(self._build_plat_subcard(item, order_file))
 
 		card_layout.addWidget(self._build_card_header(order, plats_container, is_collapsed))
 		card_layout.addWidget(plats_container)
@@ -235,7 +237,7 @@ class ConteneurSuiviCommande(QFrame):
 			plats_container.setVisible(True)
 			toggle_btn.setText("▼")
 
-	def _build_plat_subcard(self, item: dict) -> QFrame:
+	def _build_plat_subcard(self, item: dict, order_file=None) -> QFrame:
 		"""Construit un sous-conteneur pour un plat avec son ID réduit et son badge de statut."""
 		status = item.get("status", "").strip()
 		status_key = status.lower()
@@ -258,6 +260,22 @@ class ConteneurSuiviCommande(QFrame):
 
 		subcard_layout.addWidget(self._build_status_badge(status))
 
+		if status_key == "livré" and order_file is not None:
+			btn_retour = QPushButton("↩")
+			btn_retour.setFixedSize(24, 24)
+			btn_retour.setCursor(Qt.CursorShape.PointingHandCursor)
+			btn_retour.setToolTip("Retour au statut Prêt")
+			btn_retour.setStyleSheet(
+				"QPushButton { background-color: #5c6370; color: #d0d3d8; border: none; "
+				"border-radius: 4px; font-size: 13px; font-weight: 700; }"
+				"QPushButton:hover { background-color: #6e7480; }"
+				"QPushButton:pressed { background-color: #4a4e55; }"
+			)
+			plat_id = full_id
+			chemin = str(order_file)
+			btn_retour.clicked.connect(lambda checked=False, c=chemin, p=plat_id: self._action_retour_pret(c, p))
+			subcard_layout.addWidget(btn_retour)
+
 		bg = _BG_PLAT_ATTÉNUÉ if is_atténué else _BG_PLAT
 		subcard.setStyleSheet(
 			f"""
@@ -270,6 +288,11 @@ class ConteneurSuiviCommande(QFrame):
 		)
 
 		return subcard
+
+	def _action_retour_pret(self, chemin_fichier: str, plat_id_complet: str):
+		"""Ramène un plat "Livré" à "Prêt" et rafraîchit immédiatement le suivi."""
+		retour_pret(chemin_fichier, plat_id_complet)
+		self.refresh_orders()
 
 	def _build_status_badge(self, status: str) -> QLabel:
 		"""Retourne un QLabel stylisé en badge coloré selon le statut du plat."""
