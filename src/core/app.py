@@ -48,7 +48,14 @@ def _build_dark_palette() -> QPalette:
 
 
 if __name__ == "__main__":
+    import os
     import sys
+
+    # Sur Linux, forcer XCB (XWayland) pour contourner le crash Qt 6.8.0
+    # dans zwp_text_input_v3 sur Wayland — corrigé dans Qt 6.8.1+
+    if sys.platform == "linux":
+        os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
+
     from src.backend import app_config, logger
 
     app = QApplication(sys.argv)
