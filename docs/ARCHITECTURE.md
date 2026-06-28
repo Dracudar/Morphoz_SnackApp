@@ -1,6 +1,6 @@
 # Morphoz SnackApp — Documentation d'architecture
 
-> Version du document : 1.2 — 28/06/2026 (vérifié à jour pour `APP_VERSION = "2.5.0"`)
+> Version du document : 1.3 — 28/06/2026 (vérifié à jour pour `APP_VERSION = "2.5.1"`)
 > Branche de référence : `develop` (équivalent `main` au moment de la rédaction)
 
 ---
@@ -247,7 +247,7 @@ data/
 
 | Méthode | Description |
 |---|---|
-| `__init__` | Initialise la fenêtre (titre, taille 1200×800, icône SVG), crée `InterfacePrincipaleWidget` comme widget central, crée `SuiviExterieurWindow` (masquée par défaut), lance `UpdateChecker`. |
+| `__init__` | Initialise la fenêtre (titre, taille 1200×800, icône SVG), crée `InterfacePrincipaleWidget` comme widget central, lance `UpdateChecker`. `SuiviExterieurWindow` est initialisée en lazy (créée à la première demande via `_toggle_suivi_exterieur`) pour éviter le crash de deux surfaces Wayland simultanées avec Qt 6.8.0 sur ARM64. |
 | `setup_shortcuts()` | Enregistre les raccourcis globaux : `Ctrl+Q` (quitter), `F11` (plein écran), `Escape` (quitter plein écran), `Ctrl+M` (minimiser). |
 | `_on_update_available(version)` | Reçoit le signal de `UpdateChecker` et insère une bannière non-bloquante en haut de la fenêtre. |
 | `_toggle_suivi_exterieur(checked)` | Affiche ou masque `SuiviExterieurWindow`. Journalise l'événement `AFFICHAGE_EXTERIEUR`. |
@@ -534,7 +534,7 @@ Composants Qt réutilisables partagés entre plusieurs modules UI.
 
 | Classe | Description |
 |---|---|
-| `ScrollAreaTactile` | `QScrollArea` avec défilement cinétique tactile (geste `TouchGesture` via `QScroller`), scrollbars masquées. Expose `est_en_scroll()` pour que les boutons enfants détectent un scroll en cours. Propriétés `QScrollerProperties` ajustées (`DecelerationFactor`, `MinimumVelocity`). |
+| `ScrollAreaTactile` | `QScrollArea` avec défilement cinétique tactile (geste `LeftMouseButtonGesture` via `QScroller`), scrollbars masquées. Expose `est_en_scroll()` pour que les boutons enfants détectent un scroll en cours. Propriétés `QScrollerProperties` ajustées (`DecelerationFactor`, `MinimumVelocity`). Note : `LeftMouseButtonGesture` est utilisé à la place de `TouchGesture` pour éviter la corruption de heap XCB causée par l'enregistrement multiple de `XInput2 TouchGesture` sur de nombreuses instances simultanées (ARM64/Qt 6.8.x). |
 | `BoutonTactile` | `QPushButton` qui bloque l'événement `mouseReleaseEvent` si sa `ScrollAreaTactile` parente est en cours de défilement — évite les activations involontaires au scroll. Fonctionne pour les boutons checkables et les boutons d'action. |
 | `EnTeteCliquable` | `QFrame` d'en-tête cliquable sur toute sa largeur. Émet `clicked()` au relâchement sauf si une `ScrollAreaTactile` englobante est en train de défiler. Hauteur minimale 44 px (recommandation tactile). |
 
