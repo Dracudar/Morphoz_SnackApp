@@ -4,6 +4,21 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
+## [2.5.0] - 2026-06-28
+
+### Ajouté
+- **poste-preparation** : boutons filtre dynamiques + rafraîchissement incrémental
+
+### Documentation
+- prépare la documentation de la version 2.5.0
+- **changelog** : ajoute l'entrée v2.4.0
+
+### Tests
+- **file_io** : cache mtime, signatures et élagage
+- **data_sources** : signatures live/history/stock
+- **suivi** : diff incrémental et préservation de l'état déplié
+
+
 ## [2.4.0] - 2026-06-25
 
 ### Ajouté
