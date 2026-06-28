@@ -227,6 +227,23 @@ def get_menu_categories() -> List[Dict[str, Any]]:
     return categories
 
 
+def get_types_carte_actifs() -> List[str]:
+    """Retourne les noms des types de plats de la carte active, hors état Archivé.
+
+    Inclut les types Disponible, Hors-stock et Retiré afin que les boutons filtre
+    du poste de préparation restent stables pendant tout le service.
+    """
+    card_data = get_card_data()
+    types: List[str] = []
+    for name, payload in card_data.items():
+        if not isinstance(payload, dict):
+            continue
+        state = _normalized_state(str(payload.get("Etat", "")))
+        if state != "archive":
+            types.append(name)
+    return sorted(types)
+
+
 # ── Commandes ─────────────────────────────────────────────────────────────────
 
 def get_draft_orders() -> List[Dict[str, Any]]:
