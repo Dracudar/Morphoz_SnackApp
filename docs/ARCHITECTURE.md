@@ -1,6 +1,6 @@
 # Morphoz SnackApp — Documentation d'architecture
 
-> Version du document : 1.3 — 28/06/2026 (vérifié à jour pour `APP_VERSION = "2.5.1"`)
+> Version du document : 1.4 — 28/06/2026 (vérifié à jour pour `APP_VERSION = "2.5.2"`)
 > Branche de référence : `develop` (équivalent `main` au moment de la rédaction)
 
 ---
@@ -502,7 +502,7 @@ Cache mémoire des compteurs d'IDs journaliers. Persisté dans `logs/derniers_ID
 
 | Fonction | Description |
 |---|---|
-| `charger_logo(nom_image, taille)` | Charge une image PNG ou **SVG** et la convertit en 1-bit pour l'imprimante thermique. SVG : conversion via `svglib.svg2rlg` + `renderPM.drawToString` (reportlab). PNG : redimensionnement Pillow. Dans les deux cas : composite sur fond blanc puis quantification en noir/blanc. |
+| `charger_logo(nom_image, taille)` | Charge une image PNG ou **SVG** et la convertit en 1-bit pour l'imprimante thermique. SVG : conversion via `svglib.svg2rlg` + `renderPM.drawToString` (reportlab) — tente `rlPyCairo` en premier, puis `_renderPM` (extension C bundlée avec reportlab) en fallback. PNG : redimensionnement Pillow. Dans les deux cas : composite sur fond blanc puis quantification en noir/blanc. |
 | `_get_printer()` | Instancie `escpos.printer.Usb` depuis la configuration (`vendor_id`, `product_id`, `interface`, `profile`). |
 | `_do_print_recap(commande, p, reprint)` | **Ticket récapitulatif client** : logo en-tête + date + N° commande (grand format) + montant + type paiement + détail de chaque plat. Si `reprint=True`, imprime tous les plats sans filtrage de statut. |
 | `_print_plat_ticket(plat, infos, p)` | **Ticket cuisine par plat** : date + ID court + composition détaillée selon le type (viandes/accompagnement pour grillade, base/ingrédients pour pizza, etc.). |
@@ -1117,4 +1117,4 @@ Couche backend (partagée par tous les modules) :
 
 ---
 
-*Document mis à jour le 28/06/2026 — `APP_VERSION = "2.5.0"`.*
+*Document mis à jour le 28/06/2026 — `APP_VERSION = "2.5.2"`.*

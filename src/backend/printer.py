@@ -49,7 +49,15 @@ def charger_logo(nom_image, taille=()):
                 sx, sy = taille[0] / drawing.width, taille[1] / drawing.height
                 drawing.width, drawing.height = taille[0], taille[1]
                 drawing.transform = (sx, 0, 0, sy, 0, 0)
-            png_bytes = renderPM.drawToString(drawing, fmt="PNG")
+            png_bytes = None
+            for backend in ('rlPyCairo', '_renderPM'):
+                try:
+                    png_bytes = renderPM.drawToString(drawing, fmt="PNG", backend=backend)
+                    break
+                except Exception:
+                    continue
+            if png_bytes is None:
+                raise RuntimeError("Aucun backend renderPM disponible (rlPyCairo, _renderPM)")
             img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
         else:
             img = Image.open(chemin).convert("RGBA")
