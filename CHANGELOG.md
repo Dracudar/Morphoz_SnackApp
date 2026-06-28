@@ -4,6 +4,17 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
+## [2.5.1] - 2026-06-28
+
+### Corrigé
+- **printer** : ajout d'une dépendance manquante pour la convertion d'image svg vers png utilisée pour l'impression des tickets récap
+- **suivi** : corrige les crashs removeWidget dans ConteneurSuiviCommande (ARM64/Qt 6.8.x)
+- corrige les crashs de lancement sur ARM64/Raspberry Pi (Qt 6.8.x)
+
+### Maintenance
+- prépare la version 2.5.1
+
+
 ## [2.5.0] - 2026-06-28
 
 ### Ajouté
