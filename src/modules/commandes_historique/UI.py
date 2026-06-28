@@ -47,7 +47,7 @@ from PySide6.QtWidgets import (
 from src.utils.tactile import EnTeteCliquable, ScrollAreaTactile
 from src.UI.utils.icones import icone, icone_action, icone_coloree
 from src.backend.app_config import get_print_options
-from src.backend.data_sources import get_all_history_orders
+from src.backend.data_sources import get_all_history_orders, signature_history_orders
 from src.backend.printer import reprint_all_active_cuisine, reprint_ticket_cuisine_plat, reprint_ticket_recap
 from src.modules.commandes_historique.filtre_dialog import FiltreHistoriqueDialog
 from src.modules.commandes_suivi.backend.commandes_suivi_gestion import (
@@ -151,6 +151,12 @@ class CommandesHistoriqueModule(QFrame):
 		self._expanded_orders: set[str] = set()
 		self._filters: Dict[str, Any] = dict(_FILTERS_DEFAULT)
 		self._filters["plat_types"] = set()
+		# État du rafraîchissement incrémental
+		self._last_key = None                    # clé de court-circuit au dernier refresh
+		self._cards: dict[str, QFrame] = {}      # carte affichée par ID de commande
+		self._card_sigs: dict[str, tuple] = {}   # empreinte des données rendues par carte
+		self._displayed_order: list[str] = []    # ordre des cartes affichées
+		self._empty_label: QLabel | None = None  # label "aucune commande" éventuel
 		self._build_ui()
 		self._build_timer()
 		self.refresh_orders()
@@ -475,9 +481,35 @@ class CommandesHistoriqueModule(QFrame):
 			widget = item.widget()
 			if widget is not None:
 				widget.deleteLater()
+		self._cards.clear()
+		self._card_sigs.clear()
+		self._displayed_order.clear()
+		self._empty_label = None
+
+	def _filters_snapshot(self) -> tuple:
+		"""Capture hashable des filtres et de la recherche, pour le court-circuit."""
+		f = self._filters
+		return (
+			f.get("status"),
+			bool(f.get("priority_only")),
+			f.get("date_from", ""), f.get("time_from", ""),
+			f.get("date_to", ""), f.get("time_to", ""),
+			frozenset(f.get("plat_types") or set()),
+			frozenset(f.get("plat_statuses") or set()),
+			self.search_field.text().strip().lower(),
+		)
 
 	def refresh_orders(self):
 		impression_active = get_print_options()["impression_active"]
+
+		# Couche 2 — court-circuit : la clé combine l'état des dossiers d'historique,
+		# les filtres, la recherche et l'état de l'impression (qui pilote l'activation
+		# des boutons d'impression des cartes).
+		cle = (signature_history_orders(), self._filters_snapshot(), impression_active)
+		if cle == self._last_key:
+			return
+		self._last_key = cle
+
 		self.print_all_btn.setEnabled(impression_active)
 		self.print_all_btn.setToolTip(
 			"Imprimer les tickets cuisine de tous les plats en préparation ou prêts"
@@ -533,23 +565,62 @@ class CommandesHistoriqueModule(QFrame):
 		if query:
 			orders = [o for o in orders if self._matches_search(o, query)]
 
-		self.clear_cards()
 		total_plats = sum(len(o.get("items", [])) for o in orders)
 		self.summary_label.setText(f"Commandes : {len(orders)}  ·  Plats : {total_plats}")
 
+		# Label "aucune commande" : géré comme un état exclusif des cartes.
+		if self._empty_label is not None:
+			self.list_layout.removeWidget(self._empty_label)
+			self._empty_label.deleteLater()
+			self._empty_label = None
+
 		if not orders:
-			empty = QLabel("Aucune commande trouvée.")
-			empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
-			empty.setStyleSheet(f"color: {_TEXT_CARD_CNT}; font-size: 14px; padding: 20px;")
-			self.list_layout.insertWidget(0, empty)
+			self.clear_cards()
+			self._empty_label = QLabel("Aucune commande trouvée.")
+			self._empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+			self._empty_label.setStyleSheet(f"color: {_TEXT_CARD_CNT}; font-size: 14px; padding: 20px;")
+			self.list_layout.insertWidget(0, self._empty_label)
 			return
 
+		# Couche 3 — diff : ne reconstruire que les cartes ajoutées ou modifiées.
+		nouvel_ordre = [o.get("id", "") for o in orders]
+		nouvel_ensemble = set(nouvel_ordre)
+
+		for order_id in list(self._cards.keys()):
+			if order_id not in nouvel_ensemble:
+				ancienne = self._cards.pop(order_id)
+				self.list_layout.removeWidget(ancienne)
+				ancienne.deleteLater()
+				self._card_sigs.pop(order_id, None)
+
 		for order in orders:
-			self._add_order_card(order)
+			order_id = order.get("id", "")
+			sig = (impression_active, repr(order))
+			if order_id not in self._cards:
+				card = self._build_order_card(order)
+				self._cards[order_id] = card
+				self._card_sigs[order_id] = sig
+				self.list_layout.insertWidget(self.list_layout.count() - 1, card)
+			elif sig != self._card_sigs.get(order_id):
+				ancienne = self._cards[order_id]
+				index = self.list_layout.indexOf(ancienne)
+				self.list_layout.removeWidget(ancienne)
+				ancienne.deleteLater()
+				card = self._build_order_card(order)
+				self._cards[order_id] = card
+				self._card_sigs[order_id] = sig
+				self.list_layout.insertWidget(index, card)
+
+		if nouvel_ordre != self._displayed_order:
+			for order_id in nouvel_ordre:
+				self.list_layout.removeWidget(self._cards[order_id])
+			for position, order_id in enumerate(nouvel_ordre):
+				self.list_layout.insertWidget(position, self._cards[order_id])
+			self._displayed_order = nouvel_ordre
 
 	# ── Construction des cartes ─────────────────────────────────────────────
 
-	def _add_order_card(self, order: Dict[str, Any]):
+	def _build_order_card(self, order: Dict[str, Any]) -> QFrame:
 		order_id = order.get("id", "")
 		is_collapsed = order_id not in self._expanded_orders
 
@@ -583,7 +654,7 @@ class CommandesHistoriqueModule(QFrame):
 			"""
 		)
 
-		self.list_layout.insertWidget(self.list_layout.count() - 1, card)
+		return card
 
 	def _build_card_header(
 		self, order: Dict[str, Any], content_container: QWidget, is_collapsed: bool

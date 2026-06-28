@@ -33,7 +33,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.utils.tactile import ScrollAreaTactile
-from src.backend.data_sources import get_live_orders_prep
+from src.backend.data_sources import get_live_orders_prep, signature_live_orders
 from src.modules.commandes_poste_preparation.UI.widgets.carte_plat import CartePlatWidget
 
 _ALL_TYPES = ["Pizza", "Grillade", "Frites", "Salade composée", "Crêpe"]
@@ -58,6 +58,11 @@ class PostePreparationModule(QFrame):
         self.setObjectName("postePreparation")
         self._active_filters: set[str] = set()
         self._filter_buttons: dict[str, QPushButton] = {}
+        # État du rafraîchissement incrémental
+        self._last_key = None                  # (signature dossier, filtres) au dernier refresh
+        self._cards: dict[tuple, CartePlatWidget] = {}   # carte par (order_id, plat id)
+        self._card_sigs: dict[tuple, tuple] = {}         # empreinte des données rendues
+        self._displayed_order: list[tuple] = []          # ordre des cartes affichées
         self._build_ui()
         self._build_timer()
         self.refresh()
@@ -145,17 +150,30 @@ class PostePreparationModule(QFrame):
 
     # ── Données ───────────────────────────────────────────────────────────────
 
-    def _clear_grid(self):
-        while self._grid_layout.count():
-            item = self._grid_layout.takeAt(0)
-            w = item.widget()
-            if w is not None:
-                w.deleteLater()
+    @staticmethod
+    def _plat_signature(plat: dict) -> tuple:
+        """Empreinte des données d'un plat effectivement rendues dans sa carte."""
+        return (
+            plat.get("id", ""),
+            plat.get("nom", ""),
+            plat.get("plat", ""),
+            plat.get("status", ""),
+            bool(plat.get("prioritaire", False)),
+            repr(plat.get("composition", {})),
+        )
 
     def refresh(self):
-        """Recharge les plats depuis le disque et reconstruit la grille."""
+        """Rafraîchit la grille : court-circuit si rien n'a changé, sinon diff des seules cartes modifiées."""
         if not self.isVisible():
             return
+
+        # Couche 2 — court-circuit : la clé combine l'état du dossier ET les filtres
+        # actifs (un changement de filtre ne modifie pas le mtime mais doit rafraîchir).
+        cle = (signature_live_orders(), frozenset(self._active_filters))
+        if cle == self._last_key:
+            return
+        self._last_key = cle
+
         plats = get_live_orders_prep()
         if self._active_filters:
             plats = [p for p in plats if p["plat"] in self._active_filters]
@@ -163,18 +181,56 @@ class PostePreparationModule(QFrame):
         # Prioritaires en tête, puis ordre naturel (ID croissant)
         plats.sort(key=lambda p: (0 if p.get("prioritaire") else 1, p["id"]))
 
-        self._clear_grid()
-
         count = len(plats)
         plat_word = "plat" if count <= 1 else "plats"
         self._title_label.setText(
             f"Poste de préparation  —  {count} {plat_word} en cours"
         )
 
-        for i, plat in enumerate(plats):
-            row, col = divmod(i, _COLUMNS)
-            card = CartePlatWidget(plat, self._on_state_changed, self._scroll)
-            self._grid_layout.addWidget(card, row, col, Qt.AlignmentFlag.AlignTop)
+        # Couche 3 — diff : ne reconstruire que les cartes ajoutées ou modifiées.
+        nouvelles_cles = [(p.get("order_id", ""), p.get("id", "")) for p in plats]
+        nouvel_ensemble = set(nouvelles_cles)
+
+        # Suppressions : plats qui ne sont plus à préparer (livrés, annulés, finalisés).
+        for cle_carte in list(self._cards.keys()):
+            if cle_carte not in nouvel_ensemble:
+                ancienne = self._cards.pop(cle_carte)
+                self._grid_layout.removeWidget(ancienne)
+                ancienne.deleteLater()
+                self._card_sigs.pop(cle_carte, None)
+
+        # Ajouts et modifications.
+        for plat, cle_carte in zip(plats, nouvelles_cles):
+            sig = self._plat_signature(plat)
+            if cle_carte not in self._cards:
+                self._cards[cle_carte] = CartePlatWidget(plat, self._on_state_changed, self._scroll)
+                self._card_sigs[cle_carte] = sig
+            elif sig != self._card_sigs.get(cle_carte):
+                ancienne = self._cards[cle_carte]
+                self._grid_layout.removeWidget(ancienne)
+                ancienne.deleteLater()
+                self._cards[cle_carte] = CartePlatWidget(plat, self._on_state_changed, self._scroll)
+                self._card_sigs[cle_carte] = sig
+            # sinon : carte inchangée, conservée telle quelle.
+
+        # Positionnement dans la grille (positions absolues). Si l'ordre est inchangé
+        # (ex. simple changement de statut), seules les cartes reconstruites — retirées
+        # de la grille plus haut — sont à replacer. Sinon, on replace toute la séquence
+        # (déplacement de widgets, sans reconstruction).
+        if nouvelles_cles == self._displayed_order:
+            for i, cle_carte in enumerate(nouvelles_cles):
+                card = self._cards[cle_carte]
+                if self._grid_layout.indexOf(card) == -1:
+                    row, col = divmod(i, _COLUMNS)
+                    self._grid_layout.addWidget(card, row, col, Qt.AlignmentFlag.AlignTop)
+        else:
+            for card in self._cards.values():
+                if self._grid_layout.indexOf(card) != -1:
+                    self._grid_layout.removeWidget(card)
+            for i, cle_carte in enumerate(nouvelles_cles):
+                row, col = divmod(i, _COLUMNS)
+                self._grid_layout.addWidget(self._cards[cle_carte], row, col, Qt.AlignmentFlag.AlignTop)
+            self._displayed_order = nouvelles_cles
 
     def _on_state_changed(self, _context=None):
         """Rappelé par le backend après un changement de statut."""

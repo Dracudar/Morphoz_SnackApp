@@ -34,7 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.utils.tactile import EnTeteCliquable, ScrollAreaTactile
-from src.backend.data_sources import get_live_orders
+from src.backend.data_sources import get_live_orders, signature_live_orders
 
 
 # ── Couleurs ────────────────────────────────────────────────────────────────
@@ -66,6 +66,11 @@ class ConteneurSuiviCommande(QFrame):
 		super().__init__(parent)
 		self.setObjectName("suiviContainer")
 		self._expanded_orders: set[str] = set()
+		# État du rafraîchissement incrémental
+		self._last_signature = None              # signature du dossier au dernier refresh
+		self._cards: dict[str, QFrame] = {}      # carte affichée par ID de commande
+		self._card_sigs: dict[str, tuple] = {}   # empreinte des données rendues par carte
+		self._displayed_order: list[str] = []    # ordre des cartes actuellement affichées
 		self._build_ui()
 		self._build_timer()
 		self.refresh_orders()
@@ -120,31 +125,86 @@ class ConteneurSuiviCommande(QFrame):
 	# ── Gestion des données ─────────────────────────────────────────────────
 
 	def clear_orders(self):
-		"""Supprime toutes les cartes de commande affichées dans la liste."""
+		"""Supprime toutes les cartes de commande affichées dans la liste et l'état du diff."""
 		while self.list_layout.count() > 1:
 			item = self.list_layout.takeAt(0)
 			widget = item.widget()
 			if widget is not None:
 				widget.deleteLater()
+		self._cards.clear()
+		self._card_sigs.clear()
+		self._displayed_order.clear()
+
+	@staticmethod
+	def _order_signature(order: dict) -> tuple:
+		"""Empreinte des données d'une commande effectivement rendues dans sa carte."""
+		return (
+			bool(order.get("priority", False)),
+			order.get("pending_count", 0),
+			tuple((it.get("id", ""), it.get("status", "")) for it in order.get("items", [])),
+		)
 
 	def refresh_orders(self):
-		"""Recharge les commandes en cours, met à jour le compteur et reconstruit la liste."""
-		orders = get_live_orders()
-		self.clear_orders()
+		"""Rafraîchit la liste : court-circuit si rien n'a changé, sinon diff des seules cartes modifiées."""
+		# Couche 2 — court-circuit : si le dossier en_cours est inchangé, ne rien faire.
+		signature = signature_live_orders()
+		if signature == self._last_signature:
+			return
+		self._last_signature = signature
 
+		orders = get_live_orders()
+
+		# Compteur (mis à jour à chaque refresh non court-circuité).
 		total_files = len(orders)
 		total_plats = sum(order.get("pending_count", 0) for order in orders)
 		self.title_label.setText(
 			f"Commandes : {total_files}  |  Plats en cours : {total_plats}"
 		)
 
+		# Couche 3 — diff : ne reconstruire que les cartes ajoutées ou modifiées.
+		nouvel_ordre = [order.get("id", "") for order in orders]
+		nouvel_ensemble = set(nouvel_ordre)
+
+		# Suppressions : commandes qui ne sont plus en cours.
+		for order_id in list(self._cards.keys()):
+			if order_id not in nouvel_ensemble:
+				ancienne = self._cards.pop(order_id)
+				self.list_layout.removeWidget(ancienne)
+				ancienne.deleteLater()
+				self._card_sigs.pop(order_id, None)
+
+		# Ajouts et modifications.
 		for order in orders:
-			self._add_order_card(order)
+			order_id = order.get("id", "")
+			sig = self._order_signature(order)
+			if order_id not in self._cards:
+				card = self._build_order_card(order)
+				self._cards[order_id] = card
+				self._card_sigs[order_id] = sig
+				self.list_layout.insertWidget(self.list_layout.count() - 1, card)
+			elif sig != self._card_sigs.get(order_id):
+				ancienne = self._cards[order_id]
+				index = self.list_layout.indexOf(ancienne)
+				self.list_layout.removeWidget(ancienne)
+				ancienne.deleteLater()
+				card = self._build_order_card(order)
+				self._cards[order_id] = card
+				self._card_sigs[order_id] = sig
+				self.list_layout.insertWidget(index, card)
+			# sinon : carte inchangée, on ne la touche pas.
+
+		# Réordonnancement uniquement si la séquence a changé (déplacement de widgets, pas de reconstruction).
+		if nouvel_ordre != self._displayed_order:
+			for order_id in nouvel_ordre:
+				self.list_layout.removeWidget(self._cards[order_id])
+			for position, order_id in enumerate(nouvel_ordre):
+				self.list_layout.insertWidget(position, self._cards[order_id])
+			self._displayed_order = nouvel_ordre
 
 	# ── Construction des cartes ─────────────────────────────────────────────
 
-	def _add_order_card(self, order: dict):
-		"""Crée et insère le bloc d'une commande avec ses sous-conteneurs de plats."""
+	def _build_order_card(self, order: dict) -> QFrame:
+		"""Construit (sans l'insérer) le bloc d'une commande avec ses sous-conteneurs de plats."""
 		order_id = order.get("id", "")
 		is_collapsed = order_id not in self._expanded_orders
 
@@ -177,7 +237,7 @@ class ConteneurSuiviCommande(QFrame):
 			"""
 		)
 
-		self.list_layout.insertWidget(self.list_layout.count() - 1, card)
+		return card
 
 	def _build_card_header(self, order: dict, plats_container: QWidget, is_collapsed: bool) -> EnTeteCliquable:
 		"""Construit le bandeau d'en-tête cliquable sur toute sa largeur."""
