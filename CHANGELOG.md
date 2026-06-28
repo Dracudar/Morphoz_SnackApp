@@ -4,6 +4,18 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
+## [2.5.3] - 2026-06-28
+
+### Corrigé
+- **ci** : ajoute libcairo2-dev aux dépendances système Linux
+
+### Documentation
+- **architecture** : mise à jour pour la v2.5.3
+
+### Maintenance
+- **release** : passe en version 2.5.3
+
+
 ## [2.5.2] - 2026-06-28
 
 ### Corrigé
