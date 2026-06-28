@@ -52,7 +52,7 @@ class ScrollAreaTactile(QScrollArea):
         scroller.setScrollerProperties(props)
         QScroller.grabGesture(
             self.viewport(),
-            QScroller.ScrollerGestureType.TouchGesture,
+            QScroller.ScrollerGestureType.LeftMouseButtonGesture,
         )
         scroller.stateChanged.connect(self._on_etat_scroller)
 

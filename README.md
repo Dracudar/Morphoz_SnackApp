@@ -219,6 +219,11 @@ Projet open-source sous licence MIT.
     <td><em>28/06/2026</em></td>
     <td>Rafraîchissement incrémental des affichages (cache mtime/taille, court-circuit par signature de dossier, diff UI — poste cuisine, suivi, historique, journal, stock) ; boutons filtre du poste cuisine chargés dynamiquement depuis la carte active</td>
   </tr>
+  <tr>
+    <td>2.5.1</td>
+    <td><em>28/06/2026</em></td>
+    <td>Correction des crashs sur ARM64/Raspberry Pi avec Qt 6.8.x : force <code>QT_QPA_PLATFORM=xcb</code>, lazy init de <code>SuiviExterieurWindow</code>, remplacement de <code>TouchGesture</code> par <code>LeftMouseButtonGesture</code>, rebuild complet des listes au lieu de <code>takeAt</code>+réinsertion (double-free)</td>
+  </tr>
 </table>
 
 ---
