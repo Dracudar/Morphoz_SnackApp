@@ -59,6 +59,8 @@ from src.backend.data_sources import (
     get_stock_cache,
     get_stock_data,
     save_stock_data,
+    signature_live_orders,
+    signature_stock,
 )
 
 # ── Couleurs ──────────────────────────────────────────────────────────────────
@@ -251,6 +253,7 @@ class StockModule(QFrame):
         self.setObjectName("stockModule")
         self._sections_expanded: Dict[str, bool] = {}
         self._selected_path: Optional[List[str]] = None
+        self._last_key = None   # clé de court-circuit du rafraîchissement de la liste
 
         # Références vers les labels lecture seule du panneau de détail
         self._detail_fichier_lbl:    Optional[QLabel] = None
@@ -408,12 +411,27 @@ class StockModule(QFrame):
     # ── Rafraîchissement principal ──────────────────────────────────────────
 
     def refresh(self) -> None:
+        query = self.search_field.text().strip().lower()
+
+        # Couche 2 — court-circuit : la clé combine l'état du stock et de la carte
+        # (signature_stock), celui des commandes en cours (les compteurs « réservé »
+        # du détail en dépendent via _build_prep_data), la recherche et l'article
+        # sélectionné (qui pilote le surlignage de la liste).
+        cle = (
+            signature_stock(),
+            signature_live_orders(),
+            query,
+            tuple(self._selected_path) if self._selected_path else (),
+        )
+        if cle == self._last_key:
+            return
+        self._last_key = cle
+
         file_data       = get_stock_data()
         cache_obj       = get_stock_cache()
         cache_data      = cache_obj.data if cache_obj is not None else {}
         carte_set       = _build_carte_ingredients_set()
         by_nom, by_plat = _build_prep_data()
-        query           = self.search_field.text().strip().lower()
 
         self._clear_list()
         for section_name, section_node in file_data.items():

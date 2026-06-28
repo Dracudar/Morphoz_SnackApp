@@ -76,6 +76,15 @@ def _load_json_file(file_path: Path) -> Dict[str, Any]:
     return file_io.charger_json(file_path)
 
 
+def _load_json_file_cache(file_path: Path) -> Dict[str, Any]:
+    """Charge un fichier JSON via le cache mtime ; ne re-parse que si le fichier a changé.
+
+    Réservé aux lectures seules en boucle (affichages à rafraîchissement auto). Le
+    dict renvoyé est partagé avec le cache : NE PAS le muter.
+    """
+    return file_io.charger_json_cache(file_path)
+
+
 def _write_json_file(file_path: Path, payload: Dict[str, Any]) -> bool:
     """
     Écrit un dict dans un fichier JSON de façon atomique et sous verrou

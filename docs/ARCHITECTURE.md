@@ -1,6 +1,6 @@
 # Morphoz SnackApp — Documentation d'architecture
 
-> Version du document : 1.1 — 25/06/2026 (vérifié à jour pour `APP_VERSION = "2.4.0"`)
+> Version du document : 1.2 — 28/06/2026 (vérifié à jour pour `APP_VERSION = "2.5.0"`)
 > Branche de référence : `develop` (équivalent `main` au moment de la rédaction)
 
 ---
@@ -97,9 +97,9 @@ filelock
 │  main_window.py ─ InterfacePrincipaleWidget ─ module_registry    │
 │  volet_navigation.py ─ SuiviExterieurWindow                      │
 │  UI_prep/ : main_window_prep.py ─ panneau_lateral.py             │
-└────────────┬──────────────────────────────────────┬─────────────┘
+└────────────┬──────────────────────────────────────┬──────────────┘
              │                                      │
-┌────────────▼──────────────────┐  ┌───────────────▼────────────┐
+┌────────────▼──────────────────┐  ┌────────────────▼───────────┐
 │   MODULES UI (src/modules/)   │  │   COUCHE BACKEND           │
 │   commandes_saisie            │  │   app_config.py            │
 │   commandes_suivi             │◄─┤   data_sources.py          │
@@ -126,7 +126,7 @@ filelock
 - **Découplage UI/backend** : les modules UI n'accèdent jamais directement aux fichiers — ils passent par `data_sources.py` ou les helpers de `commandes_utils.py`.
 - **Singleton de cache** : `StockCache` et `DerniersIDCache` sont des singletons en mémoire, persistés sur disque uniquement aux points de validation (validation d'une commande, annulation).
 - **Signaux Qt** : la communication entre modules passe par des signaux (`command_changed`, `config_changed`, `go_back`…) sans couplage direct.
-- **Rafraîchissement par timer** : les vues saisie (2 s), suivi (5 s) et extérieur (3 s) se rechargent périodiquement depuis le disque pour refléter les modifications d'autres modules. Les modules non visibles ne rechargent pas leurs données tant qu'ils ne sont pas affichés (optimisation disque).
+- **Rafraîchissement par timer** : les vues saisie (2 s), suivi (5 s) et extérieur (3 s) se rechargent périodiquement depuis le disque pour refléter les modifications d'autres modules. Les modules non visibles ne rechargent pas leurs données tant qu'ils ne sont pas affichés (optimisation disque). Les modules suivi, poste cuisine, historique, journal et stock utilisent un **rafraîchissement incrémental** : court-circuit par signature de dossier (mtime + taille), cache de lecture JSON (re-parse uniquement si le fichier a changé), et diff UI (seuls les widgets effectivement modifiés sont reconstruits).
 - **Routage des plats** : le système `plats_router.py` + `rooting.py` par type de plat permet d'ajouter un nouveau type de plat sans modifier le code de saisie de commande.
 
 ---
@@ -361,7 +361,12 @@ Volet de configuration minimal accessible depuis un bouton flottant.
 | Fonction | Description |
 |---|---|
 | `verrou_fichier(chemin)` | Retourne un `FileLock` (timeout 15 s) sur le fichier `<chemin>.lock` associé. |
-| `charger_json(chemin)` | Charge un JSON et retourne `{}` si absent ou invalide. |
+| `charger_json(chemin)` | Charge un JSON et retourne `{}` si absent ou invalide. Contourne le cache — lit toujours le disque. Utilisé pour les écritures et les accès ponctuels. |
+| `charger_json_cache(chemin)` | Variante avec cache mémoire indexé sur `(mtime, taille)` : ne re-parse le JSON que si le fichier a changé depuis le dernier appel. Utilisé par les agrégateurs de lecture périodique (live orders, historique, logs…). |
+| `signature_fichier(chemin)` | Retourne `(mtime_ns, taille)` du fichier sans l'ouvrir, ou `None` s'il est absent. Sert au court-circuit des timers. |
+| `signature_dossier(dossier, *, glob)` | Retourne un tuple trié de `(nom_fichier, mtime_ns, taille)` pour chaque fichier correspondant au glob. Sert à détecter sans lecture si le contenu d'un dossier a changé. |
+| `elaguer_cache_dossier(dossier, noms_presents)` | Supprime du cache de lecture les entrées dont le nom de fichier n'est plus dans `noms_presents`. À appeler après lecture d'un dossier pour éviter les fuites mémoire. |
+| `vider_cache_lecture()` | Vide intégralement le cache de lecture (appelé par `invalider_cache_stock` lors d'un changement de dossier data). |
 | `sauvegarder_json(chemin, payload)` | Écrit un dict en JSON de façon atomique, sans verrou — pour une écriture isolée par un seul poste. |
 | `acceder_json(chemin)` | Context manager : verrouille, charge la dernière version sur disque, fournit le dict pour modification, puis sauvegarde atomiquement en sortie de bloc. À utiliser pour toute séquence "charger → modifier → sauvegarder" sur un fichier partagé. Ne sauvegarde rien si une exception est levée dans le bloc. |
 
@@ -418,12 +423,18 @@ Volet de configuration minimal accessible depuis un bouton flottant.
 | `_find_category_folder(category_name)` | Cherche le dossier `src/modules/<nom normalisé>` correspondant à une catégorie. |
 | `_resolve_category_icon(category_name, out_of_stock)` | Retourne le chemin `icon.svg` du module correspondant à la catégorie. |
 | `get_menu_categories()` | Retourne la liste des catégories de la carte active enrichies : `name`, `state`, `price`, `recipe_count`, `has_recipes`, `hidden`, `out_of_stock`, `enabled`, `icon_path`. Les catégories `"Retiré"` et `"Archivé"` sont masquées. |
+| `get_types_carte_actifs()` | Retourne la liste des types de plats présents dans la carte active, hors état `Archivé`. Utilisé par le poste cuisine pour construire les boutons filtre dynamiques. |
 | `get_draft_orders()` | Charge les commandes "En saisie" depuis la racine du dossier commandes (max 1 brouillon). Retourne une liste de dicts avec `file, id, status, created_at, items, amount, priority`. |
 | `_parse_order_file(order_file)` | Charge et structure un fichier JSON de commande → `(infos, command_lines)`. |
 | `get_live_orders()` | Charge les commandes en cours depuis `en_cours/`. Retourne les compteurs `active_count`, `pending_count`, `delivered_count`, `cancelled_count` par commande. |
 | `get_live_orders_prep()` | Charge les commandes `en_cours/` et retourne une **liste plate** de plats (un dict par plat) excluant Annulé/Livré/Non livré. Utilisé par le poste cuisine et l'affichage extérieur. |
 | `get_all_history_orders()` | Charge toutes les commandes depuis `en_cours/`, `terminee/` et `annulee/`, triées par ID décroissant. Utilisé par l'historique. |
 | `get_completed_orders()` | Charge uniquement les commandes terminées depuis `terminee/`. |
+| `signature_live_orders()` | Retourne les signatures `(nom, mtime_ns, taille)` des fichiers `en_cours/` — utilisé pour le court-circuit des timers. |
+| `signature_history_orders()` | Signature combinée de `en_cours/`, `terminee/` et `annulee/`. |
+| `signature_draft_orders()` | Signature des brouillons (racine `commandes/`). |
+| `signature_stock()` | Paire de signatures `(stock.json, carte_active.json)` pour le court-circuit du module stock. |
+| `signature_logs()` | Signature des fichiers `app_*.log` du dossier logs. |
 
 ---
 
@@ -675,6 +686,8 @@ Dialogue de filtres avancés : statut (multi-select), période (date début/fin)
 #### `UI/poste_preparation.py` — `PostePreparationModule`
 
 Affiche les plats depuis `get_live_orders_prep()`, filtrable par type. Signaux `go_back` et `go_to_saisie`. Timer de rafraîchissement. Bouton de retour "Prêt → En préparation" sur chaque carte plat.
+
+Les boutons filtre sont chargés dynamiquement via `get_types_carte_actifs()` : ils reflètent les types disponibles dans la carte active (hors `Archivé`). Si un plat archivé est encore en préparation, un bouton temporaire apparaît le temps de sa finalisation. Le rafraîchissement est incrémental : court-circuit par signature du dossier `en_cours/` et des filtres actifs, reconstruction uniquement des cartes plat modifiées (comparaison par clé `(commande, plat)`).
 
 #### `UI/widgets/carte_plat.py` — `CartePlatWidget`
 
@@ -1104,4 +1117,4 @@ Couche backend (partagée par tous les modules) :
 
 ---
 
-*Document mis à jour le 25/06/2026 — `APP_VERSION = "2.4.0"`.*
+*Document mis à jour le 28/06/2026 — `APP_VERSION = "2.5.0"`.*

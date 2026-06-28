@@ -20,4 +20,4 @@ Date de modification:
     2026.06.25
 """
 
-APP_VERSION = "2.4.0"
+APP_VERSION = "2.5.0"
