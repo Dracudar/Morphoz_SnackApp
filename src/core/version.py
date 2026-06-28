@@ -20,4 +20,4 @@ Date de modification:
     2026.06.25
 """
 
-APP_VERSION = "2.5.2"
+APP_VERSION = "2.5.3"

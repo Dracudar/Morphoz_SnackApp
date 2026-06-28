@@ -1,6 +1,6 @@
 # Morphoz SnackApp — Documentation d'architecture
 
-> Version du document : 1.4 — 28/06/2026 (vérifié à jour pour `APP_VERSION = "2.5.2"`)
+> Version du document : 1.5 — 28/06/2026 (vérifié à jour pour `APP_VERSION = "2.5.3"`)
 > Branche de référence : `develop` (équivalent `main` au moment de la rédaction)
 
 ---
@@ -67,7 +67,7 @@ L'application couvre l'intégralité du cycle de vente :
 | Persistance | **Fichiers JSON** | Commandes, stock, carte, config, IDs cache |
 | Journalisation | **JSON Lines** | Un fichier `.log` par jour dans `data/logs/` |
 | Impression | **python-escpos** + **pyusb** | Tickets thermiques USB (protocole ESC-POS) |
-| Images tickets | **Pillow** + **svglib** + **reportlab** | Chargement PNG, conversion SVG→PNG pour l'imprimante |
+| Images tickets | **Pillow** + **svglib** + **reportlab** + **rlPyCairo** | Chargement PNG, conversion SVG→PNG pour l'imprimante (rlPyCairo en premier, _renderPM en fallback) |
 | Python | ≥ 3.14 | Typage, f-strings, pathlib, importlib |
 
 **Dépendances** (`requirements.txt`) :
@@ -77,6 +77,7 @@ pillow
 pyusb
 python-escpos
 svglib
+rlPyCairo
 reportlab
 filelock
 ```
@@ -1117,4 +1118,4 @@ Couche backend (partagée par tous les modules) :
 
 ---
 
-*Document mis à jour le 28/06/2026 — `APP_VERSION = "2.5.2"`.*
+*Document mis à jour le 28/06/2026 — `APP_VERSION = "2.5.3"`.*

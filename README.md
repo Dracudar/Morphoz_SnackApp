@@ -229,6 +229,11 @@ Projet open-source sous licence MIT.
     <td><em>28/06/2026</em></td>
     <td>Correction de l'impression du ticket récapitulatif : fallback automatique sur le backend <code>_renderPM</code> (extension C bundlée avec reportlab) si <code>rlPyCairo</code> n'est pas disponible dans l'environnement</td>
   </tr>
+  <tr>
+    <td>2.5.3</td>
+    <td><em>28/06/2026</em></td>
+    <td>Correction du pipeline CI Linux : ajout de <code>libcairo2-dev</code> aux dépendances système, permettant la compilation de <code>pycairo</code> depuis les sources sur les runners sans wheel pré-compilé (notamment aarch64)</td>
+  </tr>
 </table>
 
 ---
