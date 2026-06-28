@@ -224,6 +224,11 @@ Projet open-source sous licence MIT.
     <td><em>28/06/2026</em></td>
     <td>Correction des crashs sur ARM64/Raspberry Pi avec Qt 6.8.x : force <code>QT_QPA_PLATFORM=xcb</code>, lazy init de <code>SuiviExterieurWindow</code>, remplacement de <code>TouchGesture</code> par <code>LeftMouseButtonGesture</code>, rebuild complet des listes au lieu de <code>takeAt</code>+réinsertion (double-free)</td>
   </tr>
+  <tr>
+    <td>2.5.2</td>
+    <td><em>28/06/2026</em></td>
+    <td>Correction de l'impression du ticket récapitulatif : fallback automatique sur le backend <code>_renderPM</code> (extension C bundlée avec reportlab) si <code>rlPyCairo</code> n'est pas disponible dans l'environnement</td>
+  </tr>
 </table>
 
 ---
