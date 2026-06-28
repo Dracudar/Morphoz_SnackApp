@@ -4,6 +4,15 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
+## [2.5.2] - 2026-06-28
+
+### Corrigé
+- **printer** : fallback sur _renderPM si rlPyCairo indisponible
+
+### Divers
+- doc: mis à jour pour le fix 2.5.2
+
+
 ## [2.5.1] - 2026-06-28
 
 ### Corrigé
