@@ -144,9 +144,17 @@ class ConteneurSuiviCommande(QFrame):
 			tuple((it.get("id", ""), it.get("status", "")) for it in order.get("items", [])),
 		)
 
+	def _detacher_du_layout(self, widget) -> None:
+		"""Retire un widget du list_layout via takeAt (removeWidget crashe sur ARM64/Qt 6.8.x)."""
+		for i in range(self.list_layout.count()):
+			item = self.list_layout.itemAt(i)
+			if item is not None and item.widget() is widget:
+				self.list_layout.takeAt(i)
+				return
+
 	def refresh_orders(self):
-		"""Rafraîchit la liste : court-circuit si rien n'a changé, sinon diff des seules cartes modifiées."""
-		# Couche 2 — court-circuit : si le dossier en_cours est inchangé, ne rien faire.
+		"""Rafraîchit la liste : court-circuit si rien n'a changé, sinon diff des cartes modifiées."""
+		# Court-circuit : si le dossier en_cours est inchangé, ne rien faire.
 		signature = signature_live_orders()
 		if signature == self._last_signature:
 			return
@@ -154,52 +162,40 @@ class ConteneurSuiviCommande(QFrame):
 
 		orders = get_live_orders()
 
-		# Compteur (mis à jour à chaque refresh non court-circuité).
 		total_files = len(orders)
 		total_plats = sum(order.get("pending_count", 0) for order in orders)
 		self.title_label.setText(
 			f"Commandes : {total_files}  |  Plats en cours : {total_plats}"
 		)
 
-		# Couche 3 — diff : ne reconstruire que les cartes ajoutées ou modifiées.
 		nouvel_ordre = [order.get("id", "") for order in orders]
-		nouvel_ensemble = set(nouvel_ordre)
 
-		# Suppressions : commandes qui ne sont plus en cours.
-		for order_id in list(self._cards.keys()):
-			if order_id not in nouvel_ensemble:
-				ancienne = self._cards.pop(order_id)
-				self.list_layout.removeWidget(ancienne)
-				ancienne.deleteLater()
-				self._card_sigs.pop(order_id, None)
-
-		# Ajouts et modifications.
-		for order in orders:
-			order_id = order.get("id", "")
-			sig = self._order_signature(order)
-			if order_id not in self._cards:
-				card = self._build_order_card(order)
-				self._cards[order_id] = card
-				self._card_sigs[order_id] = sig
-				self.list_layout.insertWidget(self.list_layout.count() - 1, card)
-			elif sig != self._card_sigs.get(order_id):
-				ancienne = self._cards[order_id]
-				index = self.list_layout.indexOf(ancienne)
-				self.list_layout.removeWidget(ancienne)
-				ancienne.deleteLater()
-				card = self._build_order_card(order)
-				self._cards[order_id] = card
-				self._card_sigs[order_id] = sig
-				self.list_layout.insertWidget(index, card)
-			# sinon : carte inchangée, on ne la touche pas.
-
-		# Réordonnancement uniquement si la séquence a changé (déplacement de widgets, pas de reconstruction).
 		if nouvel_ordre != self._displayed_order:
-			for order_id in nouvel_ordre:
-				self.list_layout.removeWidget(self._cards[order_id])
-			for position, order_id in enumerate(nouvel_ordre):
-				self.list_layout.insertWidget(position, self._cards[order_id])
+			# L'ordre a changé (ajout, suppression ou réordonnancement) : rebuild complet.
+			# removeWidget + insertWidget sur les mêmes widgets provoque un double-free
+			# sur ARM64/Qt 6.8.x. clear_orders() utilise takeAt + deleteLater, ce qui est stable.
+			self.clear_orders()
+			for order in orders:
+				order_id = order.get("id", "")
+				card = self._build_order_card(order)
+				self._cards[order_id] = card
+				self._card_sigs[order_id] = self._order_signature(order)
+				self.list_layout.insertWidget(self.list_layout.count() - 1, card)
 			self._displayed_order = nouvel_ordre
+		else:
+			# Ordre inchangé : mettre à jour uniquement les cartes dont le contenu a changé.
+			for order in orders:
+				order_id = order.get("id", "")
+				sig = self._order_signature(order)
+				if sig != self._card_sigs.get(order_id):
+					ancienne = self._cards[order_id]
+					index = self.list_layout.indexOf(ancienne)
+					self._detacher_du_layout(ancienne)
+					ancienne.deleteLater()
+					card = self._build_order_card(order)
+					self._cards[order_id] = card
+					self._card_sigs[order_id] = sig
+					self.list_layout.insertWidget(index, card)
 
 	# ── Construction des cartes ─────────────────────────────────────────────
 

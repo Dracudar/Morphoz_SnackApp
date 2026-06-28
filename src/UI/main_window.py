@@ -56,11 +56,9 @@ class MainWindow(QMainWindow):
         self.setup_shortcuts()
         self.setup_menus()
 
-        # Fenêtre secondaire de suivi extérieur (créée une fois, masquée/affichée à la demande)
-        self.suivi_exterieur_window = SuiviExterieurWindow()
-        self.suivi_exterieur_window.closed.connect(
-            lambda: self.interface_widget.maj_etat_volet("suivi_ext", False)
-        )
+        # Fenêtre secondaire de suivi extérieur — créée à la première demande (lazy init)
+        # pour éviter le crash Wayland zwp_text_input_v3 causé par deux surfaces au démarrage
+        self._suivi_exterieur_window: SuiviExterieurWindow | None = None
 
         # Actions app depuis le volet de navigation
         self.interface_widget.action_app_demande.connect(self._on_action_app)
@@ -141,17 +139,22 @@ class MainWindow(QMainWindow):
         elif action == "quit":
             self.close()
         elif action == "suivi_ext_toggle":
-            actif = not self.suivi_exterieur_window.isVisible()
-            self._toggle_suivi_exterieur(actif)
-            self.interface_widget.maj_etat_volet("suivi_ext", actif)
+            est_visible = self._suivi_exterieur_window is not None and self._suivi_exterieur_window.isVisible()
+            self._toggle_suivi_exterieur(not est_visible)
+            self.interface_widget.maj_etat_volet("suivi_ext", not est_visible)
 
     def _toggle_suivi_exterieur(self, checked: bool):
         """Affiche ou masque la fenêtre de suivi extérieur."""
         if checked:
-            self.suivi_exterieur_window.show()
-            self.suivi_exterieur_window.raise_()
-        else:
-            self.suivi_exterieur_window.hide()
+            if self._suivi_exterieur_window is None:
+                self._suivi_exterieur_window = SuiviExterieurWindow()
+                self._suivi_exterieur_window.closed.connect(
+                    lambda: self.interface_widget.maj_etat_volet("suivi_ext", False)
+                )
+            self._suivi_exterieur_window.show()
+            self._suivi_exterieur_window.raise_()
+        elif self._suivi_exterieur_window is not None:
+            self._suivi_exterieur_window.hide()
         logger.log(logger.AFFICHAGE_EXTERIEUR, {"etat": "activé" if checked else "désactivé"})
 
     def toggle_fullscreen(self):
@@ -170,5 +173,6 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """Ferme l'affichage externe avant de quitter l'application."""
-        self.suivi_exterieur_window.force_close()
+        if self._suivi_exterieur_window is not None:
+            self._suivi_exterieur_window.force_close()
         event.accept()

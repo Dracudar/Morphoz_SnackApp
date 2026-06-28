@@ -435,9 +435,18 @@ class LogsModule(QFrame):
             self.search_field.text().strip().lower(),
         )
 
+    def refresh(self):
+        """Appelé par _refresh_page à l'ouverture de la page : force un rechargement."""
+        self._last_key = None
+        self.refresh_entries()
+
     def refresh_entries(self):
-        # Couche 2 — court-circuit : clé combinant l'état du dossier de logs, les
-        # filtres, le tri et la recherche.
+        # Ne pas manipuler le layout quand le widget est caché dans le QStackedWidget :
+        # les opérations de layout sur un widget non-affiché crashent sur ARM64/Qt 6.8.x.
+        if not self.isVisible():
+            self._last_key = None  # forcer un refresh complet à la prochaine ouverture
+            return
+        # Court-circuit : clé combinant l'état du dossier de logs, les filtres, le tri et la recherche.
         cle = (signature_logs(), self._filters_snapshot())
         if cle == self._last_key:
             return
@@ -448,42 +457,24 @@ class LogsModule(QFrame):
 
         self.summary_label.setText(f"Entrées : {len(entries)}")
 
-        # Label "aucune entrée" : état exclusif des cartes.
-        if self._empty_label is not None:
-            self.list_layout.removeWidget(self._empty_label)
-            self._empty_label.deleteLater()
-            self._empty_label = None
+        # Rebuild complet : le diff incrémental (takeAt + insertWidget sur les mêmes widgets)
+        # provoque un double-free sur ARM64/Qt 6.8.x. clear_cards() utilise takeAt + deleteLater
+        # sans réinsertion, ce qui est stable.
+        self.clear_cards()
 
         if not entries:
-            self.clear_cards()
             self._empty_label = QLabel("Aucune entrée trouvée.")
             self._empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self._empty_label.setStyleSheet(f"color: {_TEXT_DIM}; font-size: 14px; padding: 20px;")
             self.list_layout.insertWidget(0, self._empty_label)
             return
 
-        # Couche 3 — diff : entrées immuables, on ajoute/retire/réordonne seulement.
-        nouvel_ordre = [(e.get("_file", ""), e.get("index", 0)) for e in entries]
-        nouvel_ensemble = set(nouvel_ordre)
-
-        for cle_carte in list(self._cards.keys()):
-            if cle_carte not in nouvel_ensemble:
-                ancienne = self._cards.pop(cle_carte)
-                self.list_layout.removeWidget(ancienne)
-                ancienne.deleteLater()
-
-        for entry, cle_carte in zip(entries, nouvel_ordre):
-            if cle_carte not in self._cards:
-                card = self._build_entry_card(entry)
-                self._cards[cle_carte] = card
-                self.list_layout.insertWidget(self.list_layout.count() - 1, card)
-
-        if nouvel_ordre != self._displayed_order:
-            for cle_carte in nouvel_ordre:
-                self.list_layout.removeWidget(self._cards[cle_carte])
-            for position, cle_carte in enumerate(nouvel_ordre):
-                self.list_layout.insertWidget(position, self._cards[cle_carte])
-            self._displayed_order = nouvel_ordre
+        for entry in entries:
+            cle_carte = (entry.get("_file", ""), entry.get("index", 0))
+            card = self._build_entry_card(entry)
+            self._cards[cle_carte] = card
+            self.list_layout.insertWidget(self.list_layout.count() - 1, card)
+        self._displayed_order = [(e.get("_file", ""), e.get("index", 0)) for e in entries]
 
     # ── Construction des cartes ───────────────────────────────────────────────
 
