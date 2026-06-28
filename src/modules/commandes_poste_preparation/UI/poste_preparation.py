@@ -33,11 +33,10 @@ from PySide6.QtWidgets import (
 )
 
 from src.utils.tactile import ScrollAreaTactile
-from src.backend.data_sources import get_live_orders_prep, signature_live_orders
+from src.backend.data_sources import get_live_orders_prep, get_types_carte_actifs, signature_live_orders
 from src.modules.commandes_poste_preparation.UI.widgets.carte_plat import CartePlatWidget
 
-_ALL_TYPES = ["Pizza", "Grillade", "Frites", "Salade composée", "Crêpe"]
-_COLUMNS   = 4  # colonnes en grille (adapté à l'écran 10")
+_COLUMNS = 4  # colonnes en grille (adapté à l'écran 10")
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 _BG           = "#2f3136"
@@ -109,16 +108,35 @@ class PostePreparationModule(QFrame):
         )
         header.addWidget(self._title_label, 1)
 
-        for plat_type in _ALL_TYPES:
-            btn = QPushButton(plat_type)
-            btn.setCheckable(True)
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.toggled.connect(lambda checked, t=plat_type: self._on_filter_toggled(t, checked))
-            self._apply_btn_style(btn, active=False)
-            header.addWidget(btn)
-            self._filter_buttons[plat_type] = btn
+        self._filter_area_layout = QHBoxLayout()
+        self._filter_area_layout.setSpacing(8)
+        self._build_filter_buttons()
+        header.addLayout(self._filter_area_layout)
 
         return header
+
+    def _build_filter_buttons(self):
+        """Initialise les boutons filtre depuis la carte active (hors Archivé)."""
+        for plat_type in get_types_carte_actifs():
+            self._ensure_filter_button(plat_type)
+
+    def _ensure_filter_button(self, plat_type: str):
+        """Ajoute un bouton filtre pour ce type s'il n'en existe pas déjà un.
+
+        Les boutons ne sont jamais supprimés pendant la session : ils ne peuvent
+        qu'apparaître, garantissant la stabilité en plein service.
+        """
+        if plat_type in self._filter_buttons:
+            return
+        btn = QPushButton(plat_type)
+        btn.setCheckable(True)
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        active = plat_type in self._active_filters
+        btn.setChecked(active)
+        btn.toggled.connect(lambda checked, t=plat_type: self._on_filter_toggled(t, checked))
+        self._apply_btn_style(btn, active=active)
+        self._filter_area_layout.addWidget(btn)
+        self._filter_buttons[plat_type] = btn
 
     def _build_timer(self):
         self._timer = QTimer(self)
@@ -174,9 +192,18 @@ class PostePreparationModule(QFrame):
             return
         self._last_key = cle
 
-        plats = get_live_orders_prep()
+        tous_plats = get_live_orders_prep()
+
+        # Ajouter un bouton pour chaque type découvert dans les commandes en cours
+        # (couvre les types absents de la carte, ex. anciens plats archivés toujours en préparation)
+        for p in tous_plats:
+            if p.get("plat"):
+                self._ensure_filter_button(p["plat"])
+
         if self._active_filters:
-            plats = [p for p in plats if p["plat"] in self._active_filters]
+            plats = [p for p in tous_plats if p["plat"] in self._active_filters]
+        else:
+            plats = tous_plats
 
         # Prioritaires en tête, puis ordre naturel (ID croissant)
         plats.sort(key=lambda p: (0 if p.get("prioritaire") else 1, p["id"]))
