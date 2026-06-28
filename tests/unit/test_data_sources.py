@@ -185,3 +185,49 @@ class TestParseOrderFile:
         infos, commande = _parse_order_file(f)
         assert infos == {}
         assert commande == {}
+
+
+# ── Signatures de court-circuit ───────────────────────────────────────────────
+
+class TestSignatures:
+    def _commande(self, dossier, nom):
+        dossier.mkdir(parents=True, exist_ok=True)
+        f = dossier / nom
+        f.write_text('{"Informations": {"ID": "x"}}', encoding="utf-8")
+        return f
+
+    def test_signature_live_orders_vide_si_pas_de_dossier(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(data_sources, "get_command_root", lambda: tmp_path)
+        assert data_sources.signature_live_orders() == ()
+
+    def test_signature_live_orders_reflete_les_changements(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(data_sources, "get_command_root", lambda: tmp_path)
+        en_cours = tmp_path / "en_cours"
+        self._commande(en_cours, "commande_1.json")
+        sig1 = data_sources.signature_live_orders()
+        assert len(sig1) == 1
+
+        self._commande(en_cours, "commande_2.json")
+        sig2 = data_sources.signature_live_orders()
+        assert len(sig2) == 2 and sig2 != sig1
+
+    def test_signature_history_combine_les_dossiers(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(data_sources, "get_command_root", lambda: tmp_path)
+        self._commande(tmp_path / "en_cours", "commande_1.json")
+        self._commande(tmp_path / "terminee", "commande_2.json")
+        self._commande(tmp_path / "annulee", "commande_3.json")
+        sig = data_sources.signature_history_orders()
+        assert len(sig) == 3
+        # Les noms sont préfixés par le dossier pour éviter les collisions d'index
+        prefixes = {nom.split("/")[0] for nom, _ in sig}
+        assert prefixes == {"en_cours", "terminee", "annulee"}
+
+    def test_signature_stock_combine_stock_et_carte(self, tmp_path, monkeypatch):
+        stock = tmp_path / "stock.json"
+        carte = tmp_path / "carte_active.json"
+        stock.write_text("{}", encoding="utf-8")
+        carte.write_text("{}", encoding="utf-8")
+        monkeypatch.setattr(data_sources, "get_stock_file_path", lambda: stock)
+        monkeypatch.setattr(data_sources, "get_menu_file_path", lambda: carte)
+        sig_stock, sig_carte = data_sources.signature_stock()
+        assert sig_stock is not None and sig_carte is not None

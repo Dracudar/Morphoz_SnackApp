@@ -32,9 +32,10 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import threading
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, Iterator, Union
+from typing import Any, Dict, Iterable, Iterator, Optional, Tuple, Union
 
 from filelock import FileLock, Timeout
 
@@ -70,6 +71,113 @@ def charger_json(chemin: Union[str, Path]) -> Dict[str, Any]:
     except (OSError, json.JSONDecodeError):
         return {}
     return data if isinstance(data, dict) else {}
+
+
+# ── Cache de lecture mtime ─────────────────────────────────────────────────────
+#
+# Les affichages à rafraîchissement automatique (suivi, préparation, historique,
+# logs, stock) relisent en boucle les mêmes fichiers, le plus souvent inchangés,
+# depuis un partage réseau. `charger_json_cache` évite de re-parser un fichier
+# dont le couple (mtime, taille) n'a pas bougé : un simple `stat()` (peu coûteux,
+# même en réseau) suffit alors, et le payload mémorisé est renvoyé tel quel.
+#
+# IMPORTANT : le dict renvoyé est PARTAGÉ avec le cache. Les appelants ne doivent
+# pas le muter (les agrégateurs de data_sources se contentent de le lire et
+# construisent de nouveaux dicts). Pour une séquence lecture→modification→écriture,
+# utiliser `acceder_json`, qui relit toujours le disque sous verrou (non caché).
+
+# {chemin: (mtime_ns, taille, payload)}
+_cache_lecture: Dict[str, Tuple[int, int, Dict[str, Any]]] = {}
+_cache_lecture_lock = threading.Lock()
+
+
+def charger_json_cache(chemin: Union[str, Path]) -> Dict[str, Any]:
+    """Charge un JSON via un cache indexé sur (mtime, taille) ; ne re-parse que si le fichier a changé.
+
+    Retourne `{}` si le fichier est absent ou invalide (et purge alors l'entrée de
+    cache). Le dict renvoyé est partagé avec le cache : NE PAS le muter.
+    """
+    chemin = Path(chemin)
+    cle = str(chemin)
+    try:
+        st = chemin.stat()
+    except OSError:
+        with _cache_lecture_lock:
+            _cache_lecture.pop(cle, None)
+        return {}
+
+    mtime_ns, taille = st.st_mtime_ns, st.st_size
+    with _cache_lecture_lock:
+        entree = _cache_lecture.get(cle)
+        if entree is not None and entree[0] == mtime_ns and entree[1] == taille:
+            return entree[2]
+
+    # Lecture/parse hors verrou (I/O potentiellement réseau). Les écritures étant
+    # atomiques (os.replace), on lit toujours une version complète, jamais tronquée.
+    data = charger_json(chemin)
+    with _cache_lecture_lock:
+        _cache_lecture[cle] = (mtime_ns, taille, data)
+    return data
+
+
+def signature_fichier(chemin: Union[str, Path]) -> Optional[Tuple[int, int]]:
+    """Retourne (mtime_ns, taille) d'un fichier, ou None s'il est absent/inaccessible.
+
+    Sert à détecter d'un tick à l'autre si un fichier unique (stock, log) a changé,
+    sans en lire le contenu.
+    """
+    try:
+        st = Path(chemin).stat()
+    except OSError:
+        return None
+    return (st.st_mtime_ns, st.st_size)
+
+
+def signature_dossier(
+    dossier: Union[str, Path], motif: str = "commande_*.json"
+) -> Tuple[Tuple[str, int], ...]:
+    """Retourne la signature d'un dossier : tuple trié de (nom, mtime_ns) sans rien parser.
+
+    Deux signatures identiques d'un tick à l'autre garantissent qu'aucun fichier
+    correspondant au motif n'a été ajouté, supprimé ni modifié — le module peut
+    alors court-circuiter son rafraîchissement.
+    """
+    dossier = Path(dossier)
+    if not dossier.exists():
+        return ()
+    entrees = []
+    for fichier in dossier.glob(motif):
+        try:
+            entrees.append((fichier.name, fichier.stat().st_mtime_ns))
+        except OSError:
+            continue
+    entrees.sort()
+    return tuple(entrees)
+
+
+def elaguer_cache_dossier(dossier: Union[str, Path], noms_presents: Iterable[str]) -> None:
+    """Retire du cache les entrées d'un dossier dont le fichier n'est plus présent.
+
+    Appelé par les agrégateurs après avoir listé le dossier : borne la RAM sur un
+    événement long, où les commandes migrent de `en_cours/` vers `terminee/`.
+    """
+    dossier = str(Path(dossier))
+    presents = set(noms_presents)
+    with _cache_lecture_lock:
+        for cle in list(_cache_lecture.keys()):
+            chemin = Path(cle)
+            if str(chemin.parent) == dossier and chemin.name not in presents:
+                _cache_lecture.pop(cle, None)
+
+
+def vider_cache_lecture() -> None:
+    """Vide entièrement le cache de lecture.
+
+    À appeler quand le dossier de données change (Paramètres) : les anciens chemins
+    n'ont plus de sens.
+    """
+    with _cache_lecture_lock:
+        _cache_lecture.clear()
 
 
 def sauvegarder_json(chemin: Union[str, Path], payload: Dict[str, Any]) -> bool:

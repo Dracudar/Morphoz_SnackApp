@@ -45,6 +45,7 @@ from PySide6.QtWidgets import (
 from src.utils.tactile import ScrollAreaTactile
 from src.UI.utils.icones import icone
 from src.backend.app_config import get_logs_folder_path
+from src.backend.data_sources import signature_logs
 from src.modules.logs.filtre_tri_dialog import FILTERS_DEFAULT, FiltreTriLogDialog
 
 
@@ -143,6 +144,12 @@ class LogsModule(QFrame):
         self._filters: Dict[str, Any] = dict(FILTERS_DEFAULT)
         self._filters["categories"] = set()
         self._filters["evenements"] = set()
+        # État du rafraîchissement incrémental. Les entrées de journal sont immuables
+        # (append-only) : une carte créée n'a jamais à être reconstruite.
+        self._last_key = None                    # clé de court-circuit au dernier refresh
+        self._cards: dict[tuple, QFrame] = {}    # carte par (fichier, index)
+        self._displayed_order: list[tuple] = []  # ordre des cartes affichées
+        self._empty_label: QLabel | None = None  # label "aucune entrée" éventuel
         self._build_ui()
         self._build_timer()
         self.refresh_entries()
@@ -412,26 +419,71 @@ class LogsModule(QFrame):
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
+        self._cards.clear()
+        self._displayed_order.clear()
+        self._empty_label = None
+
+    def _filters_snapshot(self) -> tuple:
+        """Capture hashable des filtres, du tri et de la recherche, pour le court-circuit."""
+        f = self._filters
+        return (
+            frozenset(f.get("categories") or set()),
+            frozenset(f.get("evenements") or set()),
+            f.get("date_from", ""), f.get("time_from", ""),
+            f.get("date_to", ""), f.get("time_to", ""),
+            f.get("tri", "timestamp_desc"),
+            self.search_field.text().strip().lower(),
+        )
 
     def refresh_entries(self):
+        # Couche 2 — court-circuit : clé combinant l'état du dossier de logs, les
+        # filtres, le tri et la recherche.
+        cle = (signature_logs(), self._filters_snapshot())
+        if cle == self._last_key:
+            return
+        self._last_key = cle
+
         entries = _load_log_entries(get_logs_folder_path())
         entries = self._apply_filters(entries)
 
-        self.clear_cards()
         self.summary_label.setText(f"Entrées : {len(entries)}")
 
+        # Label "aucune entrée" : état exclusif des cartes.
+        if self._empty_label is not None:
+            self.list_layout.removeWidget(self._empty_label)
+            self._empty_label.deleteLater()
+            self._empty_label = None
+
         if not entries:
-            empty = QLabel("Aucune entrée trouvée.")
-            empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            empty.setStyleSheet(f"color: {_TEXT_DIM}; font-size: 14px; padding: 20px;")
-            self.list_layout.insertWidget(0, empty)
+            self.clear_cards()
+            self._empty_label = QLabel("Aucune entrée trouvée.")
+            self._empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self._empty_label.setStyleSheet(f"color: {_TEXT_DIM}; font-size: 14px; padding: 20px;")
+            self.list_layout.insertWidget(0, self._empty_label)
             return
 
-        for entry in entries:
-            self.list_layout.insertWidget(
-                self.list_layout.count() - 1,
-                self._build_entry_card(entry),
-            )
+        # Couche 3 — diff : entrées immuables, on ajoute/retire/réordonne seulement.
+        nouvel_ordre = [(e.get("_file", ""), e.get("index", 0)) for e in entries]
+        nouvel_ensemble = set(nouvel_ordre)
+
+        for cle_carte in list(self._cards.keys()):
+            if cle_carte not in nouvel_ensemble:
+                ancienne = self._cards.pop(cle_carte)
+                self.list_layout.removeWidget(ancienne)
+                ancienne.deleteLater()
+
+        for entry, cle_carte in zip(entries, nouvel_ordre):
+            if cle_carte not in self._cards:
+                card = self._build_entry_card(entry)
+                self._cards[cle_carte] = card
+                self.list_layout.insertWidget(self.list_layout.count() - 1, card)
+
+        if nouvel_ordre != self._displayed_order:
+            for cle_carte in nouvel_ordre:
+                self.list_layout.removeWidget(self._cards[cle_carte])
+            for position, cle_carte in enumerate(nouvel_ordre):
+                self.list_layout.insertWidget(position, self._cards[cle_carte])
+            self._displayed_order = nouvel_ordre
 
     # ── Construction des cartes ───────────────────────────────────────────────
 

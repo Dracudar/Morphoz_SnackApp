@@ -4,6 +4,64 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 
 Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
 
+## [2.4.0] - 2026-06-25
+
+### Ajouté
+- **version** : incrémente APP_VERSION à 2.4.0
+- **grillade** : accompagnements dynamiques depuis le stock
+- **historique,prepa** : remplace les flèches textuelles par les icônes SVG directionnelles
+- **icons** : ajout des icônes fléchées SVG (haut, bas, gauche, droite)
+- **icones** : ajout de widget_icone_texte(nom, couleur, texte, taille_icone, *, taille_police, gras, espacement) dans icones.py — widget non-interactif icône SVG + libellé, analogue lecture seule de _bouton_item du volet de navigation
+- **assets** : ajout de check.svg (coche) et hourglass.svg (sablier) dans assets/icons/
+- **prepa** : bouton retour au statut En préparation depuis Prêt
+- **prepa** : remplace l'emoji ⚡ du badge prioritaire par flash.svg
+- **prepa** : remplace les emojis par des icônes SVG dans les boutons
+- **historique** : zone d'action à largeur fixe avec boutons de retour de statut
+- boutons de retour de statut avec icônes SVG (historique + poste prépa)
+- **prepa** : retour arrière sur les statuts Prêt et Livré
+- **ui/icones** : ajoute le paramètre rotation aux fonctions d'icônes SVG
+- **icons** : ajout de trois nouveau icons pour remplacer des emojis
+- **icons** : ajout des icônes check et hourglass en SVG
+
+### Corrigé
+- **test** : corrige la fixture logs_path après l'ajout du garde data_folder_est_configure dans log()
+- **icons** : mise à jour de l'icône des paramètres avec un nouveau design SVG
+- **stock** : invalide le cache de stock lors du changement de dossier de données
+- **config** : champ dossier data vide par défaut, pas de création automatique
+- **suivi_exterieur** : remplace les emojis par des icônes SVG dans les titres de section
+- **suivi_exterieur** : titre "Prêts à récupérer" utilise check.svg via icone_coloree au lieu de l'emoji ✓
+- **suivi_exterieur** : titre "En préparation" utilise hourglass.svg via icone_coloree au lieu de l'emoji ⏳
+- **ci** : supprime les dépôts Microsoft avant apt-get update
+- **stock** : correction du calcul des quantités pour les grillades en préparation
+- **ui** : remplace le bouton hamburger par le logo MegaSnack cliquable
+- **ui_prep** : remplace le bouton hamburger par le logo MegaSnack cliquable
+- **suivi_exterieur** : remplace les symboles texte par des icônes SVG
+- **ui_prep** : bascule les icônes de l'app préparation vers icones.py
+
+### Modifié
+- **icones** : extrait widget_icone_texte comme utilitaire général réutilisable
+- **suivi_exterieur** : _build_titre devient un wrapper de mise à l'échelle qui délègue à widget_icone_texte
+- **suivi_exterieur** : ajout de la méthode _build_titre pour créer un widget icône SVG + libellé mis à l'échelle
+- **suivi_exterieur** : imports QSize et icone_coloree ajoutés
+- **historique** : zone d'action en 3 colonnes fixes par statut
+- **icon** : remplacement des icônes de pizza et salade composée
+
+### Documentation
+- prépare la documentation de la version 2.4.0
+
+### Tests
+- **app_config** : couverture des nouvelles fonctions et comportements V2.4.0
+
+### Maintenance
+- **suivi_exterieur** : suppression de l'import QSize et icone_coloree devenus inutiles dans ce module
+
+### Divers
+- perf(ui): ne rafraîchir les widgets que quand ils sont visibles
+- Revert "feat: boutons de retour de statut avec icônes SVG (historique + poste prépa)"
+- revert(ui): annule les modifications UI prématurées de carte_plat et conteneur_suivi_commande
+- Refactor (icons): modifications de certains icônes du volet latérale
+
+
 ## [2.3.0] - 2026-06-21
 
 ### Ajouté

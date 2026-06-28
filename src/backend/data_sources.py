@@ -30,13 +30,16 @@ import unicodedata
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from src.backend import file_io
 from src.backend.app_config import (
     MODULES_ROOT,
     _load_json_file,
+    _load_json_file_cache,
     _write_json_file,
     get_archive_folder_path,
     get_archive_menu_file_path,
     get_command_root,
+    get_logs_folder_path,
     get_menu_file_path,
     get_stock_file_path,
 )
@@ -142,10 +145,12 @@ def invalider_cache_stock() -> None:
 
     À appeler quand le dossier de données change (Paramètres) : le prochain
     appel à get_stock_cache() recréera un cache pointant sur le nouveau chemin
-    et rejouera la réconciliation des brouillons.
+    et rejouera la réconciliation des brouillons. Vide aussi le cache de lecture
+    mtime, dont les anciens chemins n'ont plus de sens.
     """
     global _stock_cache_instance
     _stock_cache_instance = None
+    file_io.vider_cache_lecture()
 
 
 # ── Catégories et icônes ──────────────────────────────────────────────────────
@@ -235,9 +240,10 @@ def get_draft_orders() -> List[Dict[str, Any]]:
 
     orders: List[Dict[str, Any]] = []
     # Only search in root folder, not in subdirectories
-    files = [root_folder / f for f in os.listdir(str(root_folder)) if f.startswith("commande_") and f.endswith(".json")]
+    files = sorted(root_folder / f for f in os.listdir(str(root_folder)) if f.startswith("commande_") and f.endswith(".json"))
+    file_io.elaguer_cache_dossier(root_folder, [f.name for f in files])
 
-    for order_file in sorted(files):
+    for order_file in files:
         infos, command_lines = _parse_order_file(order_file)
 
         items: List[Dict[str, Any]] = []
@@ -277,9 +283,41 @@ def get_draft_orders() -> List[Dict[str, Any]]:
     return orders
 
 
+def _resolve_live_folder() -> Optional[Path]:
+    """Retourne le dossier des commandes en cours (`en_cours`/`en-cours`), ou None s'il n'existe pas."""
+    root_folder = get_command_root()
+    if root_folder is None:
+        return None
+    for folder_name in ("en_cours", "en-cours"):
+        candidate = root_folder / folder_name
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _history_folders() -> List[Path]:
+    """Retourne les dossiers d'historique existants (en_cours, terminee, annulee)."""
+    root_folder = get_command_root()
+    if root_folder is None:
+        return []
+    folder_candidates = [
+        ("en_cours", "en-cours"),
+        ("terminee", "terminees", "valides", "validees"),
+        ("annulee", "annulees"),
+    ]
+    folders: List[Path] = []
+    for candidates in folder_candidates:
+        for name in candidates:
+            candidate = root_folder / name
+            if candidate.exists():
+                folders.append(candidate)
+                break
+    return folders
+
+
 def _parse_order_file(order_file: Path) -> Dict[str, Any]:
-    """Charge et structure le contenu d'un fichier de commande JSON."""
-    payload = _load_json_file(order_file)
+    """Charge et structure le contenu d'un fichier de commande JSON (via cache mtime, lecture seule)."""
+    payload = _load_json_file_cache(order_file)
     infos = payload.get("Informations", {})
     if not isinstance(infos, dict):
         infos = {}
@@ -291,22 +329,15 @@ def _parse_order_file(order_file: Path) -> Dict[str, Any]:
 
 def get_live_orders() -> List[Dict[str, Any]]:
     """Charge les commandes en cours depuis le sous-dossier `en_cours` du dossier de commandes."""
-    root_folder = get_command_root()
-    if root_folder is None:
-        return []
-
-    live_folder = None
-    for folder_name in ("en_cours", "en-cours"):
-        candidate = root_folder / folder_name
-        if candidate.exists():
-            live_folder = candidate
-            break
-
+    live_folder = _resolve_live_folder()
     if live_folder is None:
         return []
 
+    fichiers = sorted(live_folder.glob("commande_*.json"))
+    file_io.elaguer_cache_dossier(live_folder, [f.name for f in fichiers])
+
     orders: List[Dict[str, Any]] = []
-    for order_file in sorted(live_folder.glob("commande_*.json")):
+    for order_file in fichiers:
         infos, command_lines = _parse_order_file(order_file)
 
         items: List[Dict[str, Any]] = []
@@ -366,23 +397,16 @@ def get_live_orders_prep() -> List[Dict[str, Any]]:
     Retourne une liste plate (un dict par plat) avec composition complète, triée par ID de
     commande puis par ID de plat. Exclut les plats au statut Annulé et Livré.
     """
-    root_folder = get_command_root()
-    if root_folder is None:
-        return []
-
-    live_folder = None
-    for folder_name in ("en_cours", "en-cours"):
-        candidate = root_folder / folder_name
-        if candidate.exists():
-            live_folder = candidate
-            break
-
+    live_folder = _resolve_live_folder()
     if live_folder is None:
         return []
 
+    fichiers = sorted(live_folder.glob("commande_*.json"))
+    file_io.elaguer_cache_dossier(live_folder, [f.name for f in fichiers])
+
     plats: List[Dict[str, Any]] = []
-    for order_file in sorted(live_folder.glob("commande_*.json")):
-        payload = _load_json_file(order_file)
+    for order_file in fichiers:
+        payload = _load_json_file_cache(order_file)
         infos = payload.get("Informations", {})
         if not isinstance(infos, dict):
             infos = {}
@@ -421,27 +445,15 @@ def get_all_history_orders() -> List[Dict[str, Any]]:
     Exclut les brouillons (racine du dossier commandes) et les fichiers du dossier corrompu.
     Les commandes sont triées par ID décroissant (les plus récentes en premier).
     """
-    root_folder = get_command_root()
-    if root_folder is None:
+    folders_to_scan = _history_folders()
+    if not folders_to_scan:
         return []
-
-    folder_candidates = [
-        ("en_cours", "en-cours"),
-        ("terminee", "terminees", "valides", "validees"),
-        ("annulee", "annulees"),
-    ]
-
-    folders_to_scan: List[Path] = []
-    for candidates in folder_candidates:
-        for name in candidates:
-            candidate = root_folder / name
-            if candidate.exists():
-                folders_to_scan.append(candidate)
-                break
 
     orders: List[Dict[str, Any]] = []
     for folder in folders_to_scan:
-        for order_file in sorted(folder.glob("commande_*.json")):
+        fichiers = sorted(folder.glob("commande_*.json"))
+        file_io.elaguer_cache_dossier(folder, [f.name for f in fichiers])
+        for order_file in fichiers:
             infos, command_lines = _parse_order_file(order_file)
             if not infos.get("ID"):
                 continue
@@ -497,8 +509,11 @@ def get_completed_orders() -> List[Dict[str, Any]]:
     if done_folder is None:
         return []
 
+    fichiers = sorted(done_folder.glob("commande_*.json"))
+    file_io.elaguer_cache_dossier(done_folder, [f.name for f in fichiers])
+
     orders: List[Dict[str, Any]] = []
-    for order_file in sorted(done_folder.glob("commande_*.json")):
+    for order_file in fichiers:
         infos, command_lines = _parse_order_file(order_file)
 
         items: List[Dict[str, Any]] = []
@@ -530,3 +545,51 @@ def get_completed_orders() -> List[Dict[str, Any]]:
         )
 
     return orders
+
+
+# ── Signatures (court-circuit de rafraîchissement) ─────────────────────────────
+#
+# Une signature résume l'état (mtime/taille) des fichiers d'une source sans en lire
+# le contenu. Un module compare la signature courante à celle du tick précédent : si
+# elles sont identiques, rien n'a changé et il peut ignorer entièrement le refresh.
+
+def signature_live_orders() -> Tuple[Tuple[str, int], ...]:
+    """Signature du dossier des commandes en cours (`en_cours`)."""
+    live_folder = _resolve_live_folder()
+    if live_folder is None:
+        return ()
+    return file_io.signature_dossier(live_folder)
+
+
+def signature_history_orders() -> Tuple[Tuple[str, int], ...]:
+    """Signature combinée des dossiers d'historique (en_cours + terminee + annulee)."""
+    entrees: List[Tuple[str, int]] = []
+    for folder in _history_folders():
+        for nom, mtime_ns in file_io.signature_dossier(folder):
+            entrees.append((f"{folder.name}/{nom}", mtime_ns))
+    entrees.sort()
+    return tuple(entrees)
+
+
+def signature_draft_orders() -> Tuple[Tuple[str, int], ...]:
+    """Signature des brouillons à la racine du dossier des commandes."""
+    root_folder = get_command_root()
+    if root_folder is None:
+        return ()
+    return file_io.signature_dossier(root_folder)
+
+
+def signature_stock() -> Tuple[Optional[Tuple[int, int]], Optional[Tuple[int, int]]]:
+    """Signature combinée du stock et de la carte active (sources du module Stock)."""
+    return (
+        file_io.signature_fichier(get_stock_file_path()),
+        file_io.signature_fichier(get_menu_file_path()),
+    )
+
+
+def signature_logs() -> Tuple[Tuple[str, int], ...]:
+    """Signature du dossier des journaux (fichiers `app_*.log`)."""
+    logs_folder = get_logs_folder_path()
+    if logs_folder is None:
+        return ()
+    return file_io.signature_dossier(logs_folder, "app_*.log")
