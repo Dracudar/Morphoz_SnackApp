@@ -30,7 +30,7 @@ PRODUCT_ID = 0x0E15
 INTERFACE = 0
 MODELE = "TM-T20II"
 
-FICHIER_CSV = r"E:\Morphoz\SnackApp_data_MS10\ticket_repas_gratuits.csv"
+FICHIER_CSV = r"D:\Morphoz\SnackApp_data_MS10\ticket_repas_gratuits.csv"
 
 # Modèle de ticket de repas gratuit
 def imprimer_ticket(p, logo,cat, groupe, nom, prenom, date):
@@ -47,7 +47,7 @@ def imprimer_ticket(p, logo,cat, groupe, nom, prenom, date):
     p.text(f"{prenom} {nom}\n")
     p.text("\n")
     p.set(bold=True)
-    p.text(f"Valable le {date}\n")
+    p.text(f"Prioritaire le {date}\n")
     p.set(bold=False)
     p.text("\n" * 5)
     p.cut()
@@ -65,17 +65,18 @@ def ticket_repas_gratuit():
 
     # Lecture du fichier CSV
     chemin = FICHIER_CSV
-    df = pd.read_csv(chemin, sep=";", encoding="utf-8")
+    df = pd.read_csv(chemin, sep=";", encoding="cp1252")
+    print(df.columns.tolist())  # diagnostic temporaire
 
     # Vérification des colonnes nécessaires
-    colonnes_requises = ["Catégorie", "Groupe", "Prénom", "Nom", "Date"]
+    colonnes_requises = ["Prénom", "NOM", "Catégorie", "Groupe", "Date"]
     for col in colonnes_requises:
         if col not in df.columns:
             raise ValueError(f"La colonne '{col}' est manquante dans le fichier CSV.")
 
     print("Génération des tickets de repas...")
     for index, row in df.iterrows():
-        nom = row["Nom"]
+        nom = row["NOM"]
         prenom = row["Prénom"]
         cat = str(row["Catégorie"]).strip().lower()
         groupe = str(row["Groupe"]).strip() if pd.notna(row["Groupe"]) else ""
@@ -87,5 +88,4 @@ def ticket_repas_gratuit():
     p.close()  # Fermer la connexion à l'imprimante
     print("Imprimante déconnectée.")
 
-if __name__ == "__main__":
-    ticket_repas_gratuit()
+ticket_repas_gratuit()
