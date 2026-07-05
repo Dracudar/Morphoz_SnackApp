@@ -15,12 +15,12 @@ Application de gestion de snack pour événements (ex : MégaSouye), développé
 - **Statistiques de vente** — totaux, ventilation par plat/paiement/recette pizza, chiffre d'affaires par jour, filtrage par période, graphiques et export de rapports en PDF
 - **Journal d'événements** — traçabilité complète au format JSON Lines (commandes, stock, paiements, paramètres, erreurs)
 - **Affichage extérieur** — fenêtre secondaire pour le suivi des commandes côté client
-- **Launcher unique à 3 modes** — un seul exécutable propose au démarrage Saisie/Gestion, Poste de préparation ou Historique/Statistiques (ce dernier sans dépendances USB, adapté aux machines à 4 Go RAM en partage réseau LAN)
+- **Launcher unique à 3 modes** — un seul exécutable propose au démarrage Saisie/Gestion, Poste de préparation ou Historique/Statistiques (ce dernier sans dépendances USB, adapté aux machines à 4 Go RAM en partage réseau LAN), avec sélection du dossier data avant l'ouverture du mode choisi
 - **Vérification des mises à jour** — détection automatique en arrière-plan via l'API GitHub Releases
 
 ## Utilisation
 
-Au lancement, l'exécutable affiche un launcher proposant 3 modes : **Saisie / Gestion** (caisse + cuisine + gestion complète), **Poste de préparation** (affichage cuisine plein écran) et **Historique / Statistiques** (consultation des ventes + export PDF, sans impression USB). Le choix n'est pas mémorisé : il est redemandé à chaque lancement.
+Au lancement, l'exécutable affiche un launcher proposant 3 modes : **Saisie / Gestion** (caisse + cuisine + gestion complète), **Poste de préparation** (affichage cuisine plein écran) et **Historique / Statistiques** (consultation des ventes + export PDF, sans impression USB). Le choix n'est pas mémorisé : il est redemandé à chaque lancement. Le launcher permet aussi de pointer vers le dossier data (utile pour un partage réseau LAN) avant d'ouvrir le mode choisi.
 
 En mode Saisie/Gestion, la vue principale est divisée en deux panneaux : saisie des commandes à gauche et suivi en temps réel à droite. Pour les paramètres (dossier de données, imprimante, options d'impression), accéder au module Paramètres via la barre de navigation.
 

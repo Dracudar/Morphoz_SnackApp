@@ -88,7 +88,7 @@ Pas de configuration ruff dans le dépôt — le linter est présent (`.ruff_cac
 
 ### Vue d'ensemble
 
-Un seul exécutable (`python -m src.core.app`) affiche `LauncherWindow` à chaque lancement : elle laisse choisir l'un des 3 modes ci-dessous (le choix n'est jamais mémorisé). Cela évite de multiplier les builds/releases PyInstaller — un seul `.spec` (`morphoz_snackapp.spec`).
+Un seul exécutable (`python -m src.core.app`) affiche `LauncherWindow` à chaque lancement : elle laisse choisir l'un des 3 modes ci-dessous (le choix n'est jamais mémorisé). Cela évite de multiplier les builds/releases PyInstaller — un seul `.spec` (`morphoz_snackapp.spec`). Le launcher permet aussi de définir le dossier data avant d'ouvrir un mode, pour que la fenêtre choisie parte directement sur le bon dossier (évite par exemple que le poste de préparation construise ses boutons filtre depuis une carte périmée).
 
 ```
 LauncherWindow (src/UI/launcher_window.py) — choix du mode au démarrage

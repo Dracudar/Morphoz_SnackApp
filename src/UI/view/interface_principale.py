@@ -8,12 +8,14 @@ Description:
     Inclut une barre de navigation tactile en haut et un volet latéral de navigation.
     Mode "Saisie/Gestion" du launcher (voir src/UI/launcher_window.py) : le poste de
     préparation et la vue Historique/Statistiques allégée sont des fenêtres distinctes.
+    Démarre directement sur la saisie si le dossier data a déjà été défini
+    (typiquement depuis le launcher), sur Paramètres sinon.
 
 Author :
     Dracudar
 
 Version:
-    1.7
+    1.8
 
 Date de création :
     2026.05.18
@@ -39,7 +41,7 @@ _PAGES_MODE_SPLIT = frozenset({"saisie"})
 
 from src.modules.carte.UI import CarteModule
 from src.modules.commandes_historique.UI import CommandesHistoriqueModule
-from src.backend.app_config import get_assets_path
+from src.backend.app_config import data_folder_est_configure, get_assets_path
 from src.modules.commandes_saisie.UI.commande_saisie import SaisieCommandeModule
 from src.modules.commandes_suivi.UI.UI import SuiviCommandesModule
 from src.modules.logs.UI import LogsModule
@@ -118,7 +120,9 @@ class InterfacePrincipaleWidget(QWidget):
         # Listener de redimensionnement sur _content_area pour repositionner l'overlay/volet
         self._content_area.installEventFilter(self)
 
-        self.set_left_page("parametres")
+        # Démarre sur la saisie si le dossier data est déjà configuré (ex. depuis le
+        # launcher) ; sinon force un passage par Paramètres pour le définir.
+        self.set_left_page("saisie" if data_folder_est_configure() else "parametres")
 
     def _build_barre_nav(self) -> QFrame:
         barre = QFrame()

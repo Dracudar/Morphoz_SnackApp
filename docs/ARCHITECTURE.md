@@ -1,6 +1,6 @@
 # Morphoz SnackApp — Documentation d'architecture
 
-> Version du document : 1.7 — 05/07/2026 (module Statistiques + launcher à 3 modes ajoutés depuis `APP_VERSION = "2.5.3"`)
+> Version du document : 1.8 — 05/07/2026 (module Statistiques + launcher à 3 modes, avec sélection du dossier data, ajoutés depuis `APP_VERSION = "2.5.3"`)
 > Branche de référence : `develop` (équivalent `main` au moment de la rédaction)
 
 ---
@@ -129,7 +129,9 @@ filelock
 └───────────────────────────────────────────────────────────────┘
 ```
 
-**Un seul exécutable, trois modes** : `LauncherWindow` (`src/UI/launcher_window.py`) est affichée à chaque lancement et laisse choisir entre les trois fenêtres principales ci-dessus — aucun choix n'est mémorisé. Ce design évite de multiplier les builds/releases PyInstaller (un seul `.spec`, voir §13bis) tout en gardant les modes Prépa et Historique/Statistiques dépourvus des dépendances lourdes (USB, impression) inutiles sur des postes dédiés à 4 Go de RAM en partage réseau LAN.
+**Un seul exécutable, trois modes** : `LauncherWindow` (`src/UI/launcher_window.py`) est affichée à chaque lancement et laisse choisir entre les trois fenêtres principales ci-dessus — aucun choix n'est mémorisé. Ce design évite de multiplier les builds/releases PyInstaller (un seul `.spec`, voir §15) tout en gardant les modes Prépa et Historique/Statistiques dépourvus des dépendances lourdes (USB, impression) inutiles sur des postes dédiés à 4 Go de RAM en partage réseau LAN.
+
+Le launcher permet aussi de définir le dossier data **avant** d'ouvrir un mode : la fenêtre choisie est alors construite directement avec le bon dossier, au lieu du dernier utilisé. C'est notamment ce qui évite qu'`PostePreparationModule` construise ses boutons filtre (`_build_filter_buttons()`, appelé une seule fois dans `__init__`) depuis une carte active périmée — ces boutons ne sont jamais retirés une fois créés (voir §8.4), donc changer de dossier après l'ouverture de la fenêtre, depuis son propre volet, laisse les anciens boutons affichés.
 
 ### Principes architecturaux
 
@@ -291,9 +293,12 @@ data/
 | Élément / Méthode | Description |
 |---|---|
 | `_MODES` | Liste de 3 tuples `(icône, titre, description, identifiant)` : `"complet"` (Saisie/Gestion), `"prepa"` (Poste de préparation), `"stats"` (Historique/Statistiques). |
-| `LauncherWindow` | `QMainWindow` avec logo MegaSnack et une carte cliquable par mode (icône + titre + description). |
+| `LauncherWindow` | `QMainWindow` avec logo MegaSnack, une carte cliquable par mode (icône + titre + description) et une section "Dossier data". |
 | `mode_choisi` | `Signal(str)` émis avec l'identifiant du mode choisi ; `app.py` l'utilise pour instancier la fenêtre principale correspondante. |
 | `_choisir(mode_id)` | Émet `mode_choisi` puis ferme le launcher. |
+| `_build_section_dossier()` | Champ lecture seule (`get_data_folder_brut()`), bouton "Parcourir…" (`QFileDialog`) et bouton "Appliquer". |
+| `_choisir_dossier()` | Ouvre le sélecteur de dossier, pré-remplit le champ et active "Appliquer". |
+| `_appliquer_dossier()` | Persiste `data_folder` dans `config.json` (fusion, ne touche pas les autres clés) puis appelle `initialiser_dossier_data()` — la fenêtre ouverte juste après trouve donc un dossier déjà valide, avec sa structure de fichiers créée si nécessaire. |
 
 ---
 
@@ -318,7 +323,7 @@ data/
 |---|---|
 | `_PAGES_MODE_SPLIT` | Frozenset `{"saisie"}` — seule la page saisie affiche le panneau suivi à droite. |
 | `PlaceholderPage` | Widget générique affichant un titre et un message, utilisé pour les pages non encore implémentées. |
-| `InterfacePrincipaleWidget.__init__` | Construit les 7 pages du stack (`SaisieCommandeModule`, `StockModule`, `CarteModule`, `CommandesHistoriqueModule`, `StatsModule`, `LogsModule`, `ParametresModule`) et le `SuiviCommandesModule`. Intègre `VoletNavigation` en superposition. Connecte les signaux inter-modules (`config_changed → refresh_all_pages`, `command_changed → refresh_all_pages`, `go_back → "saisie"`, etc.). Démarre sur la page **Paramètres**. |
+| `InterfacePrincipaleWidget.__init__` | Construit les 7 pages du stack (`SaisieCommandeModule`, `StockModule`, `CarteModule`, `CommandesHistoriqueModule`, `StatsModule`, `LogsModule`, `ParametresModule`) et le `SuiviCommandesModule`. Intègre `VoletNavigation` en superposition. Connecte les signaux inter-modules (`config_changed → refresh_all_pages`, `command_changed → refresh_all_pages`, `go_back → "saisie"`, etc.). Démarre sur **Saisie** si `data_folder_est_configure()` (ex. dossier défini depuis le launcher), sinon sur **Paramètres**. |
 | `set_left_page(page_name)` | Affiche la page demandée dans le stack, appelle `_refresh_page`, et adapte la visibilité du panneau suivi (mode split uniquement pour `"saisie"`). |
 | `refresh_all_pages()` | Rafraîchit toutes les pages du stack et le suivi (appelé sur `config_changed` ou `command_changed`). |
 | `_refresh_page(widget)` | Appelle `refresh()`, `reload_from_disk()` ou `refresh_orders()` selon ce que le widget expose. |
