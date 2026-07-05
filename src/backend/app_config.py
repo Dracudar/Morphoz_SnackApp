@@ -5,20 +5,21 @@ app_config.py - Configuration applicative et chemins
 
 Description:
     Gestion de la configuration JSON (assets/config.json) : dossier data unique,
-    paramètres imprimante et options d'impression.
+    paramètres imprimante, options d'impression et mode allégé (historique +
+    statistiques uniquement).
     Les chemins de tous les fichiers de données sont dérivés du dossier data.
 
 Author :
     Dracudar
 
 Version:
-    2.1
+    2.2
 
 Date de création :
     2026.05.31
 
 Date de modification:
-    2026.06.10
+    2026.07.05
 """
 
 from __future__ import annotations
@@ -196,6 +197,14 @@ def get_print_options() -> Dict[str, bool]:
     }
 
 
+# ── Mode allégé ────────────────────────────────────────────────────────────────
+
+def get_mode_allege() -> bool:
+    """Retourne True si le mode allégé (Historique + Statistiques uniquement) est actif."""
+    config = _load_app_config()
+    return bool(config.get("mode_allege", False))
+
+
 # ── Sauvegarde ─────────────────────────────────────────────────────────────────
 
 def _create_data_structure(data_folder: Path) -> bool:
@@ -267,6 +276,7 @@ def save_app_config(
     impression_active: bool,
     ticket_client: bool,
     ticket_cuisine: bool,
+    mode_allege: bool = False,
 ) -> bool:
     """Persiste toute la configuration et crée la structure data si nécessaire. Retourne True si succès."""
     if data_folder.strip():
@@ -287,6 +297,7 @@ def save_app_config(
             "ticket_client": ticket_client,
             "ticket_cuisine": ticket_cuisine,
         },
+        "mode_allege": mode_allege,
     }
     return _write_json_file(CONFIG_FILE, payload)
 
@@ -297,4 +308,5 @@ def get_default_config() -> Dict[str, Any]:
         "data_folder": "",
         "imprimante": dict(_DEFAULT_PRINTER),
         "impression": {"impression_active": True, "ticket_client": True, "ticket_cuisine": True},
+        "mode_allege": False,
     }

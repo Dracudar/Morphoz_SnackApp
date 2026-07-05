@@ -96,8 +96,9 @@ MainWindow (QMainWindow)
     │   ├── StockModule               — inventaire
     │   ├── CarteModule               — éditeur de carte
     │   ├── CommandesHistoriqueModule — historique + réimpression
+    │   ├── StatsModule               — statistiques de vente, graphiques, export PDF
     │   ├── LogsModule                — consultation du journal
-    │   ├── ParametresModule          — config dossier/imprimante
+    │   ├── ParametresModule          — config dossier/imprimante/mode allégé
     │   └── PostePreparationModule    — affichage plein écran cuisine
     └── Panneau droit : SuiviCommandesModule (suivi en temps réel, visible en mode saisie)
 
@@ -105,11 +106,13 @@ SuiviExterieurWindow (QDialog)  — fenêtre secondaire affichage client
     └── Activée via le menu "Affichage > Affichage extérieur"
 ```
 
+Le **mode allégé** (case à cocher dans Paramètres, `mode_allege` dans `assets/config.json`) restreint le volet de navigation à Historique + Statistiques + Paramètres — pour un poste dédié à la seule consultation des ventes.
+
 ### Backend central (`src/backend/`)
 
 | Fichier | Rôle |
 |---|---|
-| `app_config.py` | Lecture/écriture de `assets/config.json` ; point d'accès unique à la config (dossier de données, imprimante, options d'impression) ; détecte les exécutables PyInstaller (`sys.frozen`) |
+| `app_config.py` | Lecture/écriture de `assets/config.json` ; point d'accès unique à la config (dossier de données, imprimante, options d'impression, mode allégé) ; détecte les exécutables PyInstaller (`sys.frozen`) |
 | `data_sources.py` | Toutes les opérations I/O JSON : carte, stock, commandes (brouillons, en cours, terminées, annulées) |
 | `commandes_utils.py` | Génération d'ID de commande (`YYYYMMDD-###`) et de plat (préfixe type + `###`), cache quotidien `derniers_ID.json`, réconciliation du stock au démarrage |
 | `logger.py` | Journal d'événements au format JSON Lines (`data/logs/app_YYYYMMDD.log`) avec index séquentiel |
@@ -128,6 +131,8 @@ Chaque module suit le même schéma :
 - Un widget QWidget/QFrame principal exposant `refresh()` ou `reload_from_disk()`.
 - Un sous-dossier `UI/` pour les composants visuels et, si nécessaire, un sous-dossier `backend/` pour la logique métier.
 - `module_registry.py` découvre dynamiquement les modules via un fichier `module.py` optionnel dans chaque dossier.
+
+Le module `stats` suit ce schéma (`UI.py` + `backend/stats.py` + `backend/pdf_export.py`) : `stats.calculer_statistiques()` agrège les commandes terminées de `get_all_history_orders()` (totaux, ventilation par plat/paiement/recette pizza, CA par jour), et `pdf_export.generer_rapport_pdf()` exporte ce récapitulatif via `reportlab`.
 
 ### Personnalisation des plats (`src/modules/plats/`)
 

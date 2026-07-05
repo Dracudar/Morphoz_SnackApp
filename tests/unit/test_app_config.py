@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.2
 
 Date de création :
     2026.06.12
 
 Date de modification:
-    2026.06.25
+    2026.07.05
 """
 
 import json
@@ -30,6 +30,7 @@ from src.backend.app_config import (
     data_folder_est_configure,
     get_data_folder_brut,
     get_default_config,
+    get_mode_allege,
     get_print_options,
     get_printer_config,
     initialiser_dossier_data,
@@ -155,6 +156,22 @@ class TestGetPrintOptions:
         assert opts["ticket_cuisine"] is False
 
 
+# ── get_mode_allege ────────────────────────────────────────────────────────────
+
+class TestGetModeAllege:
+    def test_retourne_false_si_config_vide(self, monkeypatch):
+        monkeypatch.setattr("src.backend.app_config._load_app_config", lambda: {})
+        assert get_mode_allege() is False
+
+    def test_retourne_true_si_actif(self, monkeypatch):
+        monkeypatch.setattr("src.backend.app_config._load_app_config", lambda: {"mode_allege": True})
+        assert get_mode_allege() is True
+
+    def test_retourne_false_si_explicitement_desactive(self, monkeypatch):
+        monkeypatch.setattr("src.backend.app_config._load_app_config", lambda: {"mode_allege": False})
+        assert get_mode_allege() is False
+
+
 # ── get_default_config ────────────────────────────────────────────────────────
 
 class TestGetDefaultConfig:
@@ -177,6 +194,9 @@ class TestGetDefaultConfig:
 
     def test_data_folder_est_chaine_vide(self):
         assert get_default_config()["data_folder"] == ""
+
+    def test_mode_allege_desactive_par_defaut(self):
+        assert get_default_config()["mode_allege"] is False
 
 
 # ── data_folder_est_configure ─────────────────────────────────────────────────
@@ -261,3 +281,15 @@ class TestSaveAppConfig:
         creations, ecritures = [], []
         self._appeler(monkeypatch, str(tmp_path), creations, ecritures)
         assert ecritures[0]["data_folder"] == str(tmp_path)
+
+    def test_persiste_mode_allege_desactive_par_defaut(self, monkeypatch):
+        creations, ecritures = [], []
+        self._appeler(monkeypatch, "", creations, ecritures)
+        assert ecritures[0]["mode_allege"] is False
+
+    def test_persiste_mode_allege_actif(self, monkeypatch):
+        monkeypatch.setattr("src.backend.app_config._create_data_structure", lambda p: True)
+        ecritures = []
+        monkeypatch.setattr("src.backend.app_config._write_json_file", lambda p, d: ecritures.append(d) or True)
+        save_app_config("", "0x04B8", "0x0E15", 0, "TM-T20II", True, True, True, mode_allege=True)
+        assert ecritures[0]["mode_allege"] is True

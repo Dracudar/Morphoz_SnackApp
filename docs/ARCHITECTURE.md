@@ -1,6 +1,6 @@
 # Morphoz SnackApp — Documentation d'architecture
 
-> Version du document : 1.5 — 28/06/2026 (vérifié à jour pour `APP_VERSION = "2.5.3"`)
+> Version du document : 1.6 — 05/07/2026 (module Statistiques + mode allégé ajoutés depuis `APP_VERSION = "2.5.3"`)
 > Branche de référence : `develop` (équivalent `main` au moment de la rédaction)
 
 ---
@@ -19,6 +19,7 @@
    - 8.1 [commandes\_saisie](#81-commandes_saisie)
    - 8.2 [commandes\_suivi](#82-commandes_suivi)
    - 8.3 [commandes\_historique](#83-commandes_historique)
+   - 8.3bis [stats](#83bis-stats)
    - 8.4 [commandes\_poste\_preparation](#84-commandes_poste_preparation)
    - 8.5 [plats](#85-plats)
    - 8.6 [stock](#86-stock)
@@ -49,11 +50,12 @@ L'application couvre l'intégralité du cycle de vente :
 | Affichage extérieur public (fenêtre secondaire) | `SuiviExterieurWindow` |
 | Poste cuisine plein écran | `commandes_poste_preparation` |
 | Historique consultable, filtrable et réimprimable | `commandes_historique` |
+| Statistiques de vente, graphiques et export PDF | `stats` |
 | Gestion des stocks avec cache mémoire | `stock` |
 | Gestion de la carte (catégories, recettes, prix) | `carte` |
 | Impression thermique USB (ESC-POS) | `backend/printer.py` |
 | Journalisation exhaustive (JSON Lines) | `backend/logger.py` |
-| Configuration (dossier data, imprimante) | `parametres` |
+| Configuration (dossier data, mode allégé, imprimante) | `parametres` |
 | Accès concurrent aux fichiers JSON partagés en LAN | `backend/file_io.py` |
 
 ---
@@ -63,6 +65,7 @@ L'application couvre l'intégralité du cycle de vente :
 | Composant | Technologie | Rôle |
 |---|---|---|
 | Interface graphique | **PySide6** (Qt 6) | Tous les widgets, layouts, signaux/slots, timers |
+| Graphiques | **PySide6.QtCharts** (inclus dans le paquet PySide6) | Histogrammes et camemberts du module Statistiques |
 | Thème | Fusion (dark palette) | Palette sombre personnalisée définie dans `app.py` |
 | Persistance | **Fichiers JSON** | Commandes, stock, carte, config, IDs cache |
 | Journalisation | **JSON Lines** | Un fichier `.log` par jour dans `data/logs/` |
@@ -105,8 +108,9 @@ filelock
 │   commandes_saisie            │  │   app_config.py            │
 │   commandes_suivi             │◄─┤   data_sources.py          │
 │   commandes_historique        │  │   commandes_utils.py       │
-│   commandes_poste_preparation │  │   logger.py                │
-│   carte / stock / logs        │  │   printer.py               │
+│   stats                       │  │   logger.py                │
+│   commandes_poste_preparation │  │   printer.py               │
+│   carte / stock / logs        │  │                            │
 │   parametres                  │  │   file_io.py               │
 │                               │  └────────────────────────────┘
 │   plats/{pizza,grillade,...}  │
@@ -295,19 +299,22 @@ data/
 | Boutons de navigation | Un bouton par module (icône + label), hauteur 50 px. L'item actif est mis en évidence (fond bleu `#4a7fcb`, gras). |
 | Bouton "Quitter" | Style danger (texte rouge), séparé des liens de navigation. |
 | Raccourcis | `F11` / `Escape` pour basculer le plein écran depuis le volet. |
+| `set_mode_allege(actif)` | Masque les boutons hors `{historique, stats, parametres}` quand le mode allégé (Paramètres) est actif — poste dédié à la consultation des ventes. |
 
 ---
 
 ### `src/UI/view/interface_principale.py`
 
-**Assembleur de la vue principale.** Gère le `QStackedWidget` gauche (7 pages) et le panneau de suivi droit.
+**Assembleur de la vue principale.** Gère le `QStackedWidget` gauche (8 pages) et le panneau de suivi droit.
 
 | Élément / Méthode | Description |
 |---|---|
 | `_PAGES_MODE_SPLIT` | Frozenset `{"saisie"}` — seule la page saisie affiche le panneau suivi à droite. |
 | `PlaceholderPage` | Widget générique affichant un titre et un message, utilisé pour les pages non encore implémentées. |
-| `InterfacePrincipaleWidget.__init__` | Construit les 7 pages du stack (`SaisieCommandeModule`, `StockModule`, `CarteModule`, `CommandesHistoriqueModule`, `LogsModule`, `ParametresModule`, `PostePreparationModule`) et le `SuiviCommandesModule`. Intègre `VoletNavigation` en superposition. Connecte les signaux inter-modules (`config_changed → refresh_all_pages`, `command_changed → refresh_all_pages`, `go_back → saisie`, etc.). Démarre sur la page **Paramètres**. |
+| `InterfacePrincipaleWidget.__init__` | Construit les 8 pages du stack (`SaisieCommandeModule`, `StockModule`, `CarteModule`, `CommandesHistoriqueModule`, `StatsModule`, `LogsModule`, `ParametresModule`, `PostePreparationModule`) et le `SuiviCommandesModule`. Intègre `VoletNavigation` en superposition. Connecte les signaux inter-modules (`config_changed → refresh_all_pages` + `_appliquer_mode_allege`, `command_changed → refresh_all_pages`, `go_back → _page_accueil()`, etc.). Démarre sur la page **Paramètres**. |
 | `set_left_page(page_name)` | Affiche la page demandée dans le stack, appelle `_refresh_page`, et adapte la visibilité du panneau suivi (mode split uniquement pour `"saisie"`). |
+| `_page_accueil()` | Page de retour par défaut pour les boutons "Retour" : `"historique"` en mode allégé, `"saisie"` sinon. |
+| `_appliquer_mode_allege()` | Répercute `get_mode_allege()` sur `VoletNavigation.set_mode_allege()` (à la construction et à chaque `config_changed`). |
 | `refresh_all_pages()` | Rafraîchit toutes les pages du stack et le suivi (appelé sur `config_changed` ou `command_changed`). |
 | `_refresh_page(widget)` | Appelle `refresh()`, `reload_from_disk()` ou `refresh_orders()` selon ce que le widget expose. |
 
@@ -397,10 +404,11 @@ Volet de configuration minimal accessible depuis un bouton flottant.
 | `_parse_hex_or_int(value, default)` | Convertit `"0x04B8"` ou un entier en `int`. |
 | `get_printer_config()` | Lit et retourne la config imprimante avec valeurs par défaut si absente. |
 | `get_print_options()` | Retourne `{impression_active, ticket_client, ticket_cuisine}` — tous `True` par défaut. |
+| `get_mode_allege()` | Retourne `True` si le mode allégé (Historique + Statistiques uniquement, clé `mode_allege`) est actif — `False` par défaut. |
 | `_create_data_structure(data_folder)` | Crée récursivement la structure `commandes/{en_cours,terminee,annulee,corrompu}`, `logs/`, et les fichiers JSON vides. Journalise chaque création. |
 | `initialiser_dossier_data()` | Crée la structure du dossier data si un chemin est configuré. Ne fait rien (retourne `True`) si `data_folder` est vide. |
-| `save_app_config(data_folder, vendor_id, ...)` | Persiste toute la configuration dans `config.json`. Appelle `_create_data_structure` uniquement si `data_folder` est non vide. Retourne `True` si succès. |
-| `get_default_config()` | Retourne la configuration par défaut (`data_folder: ""`). |
+| `save_app_config(data_folder, vendor_id, ..., mode_allege=False)` | Persiste toute la configuration dans `config.json`. Appelle `_create_data_structure` uniquement si `data_folder` est non vide. Retourne `True` si succès. |
+| `get_default_config()` | Retourne la configuration par défaut (`data_folder: ""`, `mode_allege: False`). |
 
 ---
 
@@ -429,7 +437,7 @@ Volet de configuration minimal accessible depuis un bouton flottant.
 | `_parse_order_file(order_file)` | Charge et structure un fichier JSON de commande → `(infos, command_lines)`. |
 | `get_live_orders()` | Charge les commandes en cours depuis `en_cours/`. Retourne les compteurs `active_count`, `pending_count`, `delivered_count`, `cancelled_count` par commande. |
 | `get_live_orders_prep()` | Charge les commandes `en_cours/` et retourne une **liste plate** de plats (un dict par plat) excluant Annulé/Livré/Non livré. Utilisé par le poste cuisine et l'affichage extérieur. |
-| `get_all_history_orders()` | Charge toutes les commandes depuis `en_cours/`, `terminee/` et `annulee/`, triées par ID décroissant. Utilisé par l'historique. |
+| `get_all_history_orders()` | Charge toutes les commandes depuis `en_cours/`, `terminee/` et `annulee/`, triées par ID décroissant. Chaque plat expose aussi `recette` et `composition`. Utilisé par l'historique et le module Statistiques. |
 | `get_completed_orders()` | Charge uniquement les commandes terminées depuis `terminee/`. |
 | `signature_live_orders()` | Retourne les signatures `(nom, mtime_ns, taille)` des fichiers `en_cours/` — utilisé pour le court-circuit des timers. |
 | `signature_history_orders()` | Signature combinée de `en_cours/`, `terminee/` et `annulee/`. |
@@ -480,10 +488,10 @@ Cache mémoire des compteurs d'IDs journaliers. Persisté dans `logs/derniers_ID
 
 | Catégorie | Événements |
 |---|---|
-| `commande` | `AJOUT_PLAT`, `ANNULATION_PLAT`, `ANNULATION_COMMANDE`, `VALIDATION_COMMANDE`, `PLAT_PRET`, `PLAT_LIVRE`, `PLAT_NON_LIVRE`, `TRANSFERT_PRET`, `COMMANDE_TERMINEE`, `IMPRESSION_TICKET`, `RETOUR_PREPARATION`, `RETOUR_PRET`, `COMMANDE_ROUVERTE` |
+| `commande` | `AJOUT_PLAT`, `ANNULATION_PLAT`, `ANNULATION_COMMANDE`, `VALIDATION_COMMANDE`, `PLAT_PRET`, `PLAT_LIVRE`, `PLAT_NON_LIVRE`, `TRANSFERT_PRET`, `COMMANDE_TERMINEE`, `IMPRESSION_TICKET`, `RETOUR_PREPARATION`, `RETOUR_PRET`, `COMMANDE_ROUVERTE`, `EXPORT_RAPPORT_STATS` |
 | `stock` | `MODIFICATION_STOCK_MANUELLE`, `MODIFICATION_CACHE_STOCK`, `PERSISTANCE_STOCK` |
 | `carte` | `MODIFICATION_CARTE_MANUELLE` |
-| `parametres` | `MODIFICATION_PARAMETRES_IMPRIMANTE`, `MODIFICATION_OPTIONS_IMPRESSION`, `MODIFICATION_DOSSIER_DONNEES` |
+| `parametres` | `MODIFICATION_PARAMETRES_IMPRIMANTE`, `MODIFICATION_OPTIONS_IMPRESSION`, `MODIFICATION_DOSSIER_DONNEES`, `MODIFICATION_MODE_ALLEGE` |
 | `systeme` | `DEMARRAGE_APP`, `ARRET_APP`, `CREATION_DOSSIER`, `CREATION_FICHIER`, `FICHIER_CORROMPU`, `AFFICHAGE_EXTERIEUR` |
 | `erreur` | `ERREUR` |
 
@@ -680,6 +688,29 @@ Dialogue de filtres avancés : statut (multi-select), période (date début/fin)
 
 ---
 
+### 8.3bis `stats`
+
+**Statistiques de vente et export PDF.** Vue de synthèse calculée sur les commandes **terminées** de l'historique, avec filtrage par période, graphiques (PySide6 `QtCharts`) et export du rapport en PDF (`reportlab`).
+
+#### `backend/stats.py` — `calculer_statistiques(orders, date_from=None, date_to=None) → dict`
+
+Fonction pure (aucune dépendance Qt) qui agrège les commandes au statut `"terminée"` (les plats individuellement `"Annulé"` sont exclus) sur la période `[date_from, date_to]` (bornes incluses, `None` = pas de borne) :
+- `totaux` : nb commandes, montant total, nb plats vendus, panier moyen.
+- `plats` : ventilation par type de plat (quantité, montant, prix moyen), triée par quantité décroissante.
+- `paiements` : ventilation par moyen de paiement (quantité, %, montant).
+- `recettes_pizza` : ventilation des recettes de pizza (le suffixe `" - Modifié !"` est retiré), triée par quantité décroissante.
+- `ca_par_jour` : chiffre d'affaires par jour, trié chronologiquement.
+
+#### `backend/pdf_export.py` — `generer_rapport_pdf(stats, chemin_fichier, titre_periode="")`
+
+Génère le PDF (`reportlab.platypus`) : totaux, histogramme + tableau par plat, camembert + tableau par moyen de paiement, tableau des recettes pizza, histogramme du CA par jour.
+
+#### `UI.py` — `StatsModule`
+
+Filtre de période (`JJ/MM/AAAA`), cartes de totaux, graphiques `QChartView` (barres/camemberts, thème sombre), tableaux détaillés, bouton "Exporter en PDF" (`QFileDialog` + log `EXPORT_RAPPORT_STATS`). Rafraîchissement automatique (5 s) court-circuité par `signature_history_orders()` + filtre courant. Signal `go_back` (→ Historique).
+
+---
+
 ### 8.4 `commandes_poste_preparation`
 
 **Poste de préparation cuisine.** Vue plein écran pour la cuisine, affichant les plats actifs.
@@ -793,6 +824,7 @@ Permet de modifier l'état de chaque catégorie (`Disponible`, `Rupture`, `Retir
 
 Sections :
 - **Données** : champ dossier data + bouton de navigation (`QFileDialog`). Info-texte sur les fichiers créés automatiquement.
+- **Interface** : case à cocher **Mode allégé** (`mode_allege`) — masque saisie/stock/carte/poste de préparation/affichage extérieur du volet de navigation, pour un poste dédié à Historique + Statistiques. Journalise `MODIFICATION_MODE_ALLEGE` si l'état change.
 - **Impression** : vendor_id, product_id, interface, modèle imprimante. Checkboxes `Impression active`, `Ticket client`, `Ticket cuisine`.
 
 À la sauvegarde : appelle `save_app_config()` (crée la structure data si nécessaire), journalise `MODIFICATION_DOSSIER_DONNEES`, `MODIFICATION_PARAMETRES_IMPRIMANTE`, `MODIFICATION_OPTIONS_IMPRESSION`, et migre le log journalier si le dossier change (`logger.migrer_log_journalier()`).
