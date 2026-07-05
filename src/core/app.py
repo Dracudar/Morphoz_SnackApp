@@ -4,24 +4,30 @@
 app.py
 
 Description:
-    Point d'entrée principal de l'application Morphoz SnackApp.
+    Point d'entrée unique de l'application Morphoz SnackApp. Affiche d'abord
+    LauncherWindow, qui laisse choisir l'un des 3 modes de démarrage (Saisie/
+    Gestion, Poste de préparation, Historique/Statistiques) — un seul
+    exécutable, pas de build ni de release séparés par mode.
 
 Author :
     Dracudar
 
 Version:
-    1.1
+    2.0
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.14
+    2026.07.05
 """
 
 from PySide6.QtGui import QColor, QIcon, QPalette
 from PySide6.QtWidgets import QApplication
+from src.UI.launcher_window import LauncherWindow
 from src.UI.main_window import MainWindow
+from src.UI_prep.main_window_prep import MainWindowPrep
+from src.UI_stats.main_window_stats import MainWindowStats
 
 
 def _build_dark_palette() -> QPalette:
@@ -69,7 +75,26 @@ if __name__ == "__main__":
     logger.log(logger.DEMARRAGE_APP, {})
     app.aboutToQuit.connect(lambda: logger.log(logger.ARRET_APP, {}))
 
-    window = MainWindow()
-    window.show()
+    # Référence forte vers la fenêtre choisie (sinon garbage collectée à la
+    # fin de _lancer_mode, faute de variable locale conservée).
+    fenetre_active = {}
+
+    def _lancer_mode(mode: str):
+        classes_fenetre = {
+            "complet": MainWindow,
+            "prepa": MainWindowPrep,
+            "stats": MainWindowStats,
+        }
+        classe = classes_fenetre.get(mode)
+        if classe is None:
+            return
+        fenetre = classe()
+        fenetre_active["courante"] = fenetre
+        fenetre.show()
+
+    launcher = LauncherWindow()
+    launcher.mode_choisi.connect(_lancer_mode)
+    launcher.show()
+
     sys.exit(app.exec())
 

@@ -5,14 +5,13 @@ parametres.py
 
 Description:
     Interface Qt/PySide6 de gestion des paramètres de l'application :
-    dossier data, mode allégé (historique + statistiques uniquement),
-    configuration imprimante et options d'impression.
+    dossier data, configuration imprimante et options d'impression.
 
 Author :
     Dracudar
 
 Version:
-    2.9
+    3.0
 
 Date de création :
     2025.05.29
@@ -44,7 +43,6 @@ from pathlib import Path
 from src.UI.utils.icones import icone
 from src.backend.app_config import (
 	get_data_folder_brut,
-	get_mode_allege,
 	get_print_options,
 	get_printer_config,
 	save_app_config,
@@ -58,7 +56,6 @@ class ParametresModule(QFrame):
 
 	config_changed = Signal()
 	go_back = Signal()
-	go_to_poste_prep = Signal()
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
@@ -97,26 +94,6 @@ class ParametresModule(QFrame):
 		layout_data.addWidget(info)
 
 		main_layout.addWidget(group_data)
-
-		# ── Section Interface ─────────────────────────────────────────────────
-		group_interface = QGroupBox("Interface")
-		group_interface.setObjectName("paramGroup")
-		layout_interface = QVBoxLayout(group_interface)
-		layout_interface.setSpacing(8)
-
-		self.mode_allege_check = QCheckBox("Mode allégé (Historique + Statistiques uniquement)")
-		layout_interface.addWidget(self.mode_allege_check)
-
-		info_allege = QLabel(
-			"Masque la saisie, le stock, la carte, le poste de préparation et l'affichage "
-			"extérieur du volet de navigation : utile pour un poste dédié à la seule "
-			"consultation des ventes."
-		)
-		info_allege.setObjectName("paramInfo")
-		info_allege.setWordWrap(True)
-		layout_interface.addWidget(info_allege)
-
-		main_layout.addWidget(group_interface)
 
 		# ── Section Impression ────────────────────────────────────────────────
 		group_impression = QGroupBox("Impression")
@@ -362,7 +339,6 @@ class ParametresModule(QFrame):
 	def load_config(self):
 		"""Charge la configuration actuelle et remplit tous les champs."""
 		self.data_folder_field.setText(get_data_folder_brut())
-		self.mode_allege_check.setChecked(get_mode_allege())
 
 		printer = get_printer_config()
 		self.vendor_id_field.setText(f"0x{printer['vendor_id']:04X}")
@@ -403,11 +379,9 @@ class ParametresModule(QFrame):
 		ancien_dossier = get_data_folder_brut()
 		ancienne_imprimante = get_printer_config()
 		anciennes_options = get_print_options()
-		ancien_mode_allege = get_mode_allege()
 
 		ticket_client = self.ticket_client_check.isChecked()
 		ticket_cuisine = self.ticket_cuisine_check.isChecked()
-		mode_allege = self.mode_allege_check.isChecked()
 
 		# Détermine si le dossier change effectivement
 		nouveau_dossier = data_folder
@@ -432,7 +406,6 @@ class ParametresModule(QFrame):
 			impression_active=impression_active,
 			ticket_client=self.ticket_client_check.isChecked(),
 			ticket_cuisine=self.ticket_cuisine_check.isChecked(),
-			mode_allege=mode_allege,
 		)
 
 		if not ok:
@@ -490,12 +463,6 @@ class ParametresModule(QFrame):
 			logger.log(logger.MODIFICATION_OPTIONS_IMPRESSION, {
 				"avant": avant_tickets,
 				"apres": apres_tickets,
-			})
-
-		if mode_allege != ancien_mode_allege:
-			logger.log(logger.MODIFICATION_MODE_ALLEGE, {
-				"avant": ancien_mode_allege,
-				"apres": mode_allege,
 			})
 
 		if Path(nouveau_dossier).resolve() != Path(ancien_dossier).resolve():

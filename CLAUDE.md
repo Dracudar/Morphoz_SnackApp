@@ -88,31 +88,36 @@ Pas de configuration ruff dans le dépôt — le linter est présent (`.ruff_cac
 
 ### Vue d'ensemble
 
-```
-MainWindow (QMainWindow)
-└── InterfacePrincipaleWidget
-    ├── Panneau gauche : QStackedWidget (un widget par module)
-    │   ├── SaisieCommandeModule      — prise de commande
-    │   ├── StockModule               — inventaire
-    │   ├── CarteModule               — éditeur de carte
-    │   ├── CommandesHistoriqueModule — historique + réimpression
-    │   ├── StatsModule               — statistiques de vente, graphiques, export PDF
-    │   ├── LogsModule                — consultation du journal
-    │   ├── ParametresModule          — config dossier/imprimante/mode allégé
-    │   └── PostePreparationModule    — affichage plein écran cuisine
-    └── Panneau droit : SuiviCommandesModule (suivi en temps réel, visible en mode saisie)
+Un seul exécutable (`python -m src.core.app`) affiche `LauncherWindow` à chaque lancement : elle laisse choisir l'un des 3 modes ci-dessous (le choix n'est jamais mémorisé). Cela évite de multiplier les builds/releases PyInstaller — un seul `.spec` (`morphoz_snackapp.spec`).
 
-SuiviExterieurWindow (QDialog)  — fenêtre secondaire affichage client
+```
+LauncherWindow (src/UI/launcher_window.py) — choix du mode au démarrage
+│
+├── "Saisie / Gestion" ──► MainWindow (QMainWindow)
+│   └── InterfacePrincipaleWidget
+│       ├── Panneau gauche : QStackedWidget (un widget par module)
+│       │   ├── SaisieCommandeModule      — prise de commande
+│       │   ├── StockModule               — inventaire
+│       │   ├── CarteModule               — éditeur de carte
+│       │   ├── CommandesHistoriqueModule — historique + réimpression
+│       │   ├── StatsModule               — statistiques de vente, graphiques, export PDF
+│       │   ├── LogsModule                — consultation du journal
+│       │   └── ParametresModule          — config dossier/imprimante
+│       └── Panneau droit : SuiviCommandesModule (suivi en temps réel, visible en mode saisie)
+│
+├── "Poste de préparation" ──► MainWindowPrep (src/UI_prep/) — PostePreparationModule plein écran
+│
+└── "Historique / Statistiques" ──► MainWindowStats (src/UI_stats/) — CommandesHistoriqueModule + StatsModule
+
+SuiviExterieurWindow (QDialog)  — fenêtre secondaire affichage client (mode Saisie/Gestion uniquement)
     └── Activée via le menu "Affichage > Affichage extérieur"
 ```
-
-Le **mode allégé** (case à cocher dans Paramètres, `mode_allege` dans `assets/config.json`) restreint le volet de navigation à Historique + Statistiques + Paramètres — pour un poste dédié à la seule consultation des ventes.
 
 ### Backend central (`src/backend/`)
 
 | Fichier | Rôle |
 |---|---|
-| `app_config.py` | Lecture/écriture de `assets/config.json` ; point d'accès unique à la config (dossier de données, imprimante, options d'impression, mode allégé) ; détecte les exécutables PyInstaller (`sys.frozen`) |
+| `app_config.py` | Lecture/écriture de `assets/config.json` ; point d'accès unique à la config (dossier de données, imprimante, options d'impression) ; détecte les exécutables PyInstaller (`sys.frozen`) |
 | `data_sources.py` | Toutes les opérations I/O JSON : carte, stock, commandes (brouillons, en cours, terminées, annulées) |
 | `commandes_utils.py` | Génération d'ID de commande (`YYYYMMDD-###`) et de plat (préfixe type + `###`), cache quotidien `derniers_ID.json`, réconciliation du stock au démarrage |
 | `logger.py` | Journal d'événements au format JSON Lines (`data/logs/app_YYYYMMDD.log`) avec index séquentiel |

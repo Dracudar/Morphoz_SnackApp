@@ -6,13 +6,15 @@ volet_navigation.py
 Description:
     Volet de navigation latéral tactile avec raccourcis et icônes.
     S'affiche en superposition sur le contenu principal.
-    Le mode allégé masque les éléments hors historique/statistiques/paramètres.
+    Le poste de préparation et la vue Historique/Statistiques allégée sont
+    des modes distincts choisis au lancement (voir LauncherWindow) : ce volet
+    ne couvre que la navigation interne du mode Saisie/Gestion.
 
 Author :
     Dracudar
 
 Version:
-    1.6
+    1.7
 
 Date de création :
     2026.06.13
@@ -85,7 +87,6 @@ _STYLE_FERMER = f"""
 # None = séparateur visuel
 _ITEMS_NAV = [
     ("saisie.svg",      "Saisie commande",       "saisie"),
-    ("prepa.svg",       "Poste de préparation",  "poste_preparation"),
     None,
     ("menu.svg",        "Carte",                 "carte"),
     ("stock.svg",       "Stock",                 "stock"),
@@ -97,9 +98,6 @@ _ITEMS_NAV = [
     ("settings.svg",    "Paramètres",            "parametres"),
     ("log.svg",         "Journal",               "logs"),
 ]
-
-# Éléments encore accessibles en mode allégé (les autres sont masqués du volet).
-_ITEMS_MODE_ALLEGE = frozenset({"historique", "stats", "parametres"})
 
 _ICON_SIZE = QSize(20, 20)
 
@@ -116,7 +114,6 @@ class VoletNavigation(QFrame):
         self.setFixedWidth(240)
         self._btn_suivi_ext: QPushButton | None = None
         self._btn_plein_ecran: QPushButton | None = None
-        self._boutons_nav: dict[str, QPushButton] = {}
         self._build_ui()
         self.hide()
 
@@ -134,11 +131,6 @@ class VoletNavigation(QFrame):
         """Met à jour l'état coché du bouton affichage extérieur."""
         if self._btn_suivi_ext:
             self._btn_suivi_ext.setChecked(actif)
-
-    def set_mode_allege(self, actif: bool):
-        """Masque les éléments de navigation hors mode allégé (saisie, stock, carte...)."""
-        for action_id, bouton in self._boutons_nav.items():
-            bouton.setVisible(not actif or action_id in _ITEMS_MODE_ALLEGE)
 
     # ── Construction ──────────────────────────────────────────────────────────
 
@@ -164,7 +156,6 @@ class VoletNavigation(QFrame):
                     self._btn_suivi_ext = btn
                 else:
                     btn.clicked.connect(lambda _, p=action_id: self._naviguer(p))
-                self._boutons_nav[action_id] = btn
                 layout.addWidget(btn)
 
         layout.addStretch(1)
