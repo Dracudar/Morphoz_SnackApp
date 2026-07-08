@@ -26,7 +26,7 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.2
 
 Date de création :
     2026.07.05
@@ -359,6 +359,23 @@ def _ventiler_par_plat(durees_par_plat: Dict[str, List[float]]) -> List[Dict[str
     return resultat
 
 
+def _ventiler_par_heure(durees_par_plat_heure: Dict[str, Dict[int, List[float]]]) -> Dict[str, List[Dict[str, Any]]]:
+    """Construit, pour chaque plat, la liste {heure, temps_moyen_minutes, nb_plats} des tranches horaires
+    ayant au moins une mesure (les heures creuses sont omises)."""
+    return {
+        plat: [
+            {
+                "heure": f"{h:02d}h",
+                "temps_moyen_minutes": round(sum(durees) / len(durees), 1),
+                "nb_plats": len(durees),
+            }
+            for h, durees in sorted(par_heure.items())
+            if durees
+        ]
+        for plat, par_heure in durees_par_plat_heure.items()
+    }
+
+
 def calculer_temps_preparation(
     orders: List[Dict[str, Any]],
     date_from: Optional[datetime] = None,
@@ -374,10 +391,11 @@ def calculer_temps_preparation(
     :param orders: commandes issues de get_all_history_orders()
     :param date_from: borne de début incluse sur la date de validation (None = pas de borne)
     :param date_to: borne de fin incluse sur la date de validation (None = pas de borne)
-    :return: dict avec "par_plat" (liste triée par nombre de plats) et
-        "temps_moyen_global_minutes".
+    :return: dict avec "par_plat" (liste triée par nombre de plats), "temps_moyen_global_minutes"
+        et "par_plat_et_heure" (ventilation horaire par plat, basée sur l'heure de validation).
     """
     durees_par_plat: Dict[str, List[float]] = defaultdict(list)
+    durees_par_plat_heure: Dict[str, Dict[int, List[float]]] = defaultdict(lambda: defaultdict(list))
     toutes_durees: List[float] = []
 
     for order in orders:
@@ -397,11 +415,13 @@ def calculer_temps_preparation(
 
             type_plat = item.get("plat") or item.get("nom") or "Inconnu"
             durees_par_plat[type_plat].append(duree_minutes)
+            durees_par_plat_heure[type_plat][dt_validation.hour].append(duree_minutes)
             toutes_durees.append(duree_minutes)
 
     return {
         "par_plat": _ventiler_par_plat(durees_par_plat),
         "temps_moyen_global_minutes": round(sum(toutes_durees) / len(toutes_durees), 1) if toutes_durees else 0,
+        "par_plat_et_heure": _ventiler_par_heure(durees_par_plat_heure),
     }
 
 
@@ -419,10 +439,11 @@ def calculer_delais_livraison(
     :param orders: commandes issues de get_all_history_orders()
     :param date_from: borne de début incluse sur la date de validation (None = pas de borne)
     :param date_to: borne de fin incluse sur la date de validation (None = pas de borne)
-    :return: dict avec "par_plat" (liste triée par nombre de plats) et
-        "temps_moyen_global_minutes".
+    :return: dict avec "par_plat" (liste triée par nombre de plats), "temps_moyen_global_minutes"
+        et "par_plat_et_heure" (ventilation horaire par plat, basée sur l'heure de mise à disposition).
     """
     durees_par_plat: Dict[str, List[float]] = defaultdict(list)
+    durees_par_plat_heure: Dict[str, Dict[int, List[float]]] = defaultdict(lambda: defaultdict(list))
     toutes_durees: List[float] = []
 
     for order in orders:
@@ -443,9 +464,11 @@ def calculer_delais_livraison(
 
             type_plat = item.get("plat") or item.get("nom") or "Inconnu"
             durees_par_plat[type_plat].append(duree_minutes)
+            durees_par_plat_heure[type_plat][dt_pret.hour].append(duree_minutes)
             toutes_durees.append(duree_minutes)
 
     return {
         "par_plat": _ventiler_par_plat(durees_par_plat),
         "temps_moyen_global_minutes": round(sum(toutes_durees) / len(toutes_durees), 1) if toutes_durees else 0,
+        "par_plat_et_heure": _ventiler_par_heure(durees_par_plat_heure),
     }

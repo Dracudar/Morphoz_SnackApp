@@ -15,13 +15,13 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.05
+    2026.07.08
 """
 
 from __future__ import annotations
@@ -81,6 +81,11 @@ _PALETTE = [
     "#4a7fcb", "#d4a017", "#4caf50", "#c0392b",
     "#9b59b6", "#c97a30", "#5865f2", "#e05c5c",
 ]
+
+# Largeur maximale de la "feuille" de contenu (onglets Vue générale / Par plat),
+# centrée dans la zone défilante — évite que les tableaux à peu de colonnes ne
+# s'étirent sur toute la largeur de l'écran, et se rapproche du rendu du PDF exporté.
+_LARGEUR_FEUILLE = 850
 
 
 class StatsModule(QFrame):
@@ -149,6 +154,13 @@ class StatsModule(QFrame):
                 font-weight: 700;
                 padding: 2px 0;
             }}
+            QLabel#titrePlat {{
+                color: {_TEXT_TITLE};
+                font-size: 20px;
+                font-weight: 700;
+                text-decoration: underline;
+                padding: 4px 0 10px 0;
+            }}
             QLineEdit {{
                 background-color: #3b3f46;
                 color: {_TEXT_TITLE};
@@ -209,26 +221,45 @@ class StatsModule(QFrame):
             """
         )
 
+    def _build_scrollable_page(self, couleur_fond: str) -> tuple:
+        """Crée une zone défilante contenant une "feuille" centrée à largeur fixe (~format A4),
+        pour que le contenu (tableaux, cartes, graphiques) ne s'étire pas sur toute la largeur
+        de l'écran et se rapproche du rendu du PDF exporté.
+
+        :return: tuple (scroll_area, content_layout) — le layout est à remplir.
+        """
+        scroll_area = ScrollAreaTactile(couleur_fond)
+
+        feuille = QWidget()
+        feuille.setMaximumWidth(_LARGEUR_FEUILLE)
+        content_layout = QVBoxLayout(feuille)
+        content_layout.setContentsMargins(16, 16, 16, 16)
+        content_layout.setSpacing(12)
+
+        centreur = QWidget()
+        centreur_layout = QHBoxLayout(centreur)
+        centreur_layout.setContentsMargins(0, 0, 0, 0)
+        centreur_layout.addStretch()
+        centreur_layout.addWidget(feuille)
+        centreur_layout.addStretch()
+
+        scroll_area.setWidget(centreur)
+        return scroll_area, content_layout
+
     def _build_onglet_scrollable(self, titre: str) -> QVBoxLayout:
-        """Crée un onglet défilant (scroll area + conteneur) ajouté à self.tabs, et retourne son layout de contenu."""
+        """Crée un onglet défilant ajouté à self.tabs, et retourne son layout de contenu."""
         page = QWidget()
         page_layout = QVBoxLayout(page)
         page_layout.setContentsMargins(0, 0, 0, 0)
 
-        scroll_area = ScrollAreaTactile(_BG_MAIN)
+        scroll_area, content_layout = self._build_scrollable_page(_BG_MAIN)
         page_layout.addWidget(scroll_area)
-
-        content_container = QWidget()
-        content_layout = QVBoxLayout(content_container)
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(12)
-        scroll_area.setWidget(content_container)
 
         self.tabs.addTab(page, titre)
         return content_layout
 
     def _build_page_plat_scrollable(self) -> tuple:
-        """Crée une page défilante (scroll area + conteneur) destinée à un onglet de self.plats_tabs.
+        """Crée une page défilante destinée à un onglet de self.plats_tabs.
 
         :return: tuple (page, content_layout) — le layout est à remplir, la page à ajouter via addTab.
         """
@@ -236,14 +267,8 @@ class StatsModule(QFrame):
         page_layout = QVBoxLayout(page)
         page_layout.setContentsMargins(0, 0, 0, 0)
 
-        scroll_area = ScrollAreaTactile(_BG_CARD)
+        scroll_area, content_layout = self._build_scrollable_page(_BG_CARD)
         page_layout.addWidget(scroll_area)
-
-        content_container = QWidget()
-        content_layout = QVBoxLayout(content_container)
-        content_layout.setContentsMargins(10, 10, 10, 10)
-        content_layout.setSpacing(12)
-        scroll_area.setWidget(content_container)
 
         return page, content_layout
 
@@ -447,6 +472,8 @@ class StatsModule(QFrame):
         plats = self._stats.get("plats", [])
         temps_prepa_par_plat = {p["plat"]: p for p in self._temps_preparation.get("par_plat", [])}
         delais_par_plat = {p["plat"]: p for p in self._delais_livraison.get("par_plat", [])}
+        temps_prepa_heures = self._temps_preparation.get("par_plat_et_heure", {})
+        delais_heures = self._delais_livraison.get("par_plat_et_heure", {})
 
         for info_plat in sorted(plats, key=lambda p: p["nom"]):
             nom = info_plat["nom"]
@@ -454,6 +481,7 @@ class StatsModule(QFrame):
             self._render_page_plat(
                 layout, info_plat,
                 temps_prepa_par_plat.get(nom), delais_par_plat.get(nom), self._composition.get(nom),
+                temps_prepa_heures.get(nom, []), delais_heures.get(nom, []),
             )
             self.plats_tabs.addTab(page, nom)
 
@@ -475,33 +503,23 @@ class StatsModule(QFrame):
         self, layout: QVBoxLayout, info_plat: Dict[str, Any],
         temps_prepa: Optional[Dict[str, Any]], delais: Optional[Dict[str, Any]],
         composition: Optional[Dict[str, Any]],
+        temps_prepa_heures: List[Dict[str, Any]], delais_heures: List[Dict[str, Any]],
     ):
         nom = info_plat["nom"]
 
+        titre = QLabel(nom)
+        titre.setObjectName("titrePlat")
+        titre.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(titre)
+
         layout.addWidget(self._build_cartes_row([
             ("Quantité vendue", str(info_plat["quantite"])),
-            ("Montant", f"{info_plat['montant']:.2f} €"),
             ("Prix moyen", f"{info_plat['prix_moyen']:.2f} €"),
+            ("Montant", f"{info_plat['montant']:.2f} €"),
         ]))
 
-        if temps_prepa or delais:
-            layout.addWidget(self._build_section_title("Délais"))
-            cartes_delais = []
-            if temps_prepa:
-                cartes_delais.append((
-                    "Préparation moyenne",
-                    f"{temps_prepa['temps_moyen_minutes']:.1f} min",
-                ))
-            if delais:
-                cartes_delais.append((
-                    "Retrait moyen",
-                    f"{delais['temps_moyen_minutes']:.1f} min",
-                ))
-            layout.addWidget(self._build_cartes_row(cartes_delais))
-            if temps_prepa:
-                layout.addWidget(self._build_table_durees([temps_prepa]))
-            if delais:
-                layout.addWidget(self._build_table_durees([delais]))
+        self._ajouter_section_delai(layout, "Délais de préparation", temps_prepa, temps_prepa_heures)
+        self._ajouter_section_delai(layout, "Délais de livraison", delais, delais_heures)
 
         if nom == "Pizza":
             recettes = self._stats.get("recettes_pizza", [])
@@ -526,6 +544,20 @@ class StatsModule(QFrame):
             self._ajouter_classement(layout, "Ingrédients les plus choisis", composition.get("ingredients", []))
 
         layout.addStretch()
+
+    def _ajouter_section_delai(
+        self, layout: QVBoxLayout, titre: str,
+        stats_delai: Optional[Dict[str, Any]], par_heure: List[Dict[str, Any]],
+    ):
+        """Ajoute au layout une section délai (Moyenne/Minimum/Maximum + graphique horaire), si mesurée."""
+        if not stats_delai:
+            return
+        layout.addWidget(self._build_section_title(titre))
+        layout.addWidget(self._build_table_delai_compact(stats_delai))
+        if len(par_heure) > 1:
+            layout.addWidget(self._build_bar_chart(
+                [h["heure"] for h in par_heure], [h["temps_moyen_minutes"] for h in par_heure], "Minutes",
+            ))
 
     def _ajouter_classement(self, layout: QVBoxLayout, titre: str, classement: List[Dict[str, Any]]):
         """Ajoute au layout un titre + tableau de classement {nom, quantite}, si non vide."""
@@ -663,17 +695,14 @@ class StatsModule(QFrame):
         ]
         return self._build_table(["Recette pizza", "Quantité", "% pizzas"], lignes)
 
-    def _build_table_durees(self, par_plat: List[Dict[str, Any]]) -> QTableWidget:
-        lignes = [
-            [
-                p["plat"], str(p["nb_plats"]),
-                f"{p['temps_moyen_minutes']:.1f} min",
-                f"{p['temps_min_minutes']:.1f} min",
-                f"{p['temps_max_minutes']:.1f} min",
-            ]
-            for p in par_plat
-        ]
-        return self._build_table(["Plat", "Nb plats", "Moyenne", "Minimum", "Maximum"], lignes)
+    def _build_table_delai_compact(self, stats_delai: Dict[str, Any]) -> QTableWidget:
+        """Tableau compact (une ligne) Moyenne/Minimum/Maximum pour un délai d'un plat donné."""
+        lignes = [[
+            f"{stats_delai['temps_moyen_minutes']:.1f} min",
+            f"{stats_delai['temps_min_minutes']:.1f} min",
+            f"{stats_delai['temps_max_minutes']:.1f} min",
+        ]]
+        return self._build_table(["Moyenne", "Minimum", "Maximum"], lignes)
 
     # ── Export PDF ───────────────────────────────────────────────────────────
 
