@@ -716,24 +716,29 @@ Dialogue de filtres avancés : statut (multi-select), période (date début/fin)
 
 ### 8.3bis `stats`
 
-**Statistiques de vente et export PDF.** Vue de synthèse calculée sur les commandes **terminées** de l'historique, avec filtrage par période, graphiques (PySide6 `QtCharts`) et export du rapport en PDF (`reportlab`).
+**Statistiques de vente et statistiques opérationnelles, export PDF.** Vue de synthèse calculée sur l'historique des commandes, avec filtrage par période, graphiques (PySide6 `QtCharts`) et export du rapport en PDF (`reportlab`).
 
-#### `backend/stats.py` — `calculer_statistiques(orders, date_from=None, date_to=None) → dict`
+#### `backend/stats.py`
 
-Fonction pure (aucune dépendance Qt) qui agrège les commandes au statut `"terminée"` (les plats individuellement `"Annulé"` sont exclus) sur la période `[date_from, date_to]` (bornes incluses, `None` = pas de borne) :
-- `totaux` : nb commandes, montant total, nb plats vendus, panier moyen.
-- `plats` : ventilation par type de plat (quantité, montant, prix moyen), triée par quantité décroissante.
-- `paiements` : ventilation par moyen de paiement (quantité, %, montant).
-- `recettes_pizza` : ventilation des recettes de pizza (le suffixe `" - Modifié !"` est retiré), triée par quantité décroissante.
-- `ca_par_jour` : chiffre d'affaires par jour, trié chronologiquement.
+Fonctions pures (aucune dépendance Qt), toutes filtrées sur une période `[date_from, date_to]` (bornes incluses, `None` = pas de borne) :
 
-#### `backend/pdf_export.py` — `generer_rapport_pdf(stats, chemin_fichier, titre_periode="")`
+- `calculer_statistiques(orders, date_from=None, date_to=None) → dict` — agrège les commandes au statut `"terminée"` (les plats individuellement `"Annulé"` sont exclus), filtrées sur la date de création :
+  - `totaux` : nb commandes, montant total, nb plats vendus, panier moyen.
+  - `plats` : ventilation par type de plat (quantité, montant, prix moyen), triée par quantité décroissante.
+  - `paiements` : ventilation par moyen de paiement (quantité, %, montant).
+  - `recettes_pizza` : ventilation des recettes de pizza (le suffixe `" - Modifié !"` est retiré), triée par quantité décroissante.
+  - `ca_par_jour` : chiffre d'affaires par jour, trié chronologiquement.
+- `calculer_affluence(orders, date_from=None, date_to=None) → dict` — répartition horaire des **validations** de commande (`"Date de validation"`), filtrée sur cette même date. Une commande compte dès qu'elle a été validée quel que soit son statut final : une commande **annulée** a bien généré de l'affluence au moment de sa validation, même sans vente associée. Retourne `par_heure` (24 tranches `"00h"`…`"23h"`) et `totaux` (`nb_commandes_validees`, `nb_terminees`, `nb_annulees`, `nb_en_cours`).
+- `calculer_temps_preparation(orders, date_from=None, date_to=None) → dict` — durée entre la validation de la commande (tous les plats passent en `"En préparation"` à cet instant) et la mise à disposition du plat (`"Date de mise en livraison"` → statut `"Prêt"`), ventilée par type de plat. Un plat annulé avant d'avoir été prêt n'est pas comptabilisé (durée non mesurable). Retourne `par_plat` (`plat`, `nb_plats`, `temps_moyen_minutes`, `temps_min_minutes`, `temps_max_minutes`, triés par `nb_plats` décroissant) et `temps_moyen_global_minutes`.
+- `calculer_delais_livraison(orders, date_from=None, date_to=None) → dict` — délai de retrait par type de plat, entre la mise à disposition (`"Prêt"`) et la remise au client (`"Date de livraison"` → statut `"Livré"`). Même forme de retour que `calculer_temps_preparation`.
 
-Génère le PDF (`reportlab.platypus`) : totaux, histogramme + tableau par plat, camembert + tableau par moyen de paiement, tableau des recettes pizza, histogramme du CA par jour.
+#### `backend/pdf_export.py` — `generer_rapport_pdf(stats, chemin_fichier, titre_periode="", affluence=None, temps_preparation=None, delais_livraison=None)`
+
+Génère le PDF (`reportlab.platypus`) : totaux, histogramme + tableau par plat, camembert + tableau par moyen de paiement, tableau des recettes pizza, histogramme du CA par jour, puis (si fournis) histogramme des horaires d'affluence, histogramme + tableau du temps de préparation par plat, histogramme + tableau du délai de retrait par plat.
 
 #### `UI.py` — `StatsModule`
 
-Filtre de période (`JJ/MM/AAAA`), cartes de totaux, graphiques `QChartView` (barres/camemberts, thème sombre), tableaux détaillés, bouton "Exporter en PDF" (`QFileDialog` + log `EXPORT_RAPPORT_STATS`). Rafraîchissement automatique (5 s) court-circuité par `signature_history_orders()` + filtre courant. Signal `go_back` (→ Historique).
+Filtre de période (`JJ/MM/AAAA`), cartes de totaux, graphiques `QChartView` (barres/camemberts, thème sombre), tableaux détaillés, sections "Horaires d'affluence", "Temps de préparation par type de plat" et "Délai de retrait" (calculées via `calculer_affluence`/`calculer_temps_preparation`/`calculer_delais_livraison`), bouton "Exporter en PDF" (`QFileDialog` + log `EXPORT_RAPPORT_STATS`). Rafraîchissement automatique (5 s) court-circuité par `signature_history_orders()` + filtre courant. Signal `go_back` (→ Historique).
 
 ---
 

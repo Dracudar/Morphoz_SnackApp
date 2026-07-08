@@ -157,12 +157,34 @@ def _tableau_recettes(recettes: List[Dict[str, Any]]) -> Table:
     return table
 
 
-def generer_rapport_pdf(stats: Dict[str, Any], chemin_fichier: str, titre_periode: str = "") -> None:
+def _tableau_durees(par_plat: List[Dict[str, Any]]) -> Table:
+    data = [["Plat", "Nb plats", "Moyenne", "Minimum", "Maximum"]]
+    for p in par_plat:
+        data.append([
+            p["plat"], str(p["nb_plats"]),
+            f"{p['temps_moyen_minutes']:.1f} min", f"{p['temps_min_minutes']:.1f} min", f"{p['temps_max_minutes']:.1f} min",
+        ])
+    table = Table(data, colWidths=[5 * cm, 3 * cm, 3 * cm, 3 * cm, 3 * cm])
+    table.setStyle(_STYLE_ENTETE_TABLE)
+    return table
+
+
+def generer_rapport_pdf(
+    stats: Dict[str, Any],
+    chemin_fichier: str,
+    titre_periode: str = "",
+    affluence: Dict[str, Any] | None = None,
+    temps_preparation: Dict[str, Any] | None = None,
+    delais_livraison: Dict[str, Any] | None = None,
+) -> None:
     """Génère le rapport PDF de statistiques à l'emplacement demandé.
 
     :param stats: dict retourné par stats.calculer_statistiques
     :param chemin_fichier: chemin de destination du PDF
     :param titre_periode: texte affiché sous le titre (ex. "Du 01/07/2026 au 05/07/2026")
+    :param affluence: dict retourné par stats.calculer_affluence (optionnel)
+    :param temps_preparation: dict retourné par stats.calculer_temps_preparation (optionnel)
+    :param delais_livraison: dict retourné par stats.calculer_delais_livraison (optionnel)
     """
     styles = _feuille_styles()
     document = SimpleDocTemplate(
@@ -209,5 +231,41 @@ def generer_rapport_pdf(stats: Dict[str, Any], chemin_fichier: str, titre_period
         elements.append(_graphique_barres(
             [j["date"] for j in ca_par_jour], [j["montant"] for j in ca_par_jour],
         ))
+
+    affluence = affluence or {}
+    par_heure = affluence.get("par_heure", [])
+    totaux_affluence = affluence.get("totaux", {})
+    if totaux_affluence.get("nb_commandes_validees"):
+        elements.append(Paragraph("Horaires d'affluence", styles["TitreSection"]))
+        elements.append(Paragraph(
+            f"{totaux_affluence.get('nb_commandes_validees', 0)} commande(s) validée(s) prise(s) en compte, "
+            f"dont {totaux_affluence.get('nb_annulees', 0)} annulée(s) (basé sur l'heure de validation, "
+            "indépendamment du statut final).",
+            styles["Normal"],
+        ))
+        elements.append(Spacer(1, 6))
+        elements.append(_graphique_barres(
+            [h["heure"] for h in par_heure], [h["quantite"] for h in par_heure],
+        ))
+
+    temps_preparation = temps_preparation or {}
+    par_plat_prepa = temps_preparation.get("par_plat", [])
+    if par_plat_prepa:
+        elements.append(Paragraph("Temps de préparation par type de plat", styles["TitreSection"]))
+        elements.append(_graphique_barres(
+            [p["plat"] for p in par_plat_prepa], [p["temps_moyen_minutes"] for p in par_plat_prepa],
+        ))
+        elements.append(Spacer(1, 8))
+        elements.append(_tableau_durees(par_plat_prepa))
+
+    delais_livraison = delais_livraison or {}
+    par_plat_delais = delais_livraison.get("par_plat", [])
+    if par_plat_delais:
+        elements.append(Paragraph("Délai de retrait (plat prêt -&gt; remis au client)", styles["TitreSection"]))
+        elements.append(_graphique_barres(
+            [p["plat"] for p in par_plat_delais], [p["temps_moyen_minutes"] for p in par_plat_delais],
+        ))
+        elements.append(Spacer(1, 8))
+        elements.append(_tableau_durees(par_plat_delais))
 
     document.build(elements)

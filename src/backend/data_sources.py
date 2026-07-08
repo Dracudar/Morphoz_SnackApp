@@ -489,6 +489,9 @@ def get_all_history_orders() -> List[Dict[str, Any]]:
                         "price": line_data.get("Prix"),
                         "recette": line_data.get("Recette", ""),
                         "composition": line_data.get("Composition", {}),
+                        "ready_at": line_data.get("Date de mise en livraison", ["", ""]),
+                        "delivered_at": line_data.get("Date de livraison", ["", ""]),
+                        "cancelled_at": line_data.get("Date d'annulation", ["", ""]),
                     }
                 )
 

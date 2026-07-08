@@ -61,7 +61,12 @@ from src.UI.utils.icones import icone
 from src.backend import logger
 from src.backend.data_sources import get_all_history_orders, signature_history_orders
 from src.modules.stats.backend.pdf_export import generer_rapport_pdf
-from src.modules.stats.backend.stats import calculer_statistiques
+from src.modules.stats.backend.stats import (
+    calculer_affluence,
+    calculer_delais_livraison,
+    calculer_statistiques,
+    calculer_temps_preparation,
+)
 
 # ── Couleurs (identiques aux autres modules de consultation) ─────────────────
 _BG_MAIN     = "#2f3136"
@@ -85,6 +90,9 @@ class StatsModule(QFrame):
         super().__init__(parent)
         self.setObjectName("statsModule")
         self._stats: Dict[str, Any] = {}
+        self._affluence: Dict[str, Any] = {}
+        self._temps_preparation: Dict[str, Any] = {}
+        self._delais_livraison: Dict[str, Any] = {}
         self._last_key: Optional[tuple] = None
         self._build_ui()
         self._build_timer()
@@ -278,6 +286,9 @@ class StatsModule(QFrame):
         date_to = self._parse_date(self.date_to_field.text(), "23:59")
         orders = get_all_history_orders()
         self._stats = calculer_statistiques(orders, date_from, date_to)
+        self._affluence = calculer_affluence(orders, date_from, date_to)
+        self._temps_preparation = calculer_temps_preparation(orders, date_from, date_to)
+        self._delais_livraison = calculer_delais_livraison(orders, date_from, date_to)
         self._render_stats()
 
     def _clear_content(self):
@@ -327,6 +338,40 @@ class StatsModule(QFrame):
             self.content_layout.addWidget(self._build_bar_chart(
                 [j["date"] for j in ca_par_jour], [j["montant"] for j in ca_par_jour], "Montant (€)",
             ))
+
+        affluence = self._affluence.get("par_heure", [])
+        totaux_affluence = self._affluence.get("totaux", {})
+        if totaux_affluence.get("nb_commandes_validees"):
+            self.content_layout.addWidget(self._build_section_title("Horaires d'affluence"))
+            note = QLabel(
+                f"{totaux_affluence.get('nb_commandes_validees', 0)} commande(s) validée(s) prise(s) en "
+                f"compte, dont {totaux_affluence.get('nb_annulees', 0)} annulée(s) (basé sur l'heure de "
+                "validation, indépendamment du statut final)."
+            )
+            note.setWordWrap(True)
+            note.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 12px;")
+            self.content_layout.addWidget(note)
+            self.content_layout.addWidget(self._build_bar_chart(
+                [h["heure"] for h in affluence], [h["quantite"] for h in affluence], "Commandes validées",
+            ))
+
+        temps_prepa = self._temps_preparation.get("par_plat", [])
+        if temps_prepa:
+            self.content_layout.addWidget(self._build_section_title("Temps de préparation par type de plat"))
+            self.content_layout.addWidget(self._build_bar_chart(
+                [p["plat"] for p in temps_prepa], [p["temps_moyen_minutes"] for p in temps_prepa],
+                "Temps moyen (min)",
+            ))
+            self.content_layout.addWidget(self._build_table_durees(temps_prepa))
+
+        delais_livraison = self._delais_livraison.get("par_plat", [])
+        if delais_livraison:
+            self.content_layout.addWidget(self._build_section_title("Délai de retrait (plat prêt → remis au client)"))
+            self.content_layout.addWidget(self._build_bar_chart(
+                [p["plat"] for p in delais_livraison], [p["temps_moyen_minutes"] for p in delais_livraison],
+                "Délai moyen (min)",
+            ))
+            self.content_layout.addWidget(self._build_table_durees(delais_livraison))
 
         if not totaux.get("nb_commandes"):
             vide = QLabel("Aucune commande terminée sur cette période.")
@@ -472,6 +517,18 @@ class StatsModule(QFrame):
         ]
         return self._build_table(["Recette pizza", "Quantité", "% pizzas"], lignes)
 
+    def _build_table_durees(self, par_plat: List[Dict[str, Any]]) -> QTableWidget:
+        lignes = [
+            [
+                p["plat"], str(p["nb_plats"]),
+                f"{p['temps_moyen_minutes']:.1f} min",
+                f"{p['temps_min_minutes']:.1f} min",
+                f"{p['temps_max_minutes']:.1f} min",
+            ]
+            for p in par_plat
+        ]
+        return self._build_table(["Plat", "Nb plats", "Moyenne", "Minimum", "Maximum"], lignes)
+
     # ── Export PDF ───────────────────────────────────────────────────────────
 
     def _on_export_pdf(self):
@@ -482,7 +539,12 @@ class StatsModule(QFrame):
         if not chemin.lower().endswith(".pdf"):
             chemin += ".pdf"
         try:
-            generer_rapport_pdf(self._stats, chemin, self._titre_periode())
+            generer_rapport_pdf(
+                self._stats, chemin, self._titre_periode(),
+                affluence=self._affluence,
+                temps_preparation=self._temps_preparation,
+                delais_livraison=self._delais_livraison,
+            )
         except Exception as e:
             QMessageBox.warning(self, "Export PDF", f"Erreur lors de la génération du PDF :\n{e}")
             return

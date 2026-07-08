@@ -227,6 +227,30 @@ class TestGetAllHistoryOrders:
         item = orders[0]["items"][0]
         assert item["recette"] == ""
         assert item["composition"] == {}
+        assert item["ready_at"] == ["", ""]
+        assert item["delivered_at"] == ["", ""]
+        assert item["cancelled_at"] == ["", ""]
+
+    def test_expose_les_horodatages_par_plat(self, monkeypatch, tmp_path):
+        terminee = tmp_path / "terminee"
+        terminee.mkdir()
+        data = {
+            "Informations": {"ID": "20260701-003", "Statut": "Terminée"},
+            "Commande": {
+                "P001": {
+                    "ID": "P001", "Plat": "Pizza", "Statut": "Livré",
+                    "Date de mise en livraison": ["01/07/2026", "12:20"],
+                    "Date de livraison": ["01/07/2026", "12:27"],
+                }
+            },
+        }
+        (terminee / "commande_20260701-003.json").write_text(json.dumps(data), encoding="utf-8")
+        monkeypatch.setattr(data_sources, "get_command_root", lambda: tmp_path)
+
+        orders = get_all_history_orders()
+        item = orders[0]["items"][0]
+        assert item["ready_at"] == ["01/07/2026", "12:20"]
+        assert item["delivered_at"] == ["01/07/2026", "12:27"]
 
 
 # ── Signatures de court-circuit ───────────────────────────────────────────────

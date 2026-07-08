@@ -13,17 +13,26 @@ Description:
     commande en cours n'est pas encore une vente finalisée) ; au sein d'une
     commande terminée, les plats individuellement annulés sont exclus.
 
+    Fournit également des statistiques opérationnelles calculées sur toutes
+    les commandes validées (terminées, annulées ou encore en cours), car une
+    commande annulée a bien été validée et compte donc dans l'affluence :
+    - calculer_affluence : répartition horaire des validations de commande.
+    - calculer_temps_preparation : durée entre validation de la commande et
+      mise à disposition ("Prêt") de chaque plat, par type de plat.
+    - calculer_delais_retrait : durée entre la mise à disposition d'un plat
+      ("Prêt") et sa remise au client ("Livré"), par type de plat.
+
 Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.05
+    2026.07.08
 """
 
 from __future__ import annotations
@@ -33,15 +42,14 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 
-def _order_datetime(order: Dict[str, Any]) -> Optional[datetime]:
-    """Retourne le datetime de création de la commande (date seule si l'heure est absente)."""
-    created = order.get("created_at", ["", ""])
-    if not isinstance(created, list) or not created:
+def _horodatage(valeur: Any) -> Optional[datetime]:
+    """Convertit un champ ["JJ/MM/AAAA", "HH:MM"] (ou variante) en datetime, ou None si vide/invalide."""
+    if not isinstance(valeur, list) or not valeur:
         return None
-    date_str = str(created[0]).strip()
+    date_str = str(valeur[0]).strip()
     if not date_str:
         return None
-    time_str = str(created[1]).strip() if len(created) >= 2 else ""
+    time_str = str(valeur[1]).strip() if len(valeur) >= 2 else ""
     for fmt in ("%d/%m/%Y", "%d/%m/%y"):
         try:
             d = datetime.strptime(date_str, fmt)
@@ -55,6 +63,20 @@ def _order_datetime(order: Dict[str, Any]) -> Optional[datetime]:
                 pass
         return d
     return None
+
+
+def _order_datetime(order: Dict[str, Any]) -> Optional[datetime]:
+    """Retourne le datetime de création de la commande (date seule si l'heure est absente)."""
+    return _horodatage(order.get("created_at", ["", ""]))
+
+
+def _dans_periode(dt: Optional[datetime], date_from: Optional[datetime], date_to: Optional[datetime]) -> bool:
+    """Vérifie qu'un datetime tombe dans la période [date_from, date_to] (bornes incluses, None = pas de borne)."""
+    if date_from and (dt is None or dt < date_from):
+        return False
+    if date_to and (dt is None or dt > date_to):
+        return False
+    return True
 
 
 def _cle_tri_date(date_str: str) -> datetime:
@@ -95,9 +117,7 @@ def calculer_statistiques(
             continue
 
         dt = _order_datetime(order)
-        if date_from and (dt is None or dt < date_from):
-            continue
-        if date_to and (dt is None or dt > date_to):
+        if not _dans_periode(dt, date_from, date_to):
             continue
 
         montant = order.get("amount") or 0
@@ -179,4 +199,169 @@ def calculer_statistiques(
         "paiements": liste_paiements,
         "recettes_pizza": liste_recettes,
         "ca_par_jour": liste_ca_jour,
+    }
+
+
+def calculer_affluence(
+    orders: List[Dict[str, Any]],
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+) -> Dict[str, Any]:
+    """Calcule la répartition horaire des validations de commande (horaires d'affluence).
+
+    Une commande compte dès qu'elle a été validée (passage en "en_cours"), quel que
+    soit son statut final : une commande annulée a bien généré de l'affluence au
+    moment de sa validation, même si elle n'a pas été facturée. Le filtrage de
+    période se fait sur la date de validation, pas sur la date de création.
+
+    :param orders: commandes issues de get_all_history_orders()
+    :param date_from: borne de début incluse (None = pas de borne)
+    :param date_to: borne de fin incluse (None = pas de borne)
+    :return: dict avec "par_heure" (24 tranches horaires) et "totaux" (répartition
+        par statut des commandes prises en compte).
+    """
+    par_heure: Dict[int, int] = defaultdict(int)
+    nb_terminees = 0
+    nb_annulees = 0
+    nb_en_cours = 0
+
+    for order in orders:
+        dt_validation = _horodatage(order.get("validation_at"))
+        if dt_validation is None:
+            continue
+        if not _dans_periode(dt_validation, date_from, date_to):
+            continue
+
+        par_heure[dt_validation.hour] += 1
+
+        statut = (order.get("status") or "").lower()
+        if statut == "terminée":
+            nb_terminees += 1
+        elif statut == "annulée":
+            nb_annulees += 1
+        else:
+            nb_en_cours += 1
+
+    liste_par_heure = [
+        {"heure": f"{h:02d}h", "quantite": par_heure.get(h, 0)}
+        for h in range(24)
+    ]
+
+    return {
+        "par_heure": liste_par_heure,
+        "totaux": {
+            "nb_commandes_validees": nb_terminees + nb_annulees + nb_en_cours,
+            "nb_terminees": nb_terminees,
+            "nb_annulees": nb_annulees,
+            "nb_en_cours": nb_en_cours,
+        },
+    }
+
+
+def _ventiler_par_plat(durees_par_plat: Dict[str, List[float]]) -> List[Dict[str, Any]]:
+    """Construit la liste triée {plat, nb_plats, temps_moyen/min/max_minutes} à partir de durées en minutes."""
+    resultat = [
+        {
+            "plat": plat,
+            "nb_plats": len(durees),
+            "temps_moyen_minutes": round(sum(durees) / len(durees), 1),
+            "temps_min_minutes": round(min(durees), 1),
+            "temps_max_minutes": round(max(durees), 1),
+        }
+        for plat, durees in durees_par_plat.items()
+        if durees
+    ]
+    resultat.sort(key=lambda p: p["nb_plats"], reverse=True)
+    return resultat
+
+
+def calculer_temps_preparation(
+    orders: List[Dict[str, Any]],
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+) -> Dict[str, Any]:
+    """Calcule le temps de préparation par type de plat (validation de la commande → plat "Prêt").
+
+    Le point de départ est la validation de la commande (tous les plats passent en
+    "En préparation" à cet instant) ; le point d'arrivée est la mise à disposition du
+    plat ("Date de mise en livraison"). Les plats annulés avant d'avoir été prêts
+    (jamais passés par "Prêt") ne sont pas comptabilisés, faute de durée mesurable.
+
+    :param orders: commandes issues de get_all_history_orders()
+    :param date_from: borne de début incluse sur la date de validation (None = pas de borne)
+    :param date_to: borne de fin incluse sur la date de validation (None = pas de borne)
+    :return: dict avec "par_plat" (liste triée par nombre de plats) et
+        "temps_moyen_global_minutes".
+    """
+    durees_par_plat: Dict[str, List[float]] = defaultdict(list)
+    toutes_durees: List[float] = []
+
+    for order in orders:
+        dt_validation = _horodatage(order.get("validation_at"))
+        if dt_validation is None:
+            continue
+        if not _dans_periode(dt_validation, date_from, date_to):
+            continue
+
+        for item in order.get("items", []):
+            dt_pret = _horodatage(item.get("ready_at"))
+            if dt_pret is None:
+                continue
+            duree_minutes = (dt_pret - dt_validation).total_seconds() / 60
+            if duree_minutes < 0:
+                continue
+
+            type_plat = item.get("plat") or item.get("nom") or "Inconnu"
+            durees_par_plat[type_plat].append(duree_minutes)
+            toutes_durees.append(duree_minutes)
+
+    return {
+        "par_plat": _ventiler_par_plat(durees_par_plat),
+        "temps_moyen_global_minutes": round(sum(toutes_durees) / len(toutes_durees), 1) if toutes_durees else 0,
+    }
+
+
+def calculer_delais_livraison(
+    orders: List[Dict[str, Any]],
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+) -> Dict[str, Any]:
+    """Calcule le délai de retrait par type de plat (plat "Prêt" → remise au client "Livré").
+
+    Mesure le temps pendant lequel un plat prêt a attendu que le client vienne le
+    chercher. Seuls les plats effectivement livrés (avec une date de mise à
+    disposition et une date de livraison) sont comptabilisés.
+
+    :param orders: commandes issues de get_all_history_orders()
+    :param date_from: borne de début incluse sur la date de validation (None = pas de borne)
+    :param date_to: borne de fin incluse sur la date de validation (None = pas de borne)
+    :return: dict avec "par_plat" (liste triée par nombre de plats) et
+        "temps_moyen_global_minutes".
+    """
+    durees_par_plat: Dict[str, List[float]] = defaultdict(list)
+    toutes_durees: List[float] = []
+
+    for order in orders:
+        dt_validation = _horodatage(order.get("validation_at"))
+        if dt_validation is None:
+            continue
+        if not _dans_periode(dt_validation, date_from, date_to):
+            continue
+
+        for item in order.get("items", []):
+            dt_pret = _horodatage(item.get("ready_at"))
+            dt_livre = _horodatage(item.get("delivered_at"))
+            if dt_pret is None or dt_livre is None:
+                continue
+            duree_minutes = (dt_livre - dt_pret).total_seconds() / 60
+            if duree_minutes < 0:
+                continue
+
+            type_plat = item.get("plat") or item.get("nom") or "Inconnu"
+            durees_par_plat[type_plat].append(duree_minutes)
+            toutes_durees.append(duree_minutes)
+
+    return {
+        "par_plat": _ventiler_par_plat(durees_par_plat),
+        "temps_moyen_global_minutes": round(sum(toutes_durees) / len(toutes_durees), 1) if toutes_durees else 0,
     }

@@ -21,7 +21,12 @@ Date de modification:
 
 from datetime import datetime
 
-from src.modules.stats.backend.stats import calculer_statistiques
+from src.modules.stats.backend.stats import (
+    calculer_affluence,
+    calculer_delais_livraison,
+    calculer_statistiques,
+    calculer_temps_preparation,
+)
 
 
 def _commande(
@@ -40,6 +45,26 @@ def _commande(
 
 def _plat(plat="Pizza", statut="Livré", prix=8.0, recette="Margherita"):
     return {"plat": plat, "nom": f"{plat}", "status": statut, "price": prix, "recette": recette}
+
+
+def _commande_validee(
+    id_, statut="Terminée", date_validation="01/07/2026", heure_validation="12:00", items=None,
+):
+    return {
+        "id": id_,
+        "status": statut,
+        "validation_at": [date_validation, heure_validation],
+        "items": items or [],
+    }
+
+
+def _plat_horodate(plat="Pizza", heure_pret=None, heure_livre=None, date="01/07/2026"):
+    return {
+        "plat": plat,
+        "nom": plat,
+        "ready_at": [date, heure_pret] if heure_pret else ["", ""],
+        "delivered_at": [date, heure_livre] if heure_livre else ["", ""],
+    }
 
 
 class TestCalculerStatistiques:
@@ -151,6 +176,128 @@ class TestCalculerStatistiques:
         orders = [_commande("1", date_creation="01/07/2026", montant=10.0, )]
         stats = calculer_statistiques(orders, date_to=datetime(2026, 7, 1, 23, 59))
         assert stats["totaux"]["nb_commandes"] == 1
+
+
+class TestCalculerAffluence:
+    def test_liste_vide(self):
+        stats = calculer_affluence([])
+        assert stats["par_heure"] == [{"heure": f"{h:02d}h", "quantite": 0} for h in range(24)]
+        assert stats["totaux"] == {
+            "nb_commandes_validees": 0, "nb_terminees": 0, "nb_annulees": 0, "nb_en_cours": 0,
+        }
+
+    def test_ignore_commandes_non_validees(self):
+        orders = [{"id": "1", "status": "Terminée", "items": []}]
+        stats = calculer_affluence(orders)
+        assert stats["totaux"]["nb_commandes_validees"] == 0
+
+    def test_repartition_par_heure(self):
+        orders = [
+            _commande_validee("1", heure_validation="12:15"),
+            _commande_validee("2", heure_validation="12:45"),
+            _commande_validee("3", heure_validation="19:00"),
+        ]
+        stats = calculer_affluence(orders)
+        par_heure = {p["heure"]: p["quantite"] for p in stats["par_heure"]}
+        assert par_heure["12h"] == 2
+        assert par_heure["19h"] == 1
+        assert par_heure["08h"] == 0
+
+    def test_prend_en_compte_les_commandes_annulees(self):
+        """Une commande annulée a bien été validée : elle compte dans l'affluence."""
+        orders = [
+            _commande_validee("1", statut="Terminée"),
+            _commande_validee("2", statut="Annulée"),
+        ]
+        stats = calculer_affluence(orders)
+        assert stats["totaux"]["nb_commandes_validees"] == 2
+        assert stats["totaux"]["nb_terminees"] == 1
+        assert stats["totaux"]["nb_annulees"] == 1
+        assert sum(p["quantite"] for p in stats["par_heure"]) == 2
+
+    def test_filtre_periode_sur_date_validation(self):
+        orders = [
+            _commande_validee("1", date_validation="01/07/2026"),
+            _commande_validee("2", date_validation="10/07/2026"),
+        ]
+        stats = calculer_affluence(orders, date_from=datetime(2026, 7, 5))
+        assert stats["totaux"]["nb_commandes_validees"] == 1
+
+
+class TestCalculerTempsPreparation:
+    def test_liste_vide(self):
+        stats = calculer_temps_preparation([])
+        assert stats["par_plat"] == []
+        assert stats["temps_moyen_global_minutes"] == 0
+
+    def test_duree_entre_validation_et_pret(self):
+        orders = [
+            _commande_validee("1", heure_validation="12:00", items=[
+                _plat_horodate("Pizza", heure_pret="12:20"),
+            ]),
+        ]
+        stats = calculer_temps_preparation(orders)
+        assert len(stats["par_plat"]) == 1
+        pizza = stats["par_plat"][0]
+        assert pizza["plat"] == "Pizza"
+        assert pizza["nb_plats"] == 1
+        assert pizza["temps_moyen_minutes"] == 20.0
+        assert stats["temps_moyen_global_minutes"] == 20.0
+
+    def test_ignore_plats_jamais_prets(self):
+        """Un plat annulé avant d'avoir été prêt n'a pas de durée mesurable."""
+        orders = [
+            _commande_validee("1", items=[_plat_horodate("Pizza", heure_pret=None)]),
+        ]
+        stats = calculer_temps_preparation(orders)
+        assert stats["par_plat"] == []
+
+    def test_moyenne_min_max_par_type_de_plat(self):
+        orders = [
+            _commande_validee("1", heure_validation="12:00", items=[
+                _plat_horodate("Pizza", heure_pret="12:10"),
+                _plat_horodate("Pizza", heure_pret="12:30"),
+            ]),
+        ]
+        stats = calculer_temps_preparation(orders)
+        pizza = stats["par_plat"][0]
+        assert pizza["nb_plats"] == 2
+        assert pizza["temps_min_minutes"] == 10.0
+        assert pizza["temps_max_minutes"] == 30.0
+        assert pizza["temps_moyen_minutes"] == 20.0
+
+    def test_ignore_commandes_non_validees(self):
+        orders = [{"id": "1", "items": [_plat_horodate("Pizza", heure_pret="12:10")]}]
+        stats = calculer_temps_preparation(orders)
+        assert stats["par_plat"] == []
+
+
+class TestCalculerDelaisLivraison:
+    def test_liste_vide(self):
+        stats = calculer_delais_livraison([])
+        assert stats["par_plat"] == []
+        assert stats["temps_moyen_global_minutes"] == 0
+
+    def test_duree_entre_pret_et_livre(self):
+        orders = [
+            _commande_validee("1", items=[
+                _plat_horodate("Pizza", heure_pret="12:00", heure_livre="12:07"),
+            ]),
+        ]
+        stats = calculer_delais_livraison(orders)
+        pizza = stats["par_plat"][0]
+        assert pizza["nb_plats"] == 1
+        assert pizza["temps_moyen_minutes"] == 7.0
+        assert stats["temps_moyen_global_minutes"] == 7.0
+
+    def test_ignore_plats_non_livres(self):
+        orders = [
+            _commande_validee("1", items=[
+                _plat_horodate("Pizza", heure_pret="12:00", heure_livre=None),
+            ]),
+        ]
+        stats = calculer_delais_livraison(orders)
+        assert stats["par_plat"] == []
 
     def test_montant_absent_traite_comme_zero(self):
         orders = [_commande("1", montant=0.0)]
