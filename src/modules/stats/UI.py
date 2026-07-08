@@ -52,6 +52,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -63,6 +64,7 @@ from src.backend.data_sources import get_all_history_orders, signature_history_o
 from src.modules.stats.backend.pdf_export import generer_rapport_pdf
 from src.modules.stats.backend.stats import (
     calculer_affluence,
+    calculer_composition_par_plat,
     calculer_delais_livraison,
     calculer_statistiques,
     calculer_temps_preparation,
@@ -93,6 +95,7 @@ class StatsModule(QFrame):
         self._affluence: Dict[str, Any] = {}
         self._temps_preparation: Dict[str, Any] = {}
         self._delais_livraison: Dict[str, Any] = {}
+        self._composition: Dict[str, Dict[str, Any]] = {}
         self._last_key: Optional[tuple] = None
         self._build_ui()
         self._build_timer()
@@ -114,14 +117,17 @@ class StatsModule(QFrame):
 
         main_layout.addLayout(self._build_filter_row())
 
-        self.scroll_area = ScrollAreaTactile(_BG_MAIN)
-        main_layout.addWidget(self.scroll_area, 1)
+        self.tabs = QTabWidget()
+        main_layout.addWidget(self.tabs, 1)
 
-        self.content_container = QWidget()
-        self.content_layout = QVBoxLayout(self.content_container)
-        self.content_layout.setContentsMargins(0, 0, 0, 0)
-        self.content_layout.setSpacing(12)
-        self.scroll_area.setWidget(self.content_container)
+        self.general_layout = self._build_onglet_scrollable("Vue générale")
+        self.plats_tabs = QTabWidget()
+        self.plats_tabs.setDocumentMode(True)
+        page_plats = QWidget()
+        page_plats_layout = QVBoxLayout(page_plats)
+        page_plats_layout.setContentsMargins(0, 0, 0, 0)
+        page_plats_layout.addWidget(self.plats_tabs)
+        self.tabs.addTab(page_plats, "Par plat")
 
         main_layout.addLayout(self._build_bottom_bar())
 
@@ -179,8 +185,67 @@ class StatsModule(QFrame):
                 border: 1px solid {_BORDER_CARD};
                 font-weight: 600;
             }}
+            QTabWidget::pane {{
+                background-color: {_BG_MAIN};
+                border: 1px solid {_BORDER_CARD};
+                top: -1px;
+            }}
+            QTabBar::tab {{
+                background-color: {_BG_CARD};
+                color: {_TEXT_MUTED};
+                border: 1px solid {_BORDER_CARD};
+                border-bottom: none;
+                padding: 8px 16px;
+                font-size: 13px;
+                font-weight: 600;
+            }}
+            QTabBar::tab:selected {{
+                background-color: {_BG_MAIN};
+                color: {_TEXT_TITLE};
+            }}
+            QTabBar::tab:hover {{
+                color: {_TEXT_TITLE};
+            }}
             """
         )
+
+    def _build_onglet_scrollable(self, titre: str) -> QVBoxLayout:
+        """Crée un onglet défilant (scroll area + conteneur) ajouté à self.tabs, et retourne son layout de contenu."""
+        page = QWidget()
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+
+        scroll_area = ScrollAreaTactile(_BG_MAIN)
+        page_layout.addWidget(scroll_area)
+
+        content_container = QWidget()
+        content_layout = QVBoxLayout(content_container)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(12)
+        scroll_area.setWidget(content_container)
+
+        self.tabs.addTab(page, titre)
+        return content_layout
+
+    def _build_page_plat_scrollable(self) -> tuple:
+        """Crée une page défilante (scroll area + conteneur) destinée à un onglet de self.plats_tabs.
+
+        :return: tuple (page, content_layout) — le layout est à remplir, la page à ajouter via addTab.
+        """
+        page = QWidget()
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+
+        scroll_area = ScrollAreaTactile(_BG_CARD)
+        page_layout.addWidget(scroll_area)
+
+        content_container = QWidget()
+        content_layout = QVBoxLayout(content_container)
+        content_layout.setContentsMargins(10, 10, 10, 10)
+        content_layout.setSpacing(12)
+        scroll_area.setWidget(content_container)
+
+        return page, content_layout
 
     def _build_filter_row(self) -> QHBoxLayout:
         row = QHBoxLayout()
@@ -289,60 +354,63 @@ class StatsModule(QFrame):
         self._affluence = calculer_affluence(orders, date_from, date_to)
         self._temps_preparation = calculer_temps_preparation(orders, date_from, date_to)
         self._delais_livraison = calculer_delais_livraison(orders, date_from, date_to)
+        self._composition = calculer_composition_par_plat(orders, date_from, date_to)
         self._render_stats()
 
-    def _clear_content(self):
-        while self.content_layout.count():
-            item = self.content_layout.takeAt(0)
+    def _clear_layout(self, layout):
+        while layout.count():
+            item = layout.takeAt(0)
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
 
     def _render_stats(self):
-        self._clear_content()
+        stats = self._stats
+        totaux = stats.get("totaux", {})
+        self.export_button.setEnabled(bool(totaux.get("nb_commandes")))
+
+        self._render_vue_generale()
+        self._render_par_plat()
+
+    def _render_vue_generale(self):
+        self._clear_layout(self.general_layout)
         stats = self._stats
         totaux = stats.get("totaux", {})
 
-        self.export_button.setEnabled(bool(totaux.get("nb_commandes")))
-
-        self.content_layout.addWidget(self._build_totaux_row(totaux))
+        self.general_layout.addWidget(self._build_cartes_row([
+            ("Commandes", str(totaux.get("nb_commandes", 0))),
+            ("Montant total", f"{totaux.get('montant_total', 0):.2f} €"),
+            ("Panier moyen", f"{totaux.get('panier_moyen', 0):.2f} €"),
+            ("Plats vendus", str(totaux.get("nb_plats", 0))),
+        ]))
 
         plats = stats.get("plats", [])
         if plats:
-            self.content_layout.addWidget(self._build_section_title("Ventilation par plat"))
+            self.general_layout.addWidget(self._build_section_title("Ventilation par plat"))
             top_plats = plats[:8]
-            self.content_layout.addWidget(self._build_bar_chart(
+            self.general_layout.addWidget(self._build_bar_chart(
                 [p["nom"] for p in top_plats], [p["quantite"] for p in top_plats], "Quantité vendue",
             ))
-            self.content_layout.addWidget(self._build_table_plats(plats))
 
         paiements = stats.get("paiements", [])
         if paiements:
-            self.content_layout.addWidget(self._build_section_title("Répartition des moyens de paiement"))
-            self.content_layout.addWidget(self._build_pie_chart(
+            self.general_layout.addWidget(self._build_section_title("Répartition des moyens de paiement"))
+            self.general_layout.addWidget(self._build_pie_chart(
                 [p["type"] for p in paiements], [p["quantite"] for p in paiements],
             ))
-            self.content_layout.addWidget(self._build_table_paiements(paiements))
-
-        recettes = stats.get("recettes_pizza", [])
-        if recettes:
-            self.content_layout.addWidget(self._build_section_title("Recettes pizza les plus vendues"))
-            self.content_layout.addWidget(self._build_pie_chart(
-                [r["recette"] for r in recettes], [r["quantite"] for r in recettes],
-            ))
-            self.content_layout.addWidget(self._build_table_recettes(recettes))
+            self.general_layout.addWidget(self._build_table_paiements(paiements))
 
         ca_par_jour = stats.get("ca_par_jour", [])
         if len(ca_par_jour) > 1:
-            self.content_layout.addWidget(self._build_section_title("Chiffre d'affaires par jour"))
-            self.content_layout.addWidget(self._build_bar_chart(
+            self.general_layout.addWidget(self._build_section_title("Chiffre d'affaires par jour"))
+            self.general_layout.addWidget(self._build_bar_chart(
                 [j["date"] for j in ca_par_jour], [j["montant"] for j in ca_par_jour], "Montant (€)",
             ))
 
         affluence = self._affluence.get("par_heure", [])
         totaux_affluence = self._affluence.get("totaux", {})
         if totaux_affluence.get("nb_commandes_validees"):
-            self.content_layout.addWidget(self._build_section_title("Horaires d'affluence"))
+            self.general_layout.addWidget(self._build_section_title("Horaires d'affluence"))
             note = QLabel(
                 f"{totaux_affluence.get('nb_commandes_validees', 0)} commande(s) validée(s) prise(s) en "
                 f"compte, dont {totaux_affluence.get('nb_annulees', 0)} annulée(s) (basé sur l'heure de "
@@ -350,36 +418,126 @@ class StatsModule(QFrame):
             )
             note.setWordWrap(True)
             note.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 12px;")
-            self.content_layout.addWidget(note)
-            self.content_layout.addWidget(self._build_bar_chart(
+            self.general_layout.addWidget(note)
+            self.general_layout.addWidget(self._build_bar_chart(
                 [h["heure"] for h in affluence], [h["quantite"] for h in affluence], "Commandes validées",
             ))
-
-        temps_prepa = self._temps_preparation.get("par_plat", [])
-        if temps_prepa:
-            self.content_layout.addWidget(self._build_section_title("Temps de préparation par type de plat"))
-            self.content_layout.addWidget(self._build_bar_chart(
-                [p["plat"] for p in temps_prepa], [p["temps_moyen_minutes"] for p in temps_prepa],
-                "Temps moyen (min)",
-            ))
-            self.content_layout.addWidget(self._build_table_durees(temps_prepa))
-
-        delais_livraison = self._delais_livraison.get("par_plat", [])
-        if delais_livraison:
-            self.content_layout.addWidget(self._build_section_title("Délai de retrait (plat prêt → remis au client)"))
-            self.content_layout.addWidget(self._build_bar_chart(
-                [p["plat"] for p in delais_livraison], [p["temps_moyen_minutes"] for p in delais_livraison],
-                "Délai moyen (min)",
-            ))
-            self.content_layout.addWidget(self._build_table_durees(delais_livraison))
 
         if not totaux.get("nb_commandes"):
             vide = QLabel("Aucune commande terminée sur cette période.")
             vide.setAlignment(Qt.AlignmentFlag.AlignCenter)
             vide.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 14px; padding: 20px;")
-            self.content_layout.addWidget(vide)
+            self.general_layout.addWidget(vide)
 
-        self.content_layout.addStretch()
+        self.general_layout.addStretch()
+
+    def _render_par_plat(self):
+        """Reconstruit l'onglet "Par plat" : un sous-onglet par plat présent dans la période,
+        avec un contenu plus ou moins riche selon les données disponibles pour ce type de plat
+        (recettes pour la pizza, composition pour les plats personnalisables, temps de
+        préparation/retrait si mesurés, ou simplement les totaux de vente pour un plat simple).
+        """
+        onglet_precedent = self.plats_tabs.tabText(self.plats_tabs.currentIndex())
+
+        while self.plats_tabs.count():
+            widget = self.plats_tabs.widget(0)
+            self.plats_tabs.removeTab(0)
+            widget.deleteLater()
+
+        plats = self._stats.get("plats", [])
+        temps_prepa_par_plat = {p["plat"]: p for p in self._temps_preparation.get("par_plat", [])}
+        delais_par_plat = {p["plat"]: p for p in self._delais_livraison.get("par_plat", [])}
+
+        for info_plat in sorted(plats, key=lambda p: p["nom"]):
+            nom = info_plat["nom"]
+            page, layout = self._build_page_plat_scrollable()
+            self._render_page_plat(
+                layout, info_plat,
+                temps_prepa_par_plat.get(nom), delais_par_plat.get(nom), self._composition.get(nom),
+            )
+            self.plats_tabs.addTab(page, nom)
+
+        if not plats:
+            page, layout = self._build_page_plat_scrollable()
+            vide = QLabel("Aucun plat vendu sur cette période.")
+            vide.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            vide.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 14px; padding: 20px;")
+            layout.addWidget(vide)
+            layout.addStretch()
+            self.plats_tabs.addTab(page, "—")
+
+        index_restaure = next(
+            (i for i in range(self.plats_tabs.count()) if self.plats_tabs.tabText(i) == onglet_precedent), 0,
+        )
+        self.plats_tabs.setCurrentIndex(index_restaure)
+
+    def _render_page_plat(
+        self, layout: QVBoxLayout, info_plat: Dict[str, Any],
+        temps_prepa: Optional[Dict[str, Any]], delais: Optional[Dict[str, Any]],
+        composition: Optional[Dict[str, Any]],
+    ):
+        nom = info_plat["nom"]
+
+        layout.addWidget(self._build_cartes_row([
+            ("Quantité vendue", str(info_plat["quantite"])),
+            ("Montant", f"{info_plat['montant']:.2f} €"),
+            ("Prix moyen", f"{info_plat['prix_moyen']:.2f} €"),
+        ]))
+
+        if temps_prepa or delais:
+            layout.addWidget(self._build_section_title("Délais"))
+            cartes_delais = []
+            if temps_prepa:
+                cartes_delais.append((
+                    "Préparation moyenne",
+                    f"{temps_prepa['temps_moyen_minutes']:.1f} min",
+                ))
+            if delais:
+                cartes_delais.append((
+                    "Retrait moyen",
+                    f"{delais['temps_moyen_minutes']:.1f} min",
+                ))
+            layout.addWidget(self._build_cartes_row(cartes_delais))
+            if temps_prepa:
+                layout.addWidget(self._build_table_durees([temps_prepa]))
+            if delais:
+                layout.addWidget(self._build_table_durees([delais]))
+
+        if nom == "Pizza":
+            recettes = self._stats.get("recettes_pizza", [])
+            if recettes:
+                layout.addWidget(self._build_section_title("Recettes les plus vendues"))
+                layout.addWidget(self._build_pie_chart(
+                    [r["recette"] for r in recettes], [r["quantite"] for r in recettes],
+                ))
+                layout.addWidget(self._build_table_recettes(recettes))
+            if composition:
+                self._ajouter_classement(layout, "Ingrédients ajoutés", composition.get("ajouts", []))
+                self._ajouter_classement(layout, "Ingrédients retirés", composition.get("retraits", []))
+
+        elif nom == "Grillade" and composition:
+            self._ajouter_classement(layout, "Viandes les plus servies", composition.get("viandes", []))
+            self._ajouter_classement(layout, "Accompagnements choisis", composition.get("accompagnements", []))
+
+        elif nom == "Crêpe" and composition:
+            self._ajouter_classement(layout, "Garnitures les plus demandées", composition.get("garnitures", []))
+
+        elif nom == "Salade composée" and composition:
+            self._ajouter_classement(layout, "Ingrédients les plus choisis", composition.get("ingredients", []))
+
+        layout.addStretch()
+
+    def _ajouter_classement(self, layout: QVBoxLayout, titre: str, classement: List[Dict[str, Any]]):
+        """Ajoute au layout un titre + tableau de classement {nom, quantite}, si non vide."""
+        if not classement:
+            return
+        layout.addWidget(self._build_section_title(titre))
+        lignes = [[c["nom"], self._formater_quantite(c["quantite"])] for c in classement]
+        layout.addWidget(self._build_table(["Nom", "Quantité"], lignes))
+
+    def _formater_quantite(self, quantite: float) -> str:
+        """Affiche une quantité sans décimale inutile (ex. 1.0 -> "1", 1.5 -> "1.5")."""
+        return str(int(quantite)) if float(quantite).is_integer() else f"{quantite:.1f}"
 
     # ── Construction des blocs d'affichage ──────────────────────────────────
 
@@ -388,13 +546,8 @@ class StatsModule(QFrame):
         label.setObjectName("subSectionTitle")
         return label
 
-    def _build_totaux_row(self, totaux: Dict[str, Any]) -> QFrame:
-        cartes = [
-            ("Commandes", str(totaux.get("nb_commandes", 0))),
-            ("Montant total", f"{totaux.get('montant_total', 0):.2f} €"),
-            ("Panier moyen", f"{totaux.get('panier_moyen', 0):.2f} €"),
-            ("Plats vendus", str(totaux.get("nb_plats", 0))),
-        ]
+    def _build_cartes_row(self, cartes: List[tuple]) -> QFrame:
+        """Construit une rangée de cartes (libellé, valeur) — totaux généraux ou totaux d'un plat."""
         conteneur = QFrame()
         layout = QHBoxLayout(conteneur)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -495,13 +648,6 @@ class StatsModule(QFrame):
                 table.setItem(row, col, item)
         table.setFixedHeight(min(34 * (len(lignes) + 1) + 6, 260))
         return table
-
-    def _build_table_plats(self, plats: List[Dict[str, Any]]) -> QTableWidget:
-        lignes = [
-            [p["nom"], str(p["quantite"]), f"{p['prix_moyen']:.2f} €", f"{p['montant']:.2f} €"]
-            for p in plats
-        ]
-        return self._build_table(["Plat", "Quantité", "Prix moyen", "Montant"], lignes)
 
     def _build_table_paiements(self, paiements: List[Dict[str, Any]]) -> QTableWidget:
         lignes = [

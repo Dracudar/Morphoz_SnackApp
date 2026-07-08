@@ -23,6 +23,7 @@ from datetime import datetime
 
 from src.modules.stats.backend.stats import (
     calculer_affluence,
+    calculer_composition_par_plat,
     calculer_delais_livraison,
     calculer_statistiques,
     calculer_temps_preparation,
@@ -43,8 +44,11 @@ def _commande(
     }
 
 
-def _plat(plat="Pizza", statut="Livré", prix=8.0, recette="Margherita"):
-    return {"plat": plat, "nom": f"{plat}", "status": statut, "price": prix, "recette": recette}
+def _plat(plat="Pizza", statut="Livré", prix=8.0, recette="Margherita", composition=None):
+    item = {"plat": plat, "nom": f"{plat}", "status": statut, "price": prix, "recette": recette}
+    if composition is not None:
+        item["composition"] = composition
+    return item
 
 
 def _commande_validee(
@@ -304,3 +308,88 @@ class TestCalculerDelaisLivraison:
         orders[0]["amount"] = None
         stats = calculer_statistiques(orders)
         assert stats["totaux"]["montant_total"] == 0
+
+
+class TestCalculerCompositionParPlat:
+    def test_liste_vide(self):
+        assert calculer_composition_par_plat([]) == {}
+
+    def test_ignore_plats_sans_composition(self):
+        orders = [_commande("1", items=[_plat(plat="Frites", composition=[])])]
+        assert calculer_composition_par_plat(orders) == {}
+
+    def test_grillade_viandes_et_accompagnement(self):
+        orders = [
+            _commande("1", items=[_plat(
+                plat="Grillade",
+                composition={"Viandes": {"Merguez": 2, "Poulet": 1}, "Accompagnement": "Frites"},
+            )]),
+            _commande("2", items=[_plat(
+                plat="Grillade",
+                composition={"Viandes": {"Merguez": 1}, "Accompagnement": "Sans"},
+            )]),
+        ]
+        composition = calculer_composition_par_plat(orders)
+        assert composition["Grillade"]["viandes"] == [
+            {"nom": "Merguez", "quantite": 3}, {"nom": "Poulet", "quantite": 1},
+        ]
+        # "Sans" accompagnement n'est pas comptabilisé comme un choix.
+        assert composition["Grillade"]["accompagnements"] == [{"nom": "Frites", "quantite": 1}]
+
+    def test_crepe_garnitures(self):
+        orders = [
+            _commande("1", items=[_plat(plat="Crêpe", composition={"Garniture": ["Nutella"]})]),
+            _commande("2", items=[_plat(plat="Crêpe", composition={"Garniture": []})]),
+        ]
+        composition = calculer_composition_par_plat(orders)
+        assert composition["Crêpe"]["garnitures"] == [{"nom": "Nutella", "quantite": 1}]
+
+    def test_salade_ingredients(self):
+        orders = [
+            _commande("1", items=[_plat(
+                plat="Salade composée",
+                composition={"Ingrédients": ["Tomate", "Feta"]},
+            )]),
+        ]
+        composition = calculer_composition_par_plat(orders)
+        assert composition["Salade composée"]["ingredients"] == [
+            {"nom": "Tomate", "quantite": 1}, {"nom": "Feta", "quantite": 1},
+        ]
+
+    def test_pizza_ajouts_et_retraits(self):
+        orders = [
+            _commande("1", items=[_plat(
+                plat="Pizza",
+                composition={"Base": "Tomate", "Ingrédients": [], "Ajouts": ["Champignons"], "Retraits": ["Olives"]},
+            )]),
+        ]
+        composition = calculer_composition_par_plat(orders)
+        assert composition["Pizza"]["ajouts"] == [{"nom": "Champignons", "quantite": 1}]
+        assert composition["Pizza"]["retraits"] == [{"nom": "Olives", "quantite": 1}]
+
+    def test_exclut_plats_annules(self):
+        orders = [
+            _commande("1", items=[_plat(
+                plat="Grillade", statut="Annulé",
+                composition={"Viandes": {"Merguez": 1}, "Accompagnement": "Frites"},
+            )]),
+        ]
+        assert calculer_composition_par_plat(orders) == {}
+
+    def test_ignore_commandes_non_terminees(self):
+        orders = [_commande("1", statut="Validée", items=[_plat(
+            plat="Grillade", composition={"Viandes": {"Merguez": 1}, "Accompagnement": "Frites"},
+        )])]
+        assert calculer_composition_par_plat(orders) == {}
+
+    def test_filtre_periode(self):
+        orders = [
+            _commande("1", date_creation="01/07/2026", items=[_plat(
+                plat="Grillade", composition={"Viandes": {"Merguez": 1}, "Accompagnement": "Frites"},
+            )]),
+            _commande("2", date_creation="10/07/2026", items=[_plat(
+                plat="Grillade", composition={"Viandes": {"Poulet": 1}, "Accompagnement": "Sans"},
+            )]),
+        ]
+        composition = calculer_composition_par_plat(orders, date_from=datetime(2026, 7, 5))
+        assert composition["Grillade"]["viandes"] == [{"nom": "Poulet", "quantite": 1}]

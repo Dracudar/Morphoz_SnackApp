@@ -202,6 +202,90 @@ def calculer_statistiques(
     }
 
 
+def calculer_composition_par_plat(
+    orders: List[Dict[str, Any]],
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+) -> Dict[str, Dict[str, Any]]:
+    """Ventile la composition des plats vendus (commandes terminées) par type de plat.
+
+    Exploite le champ "composition" des items, propre à chaque type de plat
+    personnalisable : viandes/accompagnement (Grillade), garniture (Crêpe),
+    ingrédients (Salade composée), ajouts/retraits (Pizza). Les plats simples
+    (Frites, boissons, desserts...) n'ont pas de composition à ventiler et
+    n'apparaissent donc pas dans le résultat.
+
+    :param orders: commandes issues de get_all_history_orders()
+    :param date_from: borne de début incluse sur la date de création (None = pas de borne)
+    :param date_to: borne de fin incluse sur la date de création (None = pas de borne)
+    :return: dict indexé par nom de plat, contenant des listes triées
+        {nom, quantite} par sous-catégorie (ex. "viandes", "accompagnements").
+    """
+    viandes_grillade: Dict[str, float] = defaultdict(float)
+    accompagnements_grillade: Dict[str, int] = defaultdict(int)
+    garnitures_crepe: Dict[str, int] = defaultdict(int)
+    ingredients_salade: Dict[str, int] = defaultdict(int)
+    ajouts_pizza: Dict[str, int] = defaultdict(int)
+    retraits_pizza: Dict[str, int] = defaultdict(int)
+
+    for order in orders:
+        if (order.get("status") or "").lower() != "terminée":
+            continue
+
+        dt = _order_datetime(order)
+        if not _dans_periode(dt, date_from, date_to):
+            continue
+
+        for item in order.get("items", []):
+            if (item.get("status") or "").lower() == "annulé":
+                continue
+            type_plat = item.get("plat") or item.get("nom") or "Inconnu"
+            composition = item.get("composition")
+            if not isinstance(composition, dict):
+                continue
+
+            if type_plat == "Grillade":
+                for viande, quantite in (composition.get("Viandes") or {}).items():
+                    viandes_grillade[viande] += quantite or 0
+                accompagnement = composition.get("Accompagnement")
+                if accompagnement and accompagnement != "Sans":
+                    accompagnements_grillade[accompagnement] += 1
+            elif type_plat == "Crêpe":
+                for garniture in composition.get("Garniture") or []:
+                    garnitures_crepe[garniture] += 1
+            elif type_plat == "Salade composée":
+                for ingredient in composition.get("Ingrédients") or []:
+                    ingredients_salade[ingredient] += 1
+            elif type_plat == "Pizza":
+                for ingredient in composition.get("Ajouts") or []:
+                    ajouts_pizza[ingredient] += 1
+                for ingredient in composition.get("Retraits") or []:
+                    retraits_pizza[ingredient] += 1
+
+    def _classement(compteur: Dict[str, float]) -> List[Dict[str, Any]]:
+        liste = [{"nom": nom, "quantite": quantite} for nom, quantite in compteur.items()]
+        liste.sort(key=lambda x: x["quantite"], reverse=True)
+        return liste
+
+    resultat: Dict[str, Dict[str, Any]] = {}
+    if viandes_grillade or accompagnements_grillade:
+        resultat["Grillade"] = {
+            "viandes": _classement(viandes_grillade),
+            "accompagnements": _classement(accompagnements_grillade),
+        }
+    if garnitures_crepe:
+        resultat["Crêpe"] = {"garnitures": _classement(garnitures_crepe)}
+    if ingredients_salade:
+        resultat["Salade composée"] = {"ingredients": _classement(ingredients_salade)}
+    if ajouts_pizza or retraits_pizza:
+        resultat["Pizza"] = {
+            "ajouts": _classement(ajouts_pizza),
+            "retraits": _classement(retraits_pizza),
+        }
+
+    return resultat
+
+
 def calculer_affluence(
     orders: List[Dict[str, Any]],
     date_from: Optional[datetime] = None,
