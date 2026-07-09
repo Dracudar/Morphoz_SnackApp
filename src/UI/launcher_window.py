@@ -21,13 +21,13 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.2
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.05
+    2026.07.09
 """
 
 from __future__ import annotations
@@ -66,9 +66,9 @@ _ACCENT    = "#4a7fcb"
 _MODES = [
     (
         "saisie.svg",
-        "Saisie / Gestion",
-        "Prise de commande, stock, carte, historique, statistiques, paramètres, journal.",
-        "complet",
+        "Prise de commandes",
+        "Prise de commande, stock, carte, historique, statistiques.",
+        "saisie",
     ),
     (
         "prepa.svg",
@@ -77,9 +77,9 @@ _MODES = [
         "prepa",
     ),
     (
-        "historique.svg",
-        "Historique / Statistiques",
-        "Consultation de l'historique des ventes et export de rapports en PDF.",
+        "log.svg",
+        "Gestion et statistiques",
+        "Consultation de l'historique des ventes et de log et export de rapports en PDF.",
         "stats",
     ),
 ]
@@ -88,7 +88,7 @@ _MODES = [
 class LauncherWindow(QMainWindow):
     """Fenêtre de choix du mode de démarrage, affichée à chaque lancement de l'exécutable."""
 
-    mode_choisi = Signal(str)  # "complet" | "prepa" | "stats"
+    mode_choisi = Signal(str)  # "saisie" | "prepa" | "stats"
 
     def __init__(self):
         super().__init__()
@@ -265,7 +265,8 @@ class LauncherWindow(QMainWindow):
             self._lbl_status.setText("")
 
     def _appliquer_dossier(self):
-        """Persiste le nouveau dossier data avant l'ouverture d'un mode.
+        """
+        Persiste le nouveau dossier data avant l'ouverture d'un mode.
 
         Crée aussi sa structure de fichiers si nécessaire (stock.json,
         carte_active.json, commandes/, logs/), pour qu'un mode ouvert juste
