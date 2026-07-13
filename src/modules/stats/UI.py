@@ -15,13 +15,13 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.2
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.08
+    2026.07.13
 """
 
 from __future__ import annotations
@@ -50,9 +50,11 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
-    QTabWidget,
+    QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -82,10 +84,13 @@ _PALETTE = [
     "#9b59b6", "#c97a30", "#5865f2", "#e05c5c",
 ]
 
-# Largeur maximale de la "feuille" de contenu (onglets Vue générale / Par plat),
+# Largeur maximale de la "feuille" de contenu (page Général / pages par plat),
 # centrée dans la zone défilante — évite que les tableaux à peu de colonnes ne
 # s'étirent sur toute la largeur de l'écran, et se rapproche du rendu du PDF exporté.
 _LARGEUR_FEUILLE = 850
+
+# Largeur fixe du volet de navigation latéral (Général / Plats), toujours visible.
+_LARGEUR_NAV = 190
 
 
 class StatsModule(QFrame):
@@ -122,17 +127,18 @@ class StatsModule(QFrame):
 
         main_layout.addLayout(self._build_filter_row())
 
-        self.tabs = QTabWidget()
-        main_layout.addWidget(self.tabs, 1)
+        corps_layout = QHBoxLayout()
+        corps_layout.setSpacing(0)
+        corps_layout.addWidget(self._build_nav_tree())
 
-        self.general_layout = self._build_onglet_scrollable("Vue générale")
-        self.plats_tabs = QTabWidget()
-        self.plats_tabs.setDocumentMode(True)
-        page_plats = QWidget()
-        page_plats_layout = QVBoxLayout(page_plats)
-        page_plats_layout.setContentsMargins(0, 0, 0, 0)
-        page_plats_layout.addWidget(self.plats_tabs)
-        self.tabs.addTab(page_plats, "Par plat")
+        self.content_stack = QStackedWidget()
+        corps_layout.addWidget(self.content_stack, 1)
+        main_layout.addLayout(corps_layout, 1)
+
+        page_generale, self.general_layout = self._build_page_generale()
+        self.content_stack.addWidget(page_generale)
+        self._item_general.setData(0, Qt.ItemDataRole.UserRole, page_generale)
+        self.nav_tree.setCurrentItem(self._item_general)
 
         main_layout.addLayout(self._build_bottom_bar())
 
@@ -197,26 +203,30 @@ class StatsModule(QFrame):
                 border: 1px solid {_BORDER_CARD};
                 font-weight: 600;
             }}
-            QTabWidget::pane {{
-                background-color: {_BG_MAIN};
-                border: 1px solid {_BORDER_CARD};
-                top: -1px;
-            }}
-            QTabBar::tab {{
+            QTreeWidget#navStats {{
                 background-color: {_BG_CARD};
-                color: {_TEXT_MUTED};
                 border: 1px solid {_BORDER_CARD};
-                border-bottom: none;
-                padding: 8px 16px;
-                font-size: 13px;
-                font-weight: 600;
+                outline: none;
+                padding: 4px 0;
             }}
-            QTabBar::tab:selected {{
+            QTreeWidget#navStats::item {{
+                color: {_TEXT_MUTED};
+                border: none;
+                padding: 8px 10px;
+            }}
+            QTreeWidget#navStats::item:selected {{
                 background-color: {_BG_MAIN};
                 color: {_TEXT_TITLE};
             }}
-            QTabBar::tab:hover {{
+            QTreeWidget#navStats::item:hover:!selected {{
                 color: {_TEXT_TITLE};
+            }}
+            QTreeWidget#navStats::branch {{
+                background: transparent;
+                border: none;
+            }}
+            QTreeWidget#navStats::branch:selected {{
+                background-color: {_BG_MAIN};
             }}
             """
         )
@@ -246,8 +256,53 @@ class StatsModule(QFrame):
         scroll_area.setWidget(centreur)
         return scroll_area, content_layout
 
-    def _build_onglet_scrollable(self, titre: str) -> QVBoxLayout:
-        """Crée un onglet défilant ajouté à self.tabs, et retourne son layout de contenu."""
+    def _build_nav_tree(self) -> QTreeWidget:
+        """Construit le volet de navigation latéral (Général / Plats), toujours visible.
+
+        "Général" est un item de premier niveau sélectionnable ; "Plats" est un en-tête de
+        regroupement non sélectionnable dont les enfants (un par plat) sont ajoutés/retirés à
+        chaque rafraîchissement dans _render_par_plat. L'arbre reste toujours développé (pas
+        de repli/dépli manuel) : la place disponible en largeur (feuille au format A4) permet
+        de garder cette navigation visible en permanence plutôt que dans des onglets.
+        """
+        self.nav_tree = QTreeWidget()
+        self.nav_tree.setObjectName("navStats")
+        self.nav_tree.setHeaderHidden(True)
+        self.nav_tree.setRootIsDecorated(False)
+        self.nav_tree.setItemsExpandable(False)
+        self.nav_tree.setFixedWidth(_LARGEUR_NAV)
+
+        self._item_general = QTreeWidgetItem(["Général"])
+        self.nav_tree.addTopLevelItem(self._item_general)
+
+        self._item_plats = QTreeWidgetItem(["Plats"])
+        self._item_plats.setFlags(self._item_plats.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        police_en_tete = self._item_plats.font(0)
+        police_en_tete.setBold(True)
+        self._item_plats.setFont(0, police_en_tete)
+        self.nav_tree.addTopLevelItem(self._item_plats)
+        self._item_plats.setExpanded(True)
+
+        self._nav_items_plats: Dict[str, QTreeWidgetItem] = {}
+
+        self.nav_tree.currentItemChanged.connect(self._on_nav_item_selected)
+        return self.nav_tree
+
+    def _on_nav_item_selected(self, current: Optional[QTreeWidgetItem], previous: Optional[QTreeWidgetItem]):
+        """Bascule le content_stack sur la page associée à l'item de navigation sélectionné."""
+        if current is None or current is self._item_plats:
+            if previous is not None:
+                self.nav_tree.setCurrentItem(previous)
+            return
+        page = current.data(0, Qt.ItemDataRole.UserRole)
+        if page is not None:
+            self.content_stack.setCurrentWidget(page)
+
+    def _build_page_generale(self) -> tuple:
+        """Crée la page défilante "Général".
+
+        :return: tuple (page, content_layout) — le layout est à remplir, la page à ajouter au content_stack.
+        """
         page = QWidget()
         page_layout = QVBoxLayout(page)
         page_layout.setContentsMargins(0, 0, 0, 0)
@@ -255,13 +310,12 @@ class StatsModule(QFrame):
         scroll_area, content_layout = self._build_scrollable_page(_BG_MAIN)
         page_layout.addWidget(scroll_area)
 
-        self.tabs.addTab(page, titre)
-        return content_layout
+        return page, content_layout
 
     def _build_page_plat_scrollable(self) -> tuple:
-        """Crée une page défilante destinée à un onglet de self.plats_tabs.
+        """Crée une page défilante pour un plat, destinée au content_stack.
 
-        :return: tuple (page, content_layout) — le layout est à remplir, la page à ajouter via addTab.
+        :return: tuple (page, content_layout) — le layout est à remplir, la page à ajouter au content_stack.
         """
         page = QWidget()
         page_layout = QVBoxLayout(page)
@@ -457,17 +511,28 @@ class StatsModule(QFrame):
         self.general_layout.addStretch()
 
     def _render_par_plat(self):
-        """Reconstruit l'onglet "Par plat" : un sous-onglet par plat présent dans la période,
-        avec un contenu plus ou moins riche selon les données disponibles pour ce type de plat
-        (recettes pour la pizza, composition pour les plats personnalisables, temps de
-        préparation/retrait si mesurés, ou simplement les totaux de vente pour un plat simple).
+        """Reconstruit les entrées "Plats" du volet de navigation et leurs pages associées : une
+        entrée par plat présent dans la période, avec un contenu plus ou moins riche selon les
+        données disponibles pour ce type de plat (recettes pour la pizza, composition pour les
+        plats personnalisables, temps de préparation/retrait si mesurés, ou simplement les
+        totaux de vente pour un plat simple).
         """
-        onglet_precedent = self.plats_tabs.tabText(self.plats_tabs.currentIndex())
+        item_courant = self.nav_tree.currentItem()
+        etait_sur_general = item_courant is self._item_general
+        nom_plat_precedent = (
+            item_courant.text(0)
+            if item_courant is not None and item_courant.parent() is self._item_plats
+            else None
+        )
 
-        while self.plats_tabs.count():
-            widget = self.plats_tabs.widget(0)
-            self.plats_tabs.removeTab(0)
-            widget.deleteLater()
+        self.nav_tree.blockSignals(True)
+        for item in list(self._nav_items_plats.values()):
+            widget = item.data(0, Qt.ItemDataRole.UserRole)
+            self._item_plats.removeChild(item)
+            if widget is not None:
+                self.content_stack.removeWidget(widget)
+                widget.deleteLater()
+        self._nav_items_plats.clear()
 
         plats = self._stats.get("plats", [])
         temps_prepa_par_plat = {p["plat"]: p for p in self._temps_preparation.get("par_plat", [])}
@@ -483,7 +548,11 @@ class StatsModule(QFrame):
                 temps_prepa_par_plat.get(nom), delais_par_plat.get(nom), self._composition.get(nom),
                 temps_prepa_heures.get(nom, []), delais_heures.get(nom, []),
             )
-            self.plats_tabs.addTab(page, nom)
+            self.content_stack.addWidget(page)
+            item = QTreeWidgetItem([nom])
+            item.setData(0, Qt.ItemDataRole.UserRole, page)
+            self._item_plats.addChild(item)
+            self._nav_items_plats[nom] = item
 
         if not plats:
             page, layout = self._build_page_plat_scrollable()
@@ -492,12 +561,21 @@ class StatsModule(QFrame):
             vide.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 14px; padding: 20px;")
             layout.addWidget(vide)
             layout.addStretch()
-            self.plats_tabs.addTab(page, "—")
+            self.content_stack.addWidget(page)
+            item = QTreeWidgetItem(["—"])
+            item.setData(0, Qt.ItemDataRole.UserRole, page)
+            self._item_plats.addChild(item)
+            self._nav_items_plats["—"] = item
 
-        index_restaure = next(
-            (i for i in range(self.plats_tabs.count()) if self.plats_tabs.tabText(i) == onglet_precedent), 0,
-        )
-        self.plats_tabs.setCurrentIndex(index_restaure)
+        self.nav_tree.blockSignals(False)
+
+        if etait_sur_general:
+            cible = self._item_general
+        else:
+            cible = self._nav_items_plats.get(nom_plat_precedent) or next(
+                iter(self._nav_items_plats.values()), self._item_general,
+            )
+        self.nav_tree.setCurrentItem(cible)
 
     def _render_page_plat(
         self, layout: QVBoxLayout, info_plat: Dict[str, Any],
