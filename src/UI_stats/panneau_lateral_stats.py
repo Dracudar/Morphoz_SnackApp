@@ -4,22 +4,22 @@
 panneau_lateral_stats.py - Volet latéral de la vue Historique/Statistiques allégée
 
 Description:
-    Volet de navigation et de configuration pour la vue allégée Historique +
-    Statistiques : bascule entre les deux pages, sélection du dossier data
-    partagé en LAN, plein écran, quitter. S'affiche en superposition sur le
-    contenu principal via un bouton hamburger dans la barre de navigation.
+    Volet de navigation et de configuration pour la vue allégée Statistiques +
+    Historique + Journal : bascule entre les trois pages, sélection du dossier
+    data partagé en LAN, plein écran, quitter. S'affiche en superposition sur
+    le contenu principal via un bouton hamburger dans la barre de navigation.
 
 Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.05
+    2026.07.13
 """
 
 from __future__ import annotations
@@ -90,8 +90,9 @@ _STYLE_FERMER = f"""
 
 # (icône SVG, label affiché, identifiant de page)
 _ITEMS_NAV = [
-    ("historique.svg", "Historique",     "historique"),
     ("stats.svg",      "Statistiques",   "stats"),
+    ("historique.svg", "Historique",     "historique"),
+    ("log.svg",        "Journal",        "logs"),
 ]
 
 

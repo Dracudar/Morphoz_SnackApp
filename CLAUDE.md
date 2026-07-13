@@ -100,14 +100,13 @@ LauncherWindow (src/UI/launcher_window.py) — choix du mode au démarrage
 │       │   ├── StockModule               — inventaire
 │       │   ├── CarteModule               — éditeur de carte
 │       │   ├── CommandesHistoriqueModule — historique + réimpression
-│       │   ├── StatsModule               — statistiques de vente, graphiques, export PDF
-│       │   ├── LogsModule                — consultation du journal
 │       │   └── ParametresModule          — config dossier/imprimante
 │       └── Panneau droit : SuiviCommandesModule (suivi en temps réel, visible en mode saisie)
 │
 ├── "Poste de préparation" ──► MainWindowPrep (src/UI_prep/) — PostePreparationModule plein écran
 │
-└── "Historique / Statistiques" ──► MainWindowStats (src/UI_stats/) — CommandesHistoriqueModule + StatsModule
+└── "Historique / Statistiques" ──► MainWindowStats (src/UI_stats/) — StatsModule (page d'accueil),
+    CommandesHistoriqueModule, LogsModule
 
 SuiviExterieurWindow (QDialog)  — fenêtre secondaire affichage client (mode Saisie/Gestion uniquement)
     └── Activée via le menu "Affichage > Affichage extérieur"

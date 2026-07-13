@@ -101,8 +101,8 @@ filelock
 ┌───────────────────┐ ┌──────────────────┐ ┌───────────────────────┐
 │ MainWindow         │ │ MainWindowPrep   │ │ MainWindowStats       │
 │ (UI/main_window)   │ │ (UI_prep/)       │ │ (UI_stats/)           │
-│ InterfacePrincipale│ │ PostePreparation │ │ Historique + Stats    │
-│ Widget ─ volet_nav │ │ Module + Volet   │ │ + VoletStats          │
+│ InterfacePrincipale│ │ PostePreparation │ │ Stats + Historique    │
+│ Widget ─ volet_nav │ │ Module + Volet   │ │ + Logs ─ VoletStats   │
 │ SuiviExterieurWin  │ │ Prep             │ │                       │
 └─────────┬──────────┘ └────────┬─────────┘ └───────────┬───────────┘
           │                     │                        │
@@ -237,7 +237,7 @@ data/
 | Fonction | Description |
 |---|---|
 | `_build_dark_palette() → QPalette` | Construit la palette de couleurs sombres (fond `#2f3136`, texte `#f5f5f5`, accent bleu `#2a82da`) utilisée par toute l'application via le style Fusion. |
-| `__main__` | Instancie `QApplication`, applique le style Fusion + palette sombre, définit l'icône (`logo_snack.svg`), enregistre les événements de démarrage/arrêt, crée `LauncherWindow` et connecte son signal `mode_choisi` à `_lancer_mode` (fonction locale qui instancie `MainWindow`, `MainWindowPrep` ou `MainWindowStats` selon le mode et la garde en référence forte pour éviter le garbage collection). |
+| `__main__` | Instancie `QApplication`, applique le style Fusion + palette sombre, définit l'icône (`logo_snack.svg`), enregistre les événements de démarrage/arrêt, crée `LauncherWindow` et connecte son signal `mode_choisi` à `_lancer_mode` (fonction locale qui importe puis instancie `MainWindow`, `MainWindowPrep` ou `MainWindowStats` selon le mode, et la garde en référence forte pour éviter le garbage collection). L'import de la classe de fenêtre est différé jusqu'au choix du mode (et non fait en tête de fichier) : chaque mode a ses propres dépendances lourdes (ex. `MainWindowStats` charge `reportlab.graphics` et `PySide6.QtCharts`) et ne charger que celles du mode choisi évite d'en payer le coût à chaque démarrage, quel que soit le mode retenu. |
 
 ---
 
@@ -309,7 +309,7 @@ data/
 | Élément / Méthode | Description |
 |---|---|
 | `VoletNavigation` | Widget glissant affiché/masqué par un bouton hamburger. Fond sombre `#1e2124`, largeur fixe. |
-| Boutons de navigation | Un bouton par module (icône + label), hauteur 50 px : Saisie, Carte, Stock, Historique, Statistiques, Affichage extérieur, Paramètres, Journal. L'item actif est mis en évidence (fond bleu `#4a7fcb`, gras). |
+| Boutons de navigation | Un bouton par module (icône + label), hauteur 50 px : Saisie, Carte, Stock, Historique, Affichage extérieur, Paramètres. L'item actif est mis en évidence (fond bleu `#4a7fcb`, gras). |
 | Bouton "Quitter" | Style danger (texte rouge), séparé des liens de navigation. |
 | Raccourcis | `F11` / `Escape` pour basculer le plein écran depuis le volet. |
 
@@ -317,13 +317,13 @@ data/
 
 ### `src/UI/view/interface_principale.py`
 
-**Assembleur de la vue Saisie/Gestion.** Gère le `QStackedWidget` gauche (7 pages) et le panneau de suivi droit. Le poste de préparation n'en fait plus partie : c'est un mode distinct choisi au launcher (`MainWindowPrep`).
+**Assembleur de la vue Saisie/Gestion.** Gère le `QStackedWidget` gauche (5 pages) et le panneau de suivi droit. Le poste de préparation n'en fait plus partie : c'est un mode distinct choisi au launcher (`MainWindowPrep`). Statistiques et Journal n'en font plus partie non plus : déplacés dans le mode allégé `MainWindowStats`.
 
 | Élément / Méthode | Description |
 |---|---|
 | `_PAGES_MODE_SPLIT` | Frozenset `{"saisie"}` — seule la page saisie affiche le panneau suivi à droite. |
 | `PlaceholderPage` | Widget générique affichant un titre et un message, utilisé pour les pages non encore implémentées. |
-| `InterfacePrincipaleWidget.__init__` | Construit les 7 pages du stack (`SaisieCommandeModule`, `StockModule`, `CarteModule`, `CommandesHistoriqueModule`, `StatsModule`, `LogsModule`, `ParametresModule`) et le `SuiviCommandesModule`. Intègre `VoletNavigation` en superposition. Connecte les signaux inter-modules (`config_changed → refresh_all_pages`, `command_changed → refresh_all_pages`, `go_back → "saisie"`, etc.). Démarre sur **Saisie** si `data_folder_est_configure()` (ex. dossier défini depuis le launcher), sinon sur **Paramètres**. |
+| `InterfacePrincipaleWidget.__init__` | Construit les 5 pages du stack (`SaisieCommandeModule`, `StockModule`, `CarteModule`, `CommandesHistoriqueModule`, `ParametresModule`) et le `SuiviCommandesModule`. Intègre `VoletNavigation` en superposition. Connecte les signaux inter-modules (`config_changed → refresh_all_pages`, `command_changed → refresh_all_pages`, `go_back → "saisie"`, etc.). Démarre sur **Saisie** si `data_folder_est_configure()` (ex. dossier défini depuis le launcher), sinon sur **Paramètres**. |
 | `set_left_page(page_name)` | Affiche la page demandée dans le stack, appelle `_refresh_page`, et adapte la visibilité du panneau suivi (mode split uniquement pour `"saisie"`). |
 | `refresh_all_pages()` | Rafraîchit toutes les pages du stack et le suivi (appelé sur `config_changed` ou `command_changed`). |
 | `_refresh_page(widget)` | Appelle `refresh()`, `reload_from_disk()` ou `refresh_orders()` selon ce que le widget expose. |
@@ -371,18 +371,18 @@ Volet de configuration minimal accessible depuis le bouton hamburger.
 
 ### `src/UI_stats/` — Mode Historique/Statistiques
 
-Fenêtre principale du mode "Historique/Statistiques" choisi au launcher. Vue allégée dédiée à la consultation des ventes : uniquement `CommandesHistoriqueModule` et `StatsModule`, sans saisie, stock, carte ni impression.
+Fenêtre principale du mode "Historique/Statistiques" choisi au launcher. Vue allégée dédiée à la consultation des ventes et du journal : `StatsModule`, `CommandesHistoriqueModule` et `LogsModule`, sans saisie, stock, carte ni impression.
 
 #### `main_window_stats.py` — `MainWindowStats`
 
-Barre de navigation en haut (logo cliquable) et `QStackedWidget` à 2 pages (Historique, Statistiques — Historique par défaut). Le bouton "Retour" de chaque module ramène à Historique (page d'accueil de ce mode). Intègre `VoletStats` en superposition.
+Barre de navigation en haut (logo cliquable) et `QStackedWidget` à 3 pages (Statistiques, Historique, Journal — Statistiques par défaut, page d'accueil de ce mode). Le bouton "Retour" de chaque module ramène à Statistiques. Intègre `VoletStats` en superposition.
 
 #### `panneau_lateral_stats.py` — `VoletStats`
 
 | Élément | Description |
 |---|---|
-| Boutons Historique / Statistiques | Basculent la page affichée (`page_demandee`) ; le bouton de la page active est mis en évidence (`maj_page_active`). |
-| Sélecteur dossier data | Identique à `VoletPrep` : `QFileDialog` + bouton "Appliquer", émet `dossier_applique` (rafraîchit les deux pages). |
+| Boutons Statistiques / Historique / Journal | Basculent la page affichée (`page_demandee`) ; le bouton de la page active est mis en évidence (`maj_page_active`). |
+| Sélecteur dossier data | Identique à `VoletPrep` : `QFileDialog` + bouton "Appliquer", émet `dossier_applique` (rafraîchit les trois pages). |
 | Plein écran / Quitter | Identiques à `VoletPrep`. |
 
 ---
@@ -1155,12 +1155,9 @@ app.py  (point d'entrée unique)
         │       │     ├── CommandesHistoriqueModule
         │       │     │     ├── FiltreHistoriqueDialog
         │       │     │     └── marquer_plat_pret/livre/annuler_plat_valide()  [commandes_suivi_gestion.py]
-        │       │     ├── StatsModule  →  calculer_statistiques() · generer_rapport_pdf()
         │       │     ├── StockModule  →  StockCache  [cache.py]
         │       │     ├── CarteModule
-        │       │     ├── ParametresModule  →  save_app_config()  [app_config.py]
-        │       │     └── LogsModule
-        │       │           └── FiltreTriLogDialog
+        │       │     └── ParametresModule  →  save_app_config()  [app_config.py]
         │       └── SuiviExterieurWindow  →  get_live_orders_prep()
         │
         ├── "prepa" ──► MainWindowPrep [UI_prep/main_window_prep.py]
@@ -1169,8 +1166,10 @@ app.py  (point d'entrée unique)
         │
         └── "stats" ──► MainWindowStats [UI_stats/main_window_stats.py]
                 ├── VoletStats [UI_stats/panneau_lateral_stats.py]
+                ├── StatsModule  →  calculer_statistiques() · generer_rapport_pdf()  (page d'accueil)
                 ├── CommandesHistoriqueModule
-                └── StatsModule  →  calculer_statistiques() · generer_rapport_pdf()
+                └── LogsModule
+                      └── FiltreTriLogDialog
 
 Couche backend (partagée par tous les modes) :
   version.py      ──► APP_VERSION

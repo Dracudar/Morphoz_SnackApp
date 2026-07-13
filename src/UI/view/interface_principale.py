@@ -7,7 +7,9 @@ Description:
     Assemble la saisie dynamique et le suivi des commandes dans la fenetre principale.
     Inclut une barre de navigation tactile en haut et un volet latéral de navigation.
     Mode "Saisie/Gestion" du launcher (voir src/UI/launcher_window.py) : le poste de
-    préparation et la vue Historique/Statistiques allégée sont des fenêtres distinctes.
+    préparation et la vue Historique/Statistiques/Journal allégée sont des fenêtres
+    distinctes — Statistiques et Journal n'en font plus partie, uniquement Saisie,
+    Stock, Carte, Historique et Paramètres.
     Démarre directement sur la saisie si le dossier data a déjà été défini
     (typiquement depuis le launcher), sur Paramètres sinon.
 
@@ -15,13 +17,13 @@ Author :
     Dracudar
 
 Version:
-    1.8
+    1.9
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.07.05
+    2026.07.13
 """
 
 from PySide6.QtCore import QEvent, QSize, Qt, Signal
@@ -44,9 +46,7 @@ from src.modules.commandes_historique.UI import CommandesHistoriqueModule
 from src.backend.app_config import data_folder_est_configure, get_assets_path
 from src.modules.commandes_saisie.UI.commande_saisie import SaisieCommandeModule
 from src.modules.commandes_suivi.UI.UI import SuiviCommandesModule
-from src.modules.logs.UI import LogsModule
 from src.modules.parametres.UI import ParametresModule
-from src.modules.stats.UI import StatsModule
 from src.modules.stock.UI import StockModule
 from src.UI.view.volet_navigation import OverlayFermeture, VoletNavigation
 
@@ -81,16 +81,12 @@ class InterfacePrincipaleWidget(QWidget):
         self.page_stock         = StockModule()
         self.page_carte         = CarteModule()
         self.page_historique    = CommandesHistoriqueModule()
-        self.page_stats         = StatsModule()
-        self.page_logs          = LogsModule()
         self.page_parametres    = ParametresModule()
 
         self.left_stack.addWidget(self.page_saisie)
         self.left_stack.addWidget(self.page_stock)
         self.left_stack.addWidget(self.page_carte)
         self.left_stack.addWidget(self.page_historique)
-        self.left_stack.addWidget(self.page_stats)
-        self.left_stack.addWidget(self.page_logs)
         self.left_stack.addWidget(self.page_parametres)
 
         self.suivi_module = SuiviCommandesModule()
@@ -98,8 +94,6 @@ class InterfacePrincipaleWidget(QWidget):
         self.page_parametres.config_changed.connect(self.refresh_all_pages)
         self.page_parametres.go_back.connect(lambda: self.set_left_page("saisie"))
         self.page_historique.go_back.connect(lambda: self.set_left_page("saisie"))
-        self.page_stats.go_back.connect(lambda: self.set_left_page("historique"))
-        self.page_logs.go_back.connect(lambda: self.set_left_page("saisie"))
         self.page_saisie.command_changed.connect(self.refresh_all_pages)
 
         content_layout.addWidget(self.left_stack, 2)
@@ -162,8 +156,6 @@ class InterfacePrincipaleWidget(QWidget):
             "stock":             self.page_stock,
             "carte":             self.page_carte,
             "historique":        self.page_historique,
-            "stats":             self.page_stats,
-            "logs":              self.page_logs,
             "parametres":        self.page_parametres,
         }
         widget = pages.get(page_name)
