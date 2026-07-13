@@ -237,7 +237,7 @@ data/
 | Fonction | Description |
 |---|---|
 | `_build_dark_palette() → QPalette` | Construit la palette de couleurs sombres (fond `#2f3136`, texte `#f5f5f5`, accent bleu `#2a82da`) utilisée par toute l'application via le style Fusion. |
-| `__main__` | Instancie `QApplication`, applique le style Fusion + palette sombre, définit l'icône (`logo_snack.svg`), enregistre les événements de démarrage/arrêt, crée `LauncherWindow` et connecte son signal `mode_choisi` à `_lancer_mode` (fonction locale qui instancie `MainWindow`, `MainWindowPrep` ou `MainWindowStats` selon le mode et la garde en référence forte pour éviter le garbage collection). |
+| `__main__` | Instancie `QApplication`, applique le style Fusion + palette sombre, définit l'icône (`logo_snack.svg`), enregistre les événements de démarrage/arrêt, crée `LauncherWindow` et connecte son signal `mode_choisi` à `_lancer_mode` (fonction locale qui importe puis instancie `MainWindow`, `MainWindowPrep` ou `MainWindowStats` selon le mode, et la garde en référence forte pour éviter le garbage collection). L'import de la classe de fenêtre est différé jusqu'au choix du mode (et non fait en tête de fichier) : chaque mode a ses propres dépendances lourdes (ex. `MainWindowStats` charge `reportlab.graphics` et `PySide6.QtCharts`) et ne charger que celles du mode choisi évite d'en payer le coût à chaque démarrage, quel que soit le mode retenu. |
 
 ---
 

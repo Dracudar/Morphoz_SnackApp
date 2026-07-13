@@ -25,9 +25,6 @@ Date de modification:
 from PySide6.QtGui import QColor, QIcon, QPalette
 from PySide6.QtWidgets import QApplication
 from src.UI.launcher_window import LauncherWindow
-from src.UI.main_window import MainWindow
-from src.UI_prep.main_window_prep import MainWindowPrep
-from src.UI_stats.main_window_stats import MainWindowStats
 
 
 def _build_dark_palette() -> QPalette:
@@ -80,13 +77,17 @@ if __name__ == "__main__":
     fenetre_active = {}
 
     def _lancer_mode(mode: str):
-        classes_fenetre = {
-            "complet": MainWindow,
-            "prepa": MainWindowPrep,
-            "stats": MainWindowStats,
-        }
-        classe = classes_fenetre.get(mode)
-        if classe is None:
+        # Import différé : chaque mode a ses propres dépendances lourdes
+        # (ex. Statistiques charge reportlab.graphics et PySide6.QtCharts) —
+        # ne charger que celles du mode réellement choisi évite de payer le
+        # coût des 3 modes à chaque démarrage, quel que soit le choix fait.
+        if mode == "complet":
+            from src.UI.main_window import MainWindow as classe
+        elif mode == "prepa":
+            from src.UI_prep.main_window_prep import MainWindowPrep as classe
+        elif mode == "stats":
+            from src.UI_stats.main_window_stats import MainWindowStats as classe
+        else:
             return
         fenetre = classe()
         fenetre_active["courante"] = fenetre

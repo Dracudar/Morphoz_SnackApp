@@ -68,7 +68,7 @@ _MODES = [
         "saisie.svg",
         "Prise de commandes",
         "Prise de commande, stock, carte, historique, statistiques.",
-        "saisie",
+        "complet",
     ),
     (
         "prepa.svg",
@@ -88,7 +88,7 @@ _MODES = [
 class LauncherWindow(QMainWindow):
     """Fenêtre de choix du mode de démarrage, affichée à chaque lancement de l'exécutable."""
 
-    mode_choisi = Signal(str)  # "saisie" | "prepa" | "stats"
+    mode_choisi = Signal(str)  # "complet" | "prepa" | "stats"
 
     def __init__(self):
         super().__init__()
