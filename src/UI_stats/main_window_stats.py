@@ -4,23 +4,24 @@
 main_window_stats.py - Fenêtre principale de la vue Historique/Statistiques allégée
 
 Description:
-    Fenêtre principale de la vue allégée : uniquement l'historique des
-    commandes et les statistiques de vente (avec export PDF), sans saisie, ni
+    Fenêtre principale de la vue allégée : statistiques de vente (avec export
+    PDF), historique des commandes et journal des événements, sans saisie, ni
     stock, ni carte, ni impression. Barre de navigation tactile en haut (logo
     MegaSnack cliquable) et volet latéral dynamique en superposition (bascule
-    Historique/Statistiques, dossier data, plein écran, quitter).
+    Statistiques/Historique/Journal, dossier data, plein écran, quitter).
+    Démarre sur Statistiques, page d'accueil de ce mode.
 
 Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.05
+    2026.07.13
 """
 
 from __future__ import annotations
@@ -39,17 +40,18 @@ from PySide6.QtWidgets import (
 
 from src.backend.app_config import get_assets_path
 from src.modules.commandes_historique.UI import CommandesHistoriqueModule
+from src.modules.logs.UI import LogsModule
 from src.modules.stats.UI import StatsModule
 from src.UI.view.volet_navigation import OverlayFermeture
 from src.UI_stats.panneau_lateral_stats import VoletStats
 
 
 class MainWindowStats(QMainWindow):
-    """Fenêtre principale de la vue allégée Historique/Statistiques."""
+    """Fenêtre principale de la vue allégée Statistiques/Historique/Journal."""
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Morphoz SnackApp — Historique / Statistiques")
+        self.setWindowTitle("Morphoz SnackApp — Statistiques / Historique / Journal")
         self.setWindowIcon(QIcon(get_assets_path("imgs", "logo_snack.svg")))
         self.setGeometry(100, 100, 1200, 800)
 
@@ -67,10 +69,12 @@ class MainWindowStats(QMainWindow):
         content_layout.setSpacing(0)
 
         self.left_stack = QStackedWidget()
-        self.page_historique = CommandesHistoriqueModule()
         self.page_stats = StatsModule()
-        self.left_stack.addWidget(self.page_historique)
+        self.page_historique = CommandesHistoriqueModule()
+        self.page_logs = LogsModule()
         self.left_stack.addWidget(self.page_stats)
+        self.left_stack.addWidget(self.page_historique)
+        self.left_stack.addWidget(self.page_logs)
         content_layout.addWidget(self.left_stack)
 
         root_layout.addWidget(self._content_area, 1)
@@ -87,16 +91,17 @@ class MainWindowStats(QMainWindow):
         self._volet.fermeture_demandee.connect(self._fermer_volet)
         self._volet.hide()
 
-        # Le bouton "Retour" de chaque module ramène à l'accueil de cette vue (Historique)
-        self.page_historique.go_back.connect(lambda: self.set_page("historique"))
-        self.page_stats.go_back.connect(lambda: self.set_page("historique"))
+        # Le bouton "Retour" de chaque module ramène à l'accueil de cette vue (Statistiques)
+        self.page_stats.go_back.connect(lambda: self.set_page("stats"))
+        self.page_historique.go_back.connect(lambda: self.set_page("stats"))
+        self.page_logs.go_back.connect(lambda: self.set_page("stats"))
 
         # Repositionne overlay/volet lors des redimensionnements
         self._content_area.installEventFilter(self)
 
         self.setCentralWidget(central)
         self._setup_shortcuts()
-        self.set_page("historique")
+        self.set_page("stats")
 
     # ── Construction ──────────────────────────────────────────────────────────
 
@@ -149,8 +154,12 @@ class MainWindowStats(QMainWindow):
     # ── Navigation ────────────────────────────────────────────────────────────
 
     def set_page(self, page_id: str):
-        """Affiche la page demandée (historique ou stats) et rafraîchit son contenu."""
-        pages = {"historique": self.page_historique, "stats": self.page_stats}
+        """Affiche la page demandée (stats, historique ou logs) et rafraîchit son contenu."""
+        pages = {
+            "stats": self.page_stats,
+            "historique": self.page_historique,
+            "logs": self.page_logs,
+        }
         widget = pages.get(page_id)
         if widget is None:
             return
@@ -162,9 +171,10 @@ class MainWindowStats(QMainWindow):
             widget.refresh_orders()
 
     def _refresh_pages(self):
-        """Rafraîchit les deux pages après un changement de dossier data."""
-        self.page_historique.refresh_orders()
+        """Rafraîchit les trois pages après un changement de dossier data."""
         self.page_stats.refresh()
+        self.page_historique.refresh_orders()
+        self.page_logs.refresh()
 
     # ── Volet ─────────────────────────────────────────────────────────────────
 

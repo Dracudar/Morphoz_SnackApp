@@ -6,21 +6,22 @@ volet_navigation.py
 Description:
     Volet de navigation latéral tactile avec raccourcis et icônes.
     S'affiche en superposition sur le contenu principal.
-    Le poste de préparation et la vue Historique/Statistiques allégée sont
-    des modes distincts choisis au lancement (voir LauncherWindow) : ce volet
-    ne couvre que la navigation interne du mode Saisie/Gestion.
+    Le poste de préparation et la vue Historique/Statistiques/Journal allégée
+    sont des modes distincts choisis au lancement (voir LauncherWindow) : ce
+    volet ne couvre que la navigation interne du mode Saisie/Gestion, qui
+    n'expose plus Statistiques ni Journal (déplacés dans le mode allégé).
 
 Author :
     Dracudar
 
 Version:
-    1.7
+    1.8
 
 Date de création :
     2026.06.13
 
 Date de modification:
-    2026.07.05
+    2026.07.13
 """
 
 from PySide6.QtCore import QSize, Qt, Signal
@@ -91,12 +92,10 @@ _ITEMS_NAV = [
     ("menu.svg",        "Carte",                 "carte"),
     ("stock.svg",       "Stock",                 "stock"),
     ("historique.svg",  "Historique",            "historique"),
-    ("stats.svg",       "Statistiques",          "stats"),
     None,
     ("suivi.svg",       "Affichage extérieur",   "suivi_ext"),
     None,
     ("settings.svg",    "Paramètres",            "parametres"),
-    ("log.svg",         "Journal",               "logs"),
 ]
 
 _ICON_SIZE = QSize(20, 20)
