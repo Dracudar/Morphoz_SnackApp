@@ -1,6 +1,6 @@
 # Morphoz SnackApp — Documentation d'architecture
 
-> Version du document : 1.5 — 28/06/2026 (vérifié à jour pour `APP_VERSION = "2.5.3"`)
+> Version du document : 1.8 — 05/07/2026 (module Statistiques + launcher à 3 modes, avec sélection du dossier data, ajoutés depuis `APP_VERSION = "2.5.3"`)
 > Branche de référence : `develop` (équivalent `main` au moment de la rédaction)
 
 ---
@@ -19,6 +19,7 @@
    - 8.1 [commandes\_saisie](#81-commandes_saisie)
    - 8.2 [commandes\_suivi](#82-commandes_suivi)
    - 8.3 [commandes\_historique](#83-commandes_historique)
+   - 8.3bis [stats](#83bis-stats)
    - 8.4 [commandes\_poste\_preparation](#84-commandes_poste_preparation)
    - 8.5 [plats](#85-plats)
    - 8.6 [stock](#86-stock)
@@ -49,6 +50,7 @@ L'application couvre l'intégralité du cycle de vente :
 | Affichage extérieur public (fenêtre secondaire) | `SuiviExterieurWindow` |
 | Poste cuisine plein écran | `commandes_poste_preparation` |
 | Historique consultable, filtrable et réimprimable | `commandes_historique` |
+| Statistiques de vente, graphiques et export PDF | `stats` |
 | Gestion des stocks avec cache mémoire | `stock` |
 | Gestion de la carte (catégories, recettes, prix) | `carte` |
 | Impression thermique USB (ESC-POS) | `backend/printer.py` |
@@ -63,6 +65,7 @@ L'application couvre l'intégralité du cycle de vente :
 | Composant | Technologie | Rôle |
 |---|---|---|
 | Interface graphique | **PySide6** (Qt 6) | Tous les widgets, layouts, signaux/slots, timers |
+| Graphiques | **PySide6.QtCharts** (inclus dans le paquet PySide6) | Histogrammes et camemberts du module Statistiques |
 | Thème | Fusion (dark palette) | Palette sombre personnalisée définie dans `app.py` |
 | Persistance | **Fichiers JSON** | Commandes, stock, carte, config, IDs cache |
 | Journalisation | **JSON Lines** | Un fichier `.log` par jour dans `data/logs/` |
@@ -88,25 +91,31 @@ filelock
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                        POINTS D'ENTRÉE                           │
-│   src/core/app.py (application principale)                       │
-│   src/core/app_prep.py (application légère postes cuisine)       │
+│                    POINT D'ENTRÉE UNIQUE                         │
+│   src/core/app.py → LauncherWindow (choix du mode à chaque       │
+│   lancement, non mémorisé) : Saisie/Gestion · Prépa · Stats      │
 └──────────────────────────────┬───────────────────────────────────┘
                                │
-┌──────────────────────────────▼───────────────────────────────────┐
-│                      COUCHE UI                                   │
-│  main_window.py ─ InterfacePrincipaleWidget ─ module_registry    │
-│  volet_navigation.py ─ SuiviExterieurWindow                      │
-│  UI_prep/ : main_window_prep.py ─ panneau_lateral.py             │
-└────────────┬──────────────────────────────────────┬──────────────┘
-             │                                      │
-┌────────────▼──────────────────┐  ┌────────────────▼───────────┐
+        ┌──────────────────────┼──────────────────────┐
+        ▼                      ▼                      ▼
+┌───────────────────┐ ┌──────────────────┐ ┌───────────────────────┐
+│ MainWindow         │ │ MainWindowPrep   │ │ MainWindowStats       │
+│ (UI/main_window)   │ │ (UI_prep/)       │ │ (UI_stats/)           │
+│ InterfacePrincipale│ │ PostePreparation │ │ Stats + Historique    │
+│ Widget ─ volet_nav │ │ Module + Volet   │ │ + Logs ─ VoletStats   │
+│ SuiviExterieurWin  │ │ Prep             │ │                       │
+└─────────┬──────────┘ └────────┬─────────┘ └───────────┬───────────┘
+          │                     │                        │
+          └─────────────────────┼────────────────────────┘
+                                ▼
+┌────────────────────────────────┐  ┌────────────────────────────┐
 │   MODULES UI (src/modules/)   │  │   COUCHE BACKEND           │
 │   commandes_saisie            │  │   app_config.py            │
 │   commandes_suivi             │◄─┤   data_sources.py          │
 │   commandes_historique        │  │   commandes_utils.py       │
-│   commandes_poste_preparation │  │   logger.py                │
-│   carte / stock / logs        │  │   printer.py               │
+│   stats                       │  │   logger.py                │
+│   commandes_poste_preparation │  │   printer.py               │
+│   carte / stock / logs        │  │                            │
 │   parametres                  │  │   file_io.py               │
 │                               │  └────────────────────────────┘
 │   plats/{pizza,grillade,...}  │
@@ -120,7 +129,9 @@ filelock
 └───────────────────────────────────────────────────────────────┘
 ```
 
-**Application légère postes cuisine** (`src/core/app_prep.py` + `src/UI_prep/`) : point d'entrée alternatif sans dépendance USB ni modules de gestion (stock, carte, logs, historique). Conçu pour des machines à 4 Go de RAM sur réseau LAN.
+**Un seul exécutable, trois modes** : `LauncherWindow` (`src/UI/launcher_window.py`) est affichée à chaque lancement et laisse choisir entre les trois fenêtres principales ci-dessus — aucun choix n'est mémorisé. Ce design évite de multiplier les builds/releases PyInstaller (un seul `.spec`, voir §15) tout en gardant les modes Prépa et Historique/Statistiques dépourvus des dépendances lourdes (USB, impression) inutiles sur des postes dédiés à 4 Go de RAM en partage réseau LAN.
+
+Le launcher permet aussi de définir le dossier data **avant** d'ouvrir un mode : la fenêtre choisie est alors construite directement avec le bon dossier, au lieu du dernier utilisé. C'est notamment ce qui évite qu'`PostePreparationModule` construise ses boutons filtre (`_build_filter_buttons()`, appelé une seule fois dans `__init__`) depuis une carte active périmée — ces boutons ne sont jamais retirés une fois créés (voir §8.4), donc changer de dossier après l'ouverture de la fenêtre, depuis son propre volet, laisse les anciens boutons affichés.
 
 ### Principes architecturaux
 
@@ -221,22 +232,12 @@ data/
 
 ### `src/core/app.py`
 
-**Point d'entrée principal.** Lance l'application PySide6 avec le thème sombre.
+**Point d'entrée unique.** Lance l'application PySide6 avec le thème sombre et affiche `LauncherWindow` — un seul exécutable pour les 3 modes (Saisie/Gestion, Poste de préparation, Historique/Statistiques), afin de ne pas multiplier les builds/releases PyInstaller (voir §15, Fichiers de compilation).
 
 | Fonction | Description |
 |---|---|
 | `_build_dark_palette() → QPalette` | Construit la palette de couleurs sombres (fond `#2f3136`, texte `#f5f5f5`, accent bleu `#2a82da`) utilisée par toute l'application via le style Fusion. |
-| `__main__` | Instancie `QApplication`, applique le style Fusion + palette sombre, définit l'icône (`logo_snack.svg`), enregistre les événements de démarrage/arrêt, crée et affiche `MainWindow`. |
-
----
-
-### `src/core/app_prep.py`
-
-**Point d'entrée allégé pour postes cuisine.** Lance une version minimale de l'application sans dépendances USB ni modules de gestion (stock, carte, logs, historique, impression). Conçu pour des machines à ressources limitées (≥ 4 Go RAM).
-
-| Fonction | Description |
-|---|---|
-| `__main__` | Instancie `QApplication` avec le même thème sombre, crée et affiche `MainWindowPrep`. Aucun import `escpos`/`pyusb`. |
+| `__main__` | Instancie `QApplication`, applique le style Fusion + palette sombre, définit l'icône (`logo_snack.svg`), enregistre les événements de démarrage/arrêt, crée `LauncherWindow` et connecte son signal `mode_choisi` à `_lancer_mode` (fonction locale qui importe puis instancie `MainWindow`, `MainWindowPrep` ou `MainWindowStats` selon le mode, et la garde en référence forte pour éviter le garbage collection). L'import de la classe de fenêtre est différé jusqu'au choix du mode (et non fait en tête de fichier) : chaque mode a ses propres dépendances lourdes (ex. `MainWindowStats` charge `reportlab.graphics` et `PySide6.QtCharts`) et ne charger que celles du mode choisi évite d'en payer le coût à chaque démarrage, quel que soit le mode retenu. |
 
 ---
 
@@ -285,14 +286,30 @@ data/
 
 ---
 
+### `src/UI/launcher_window.py`
+
+**Fenêtre de choix du mode de démarrage.** Point d'entrée visuel unique de l'exécutable : affichée à chaque lancement par `app.py`, elle ne mémorise jamais le dernier choix.
+
+| Élément / Méthode | Description |
+|---|---|
+| `_MODES` | Liste de 3 tuples `(icône, titre, description, identifiant)` : `"complet"` (Saisie/Gestion), `"prepa"` (Poste de préparation), `"stats"` (Historique/Statistiques). |
+| `LauncherWindow` | `QMainWindow` avec logo MegaSnack, une carte cliquable par mode (icône + titre + description) et une section "Dossier data". |
+| `mode_choisi` | `Signal(str)` émis avec l'identifiant du mode choisi ; `app.py` l'utilise pour instancier la fenêtre principale correspondante. |
+| `_choisir(mode_id)` | Émet `mode_choisi` puis ferme le launcher. |
+| `_build_section_dossier()` | Champ lecture seule (`get_data_folder_brut()`), bouton "Parcourir…" (`QFileDialog`) et bouton "Appliquer". |
+| `_choisir_dossier()` | Ouvre le sélecteur de dossier, pré-remplit le champ et active "Appliquer". |
+| `_appliquer_dossier()` | Persiste `data_folder` dans `config.json` (fusion, ne touche pas les autres clés) puis appelle `initialiser_dossier_data()` — la fenêtre ouverte juste après trouve donc un dossier déjà valide, avec sa structure de fichiers créée si nécessaire. |
+
+---
+
 ### `src/UI/view/volet_navigation.py`
 
-**Volet de navigation latéral tactile.** Remplace la `QMenuBar` classique. S'affiche en superposition sur le contenu principal.
+**Volet de navigation latéral tactile du mode Saisie/Gestion.** Remplace la `QMenuBar` classique. S'affiche en superposition sur le contenu principal. Le poste de préparation et la vue Historique/Statistiques ont chacun leur propre volet (`VoletPrep`, `VoletStats`) — celui-ci ne couvre que la navigation interne de `InterfacePrincipaleWidget`.
 
 | Élément / Méthode | Description |
 |---|---|
 | `VoletNavigation` | Widget glissant affiché/masqué par un bouton hamburger. Fond sombre `#1e2124`, largeur fixe. |
-| Boutons de navigation | Un bouton par module (icône + label), hauteur 50 px. L'item actif est mis en évidence (fond bleu `#4a7fcb`, gras). |
+| Boutons de navigation | Un bouton par module (icône + label), hauteur 50 px : Saisie, Carte, Stock, Historique, Affichage extérieur, Paramètres. L'item actif est mis en évidence (fond bleu `#4a7fcb`, gras). |
 | Bouton "Quitter" | Style danger (texte rouge), séparé des liens de navigation. |
 | Raccourcis | `F11` / `Escape` pour basculer le plein écran depuis le volet. |
 
@@ -300,13 +317,13 @@ data/
 
 ### `src/UI/view/interface_principale.py`
 
-**Assembleur de la vue principale.** Gère le `QStackedWidget` gauche (7 pages) et le panneau de suivi droit.
+**Assembleur de la vue Saisie/Gestion.** Gère le `QStackedWidget` gauche (5 pages) et le panneau de suivi droit. Le poste de préparation n'en fait plus partie : c'est un mode distinct choisi au launcher (`MainWindowPrep`). Statistiques et Journal n'en font plus partie non plus : déplacés dans le mode allégé `MainWindowStats`.
 
 | Élément / Méthode | Description |
 |---|---|
 | `_PAGES_MODE_SPLIT` | Frozenset `{"saisie"}` — seule la page saisie affiche le panneau suivi à droite. |
 | `PlaceholderPage` | Widget générique affichant un titre et un message, utilisé pour les pages non encore implémentées. |
-| `InterfacePrincipaleWidget.__init__` | Construit les 7 pages du stack (`SaisieCommandeModule`, `StockModule`, `CarteModule`, `CommandesHistoriqueModule`, `LogsModule`, `ParametresModule`, `PostePreparationModule`) et le `SuiviCommandesModule`. Intègre `VoletNavigation` en superposition. Connecte les signaux inter-modules (`config_changed → refresh_all_pages`, `command_changed → refresh_all_pages`, `go_back → saisie`, etc.). Démarre sur la page **Paramètres**. |
+| `InterfacePrincipaleWidget.__init__` | Construit les 5 pages du stack (`SaisieCommandeModule`, `StockModule`, `CarteModule`, `CommandesHistoriqueModule`, `ParametresModule`) et le `SuiviCommandesModule`. Intègre `VoletNavigation` en superposition. Connecte les signaux inter-modules (`config_changed → refresh_all_pages`, `command_changed → refresh_all_pages`, `go_back → "saisie"`, etc.). Démarre sur **Saisie** si `data_folder_est_configure()` (ex. dossier défini depuis le launcher), sinon sur **Paramètres**. |
 | `set_left_page(page_name)` | Affiche la page demandée dans le stack, appelle `_refresh_page`, et adapte la visibilité du panneau suivi (mode split uniquement pour `"saisie"`). |
 | `refresh_all_pages()` | Rafraîchit toutes les pages du stack et le suivi (appelé sur `config_changed` ou `command_changed`). |
 | `_refresh_page(widget)` | Appelle `refresh()`, `reload_from_disk()` ou `refresh_orders()` selon ce que le widget expose. |
@@ -332,24 +349,41 @@ data/
 
 ---
 
-### `src/UI_prep/` — Interface allégée pour postes cuisine
+### `src/UI_prep/` — Mode Poste de préparation
 
-Module UI dédié à `app_prep.py`. N'importe aucun module de gestion (stock, historique, carte, logs, impression).
+Fenêtre principale du mode "Prépa" choisi au launcher. N'importe aucun module de gestion (stock, historique, carte, logs, impression) : conçu pour tourner sur des machines à ressources limitées (≥ 4 Go RAM) en lecture seule sur les JSON partagés en LAN.
 
 #### `main_window_prep.py` — `MainWindowPrep`
 
-Fenêtre principale de l'application légère. Contient `PostePreparationModule` comme widget central et intègre `PanneauLateral`.
+Fenêtre principale du mode. Contient `PostePreparationModule` comme widget central et intègre `VoletPrep` en superposition (bouton hamburger dans la barre du haut).
 
-#### `panneau_lateral.py` — `PanneauLateral`
+#### `panneau_lateral.py` — `VoletPrep`
 
-Volet de configuration minimal accessible depuis un bouton flottant.
+Volet de configuration minimal accessible depuis le bouton hamburger.
 
 | Élément | Description |
 |---|---|
-| Sélecteur dossier data | `QFileDialog` pour pointer vers un partage réseau LAN. Rafraîchit `PostePreparationModule` instantanément. |
-| Logo MegaSnack | `QSvgWidget` affiché en en-tête du panneau. |
+| Sélecteur dossier data | `QFileDialog` pour pointer vers un partage réseau LAN ; bouton "Appliquer" persiste `data_folder` dans `config.json` et émet `dossier_applique` (rafraîchit `PostePreparationModule`). |
 | Plein écran | Bascule `showFullScreen` / `showNormal`. |
 | Quitter | Ferme proprement l'application. |
+
+---
+
+### `src/UI_stats/` — Mode Historique/Statistiques
+
+Fenêtre principale du mode "Historique/Statistiques" choisi au launcher. Vue allégée dédiée à la consultation des ventes et du journal : `StatsModule`, `CommandesHistoriqueModule` et `LogsModule`, sans saisie, stock, carte ni impression.
+
+#### `main_window_stats.py` — `MainWindowStats`
+
+Barre de navigation en haut (logo cliquable) et `QStackedWidget` à 3 pages (Statistiques, Historique, Journal — Statistiques par défaut, page d'accueil de ce mode). Le bouton "Retour" de chaque module ramène à Statistiques. Intègre `VoletStats` en superposition.
+
+#### `panneau_lateral_stats.py` — `VoletStats`
+
+| Élément | Description |
+|---|---|
+| Boutons Statistiques / Historique / Journal | Basculent la page affichée (`page_demandee`) ; le bouton de la page active est mis en évidence (`maj_page_active`). |
+| Sélecteur dossier data | Identique à `VoletPrep` : `QFileDialog` + bouton "Appliquer", émet `dossier_applique` (rafraîchit les trois pages). |
+| Plein écran / Quitter | Identiques à `VoletPrep`. |
 
 ---
 
@@ -429,7 +463,7 @@ Volet de configuration minimal accessible depuis un bouton flottant.
 | `_parse_order_file(order_file)` | Charge et structure un fichier JSON de commande → `(infos, command_lines)`. |
 | `get_live_orders()` | Charge les commandes en cours depuis `en_cours/`. Retourne les compteurs `active_count`, `pending_count`, `delivered_count`, `cancelled_count` par commande. |
 | `get_live_orders_prep()` | Charge les commandes `en_cours/` et retourne une **liste plate** de plats (un dict par plat) excluant Annulé/Livré/Non livré. Utilisé par le poste cuisine et l'affichage extérieur. |
-| `get_all_history_orders()` | Charge toutes les commandes depuis `en_cours/`, `terminee/` et `annulee/`, triées par ID décroissant. Utilisé par l'historique. |
+| `get_all_history_orders()` | Charge toutes les commandes depuis `en_cours/`, `terminee/` et `annulee/`, triées par ID décroissant. Chaque plat expose aussi `recette` et `composition`. Utilisé par l'historique et le module Statistiques. |
 | `get_completed_orders()` | Charge uniquement les commandes terminées depuis `terminee/`. |
 | `signature_live_orders()` | Retourne les signatures `(nom, mtime_ns, taille)` des fichiers `en_cours/` — utilisé pour le court-circuit des timers. |
 | `signature_history_orders()` | Signature combinée de `en_cours/`, `terminee/` et `annulee/`. |
@@ -480,7 +514,7 @@ Cache mémoire des compteurs d'IDs journaliers. Persisté dans `logs/derniers_ID
 
 | Catégorie | Événements |
 |---|---|
-| `commande` | `AJOUT_PLAT`, `ANNULATION_PLAT`, `ANNULATION_COMMANDE`, `VALIDATION_COMMANDE`, `PLAT_PRET`, `PLAT_LIVRE`, `PLAT_NON_LIVRE`, `TRANSFERT_PRET`, `COMMANDE_TERMINEE`, `IMPRESSION_TICKET`, `RETOUR_PREPARATION`, `RETOUR_PRET`, `COMMANDE_ROUVERTE` |
+| `commande` | `AJOUT_PLAT`, `ANNULATION_PLAT`, `ANNULATION_COMMANDE`, `VALIDATION_COMMANDE`, `PLAT_PRET`, `PLAT_LIVRE`, `PLAT_NON_LIVRE`, `TRANSFERT_PRET`, `COMMANDE_TERMINEE`, `IMPRESSION_TICKET`, `RETOUR_PREPARATION`, `RETOUR_PRET`, `COMMANDE_ROUVERTE`, `EXPORT_RAPPORT_STATS` |
 | `stock` | `MODIFICATION_STOCK_MANUELLE`, `MODIFICATION_CACHE_STOCK`, `PERSISTANCE_STOCK` |
 | `carte` | `MODIFICATION_CARTE_MANUELLE` |
 | `parametres` | `MODIFICATION_PARAMETRES_IMPRIMANTE`, `MODIFICATION_OPTIONS_IMPRESSION`, `MODIFICATION_DOSSIER_DONNEES` |
@@ -680,9 +714,37 @@ Dialogue de filtres avancés : statut (multi-select), période (date début/fin)
 
 ---
 
+### 8.3bis `stats`
+
+**Statistiques de vente et statistiques opérationnelles, export PDF.** Vue de synthèse calculée sur l'historique des commandes, avec filtrage par période, graphiques (PySide6 `QtCharts`) et export du rapport en PDF (`reportlab`).
+
+#### `backend/stats.py`
+
+Fonctions pures (aucune dépendance Qt), toutes filtrées sur une période `[date_from, date_to]` (bornes incluses, `None` = pas de borne) :
+
+- `calculer_statistiques(orders, date_from=None, date_to=None) → dict` — agrège les commandes au statut `"terminée"` (les plats individuellement `"Annulé"` sont exclus), filtrées sur la date de création :
+  - `totaux` : nb commandes, montant total, nb plats vendus, panier moyen.
+  - `plats` : ventilation par type de plat (quantité, montant, prix moyen), triée par quantité décroissante.
+  - `paiements` : ventilation par moyen de paiement (quantité, %, montant).
+  - `recettes_pizza` : ventilation des recettes de pizza (le suffixe `" - Modifié !"` est retiré), triée par quantité décroissante.
+  - `ca_par_jour` : chiffre d'affaires par jour, trié chronologiquement.
+- `calculer_affluence(orders, date_from=None, date_to=None) → dict` — répartition horaire des **validations** de commande (`"Date de validation"`), filtrée sur cette même date. Une commande compte dès qu'elle a été validée quel que soit son statut final : une commande **annulée** a bien généré de l'affluence au moment de sa validation, même sans vente associée. Retourne `par_heure` (24 tranches `"00h"`…`"23h"`) et `totaux` (`nb_commandes_validees`, `nb_terminees`, `nb_annulees`, `nb_en_cours`).
+- `calculer_temps_preparation(orders, date_from=None, date_to=None) → dict` — durée entre la validation de la commande (tous les plats passent en `"En préparation"` à cet instant) et la mise à disposition du plat (`"Date de mise en livraison"` → statut `"Prêt"`), ventilée par type de plat. Un plat annulé avant d'avoir été prêt n'est pas comptabilisé (durée non mesurable). Retourne `par_plat` (`plat`, `nb_plats`, `temps_moyen_minutes`, `temps_min_minutes`, `temps_max_minutes`, triés par `nb_plats` décroissant) et `temps_moyen_global_minutes`.
+- `calculer_delais_livraison(orders, date_from=None, date_to=None) → dict` — délai de retrait par type de plat, entre la mise à disposition (`"Prêt"`) et la remise au client (`"Date de livraison"` → statut `"Livré"`). Même forme de retour que `calculer_temps_preparation`.
+
+#### `backend/pdf_export.py` — `generer_rapport_pdf(stats, chemin_fichier, titre_periode="", affluence=None, temps_preparation=None, delais_livraison=None)`
+
+Génère le PDF (`reportlab.platypus`) : totaux, histogramme + tableau par plat, camembert + tableau par moyen de paiement, tableau des recettes pizza, histogramme du CA par jour, puis (si fournis) histogramme des horaires d'affluence, histogramme + tableau du temps de préparation par plat, histogramme + tableau du délai de retrait par plat.
+
+#### `UI.py` — `StatsModule`
+
+Filtre de période (`JJ/MM/AAAA`), cartes de totaux, graphiques `QChartView` (barres/camemberts, thème sombre), tableaux détaillés, sections "Horaires d'affluence", "Temps de préparation par type de plat" et "Délai de retrait" (calculées via `calculer_affluence`/`calculer_temps_preparation`/`calculer_delais_livraison`), bouton "Exporter en PDF" (`QFileDialog` + log `EXPORT_RAPPORT_STATS`). Rafraîchissement automatique (5 s) court-circuité par `signature_history_orders()` + filtre courant. Signal `go_back` (→ Historique).
+
+---
+
 ### 8.4 `commandes_poste_preparation`
 
-**Poste de préparation cuisine.** Vue plein écran pour la cuisine, affichant les plats actifs.
+**Poste de préparation cuisine.** Vue plein écran pour la cuisine, affichant les plats actifs. N'est plus intégré au mode Saisie/Gestion : c'est un mode distinct du launcher, exclusivement utilisé par `MainWindowPrep` (`src/UI_prep/`).
 
 #### `UI/poste_preparation.py` — `PostePreparationModule`
 
@@ -789,7 +851,6 @@ Permet de modifier l'état de chaque catégorie (`Disponible`, `Rupture`, `Retir
 |---|---|
 | `config_changed` | Émis après sauvegarde d'une nouvelle configuration. Déclenche `refresh_all_pages()` dans `InterfacePrincipaleWidget`. |
 | `go_back` | Émis sur le bouton retour → navigue vers la saisie. |
-| `go_to_poste_prep` | Émis sur le bouton dédié → navigue vers le poste de préparation. |
 
 Sections :
 - **Données** : champ dossier data + bouton de navigation (`QFileDialog`). Info-texte sur les fichiers créés automatiquement.
@@ -1063,49 +1124,54 @@ Utilitaire standalone d'impression des tickets pour les repas gratuits, indépen
 
 | Fichier | Description |
 |---|---|
-| `morphoz_snackapp.spec` | Configuration PyInstaller pour l'application principale (`src/core/app.py`). Mode `onedir`, inclut `assets/`, `module_registry` data, `src/utils` (modules chargés uniquement via `plats_router` par import dynamique, non détectés par l'analyse statique de PyInstaller) et hidden imports USB. |
-| `morphoz_prep.spec` | Configuration PyInstaller pour l'application légère (`src/core/app_prep.py`). Mode `onedir`, sans imports USB ni modules de gestion. |
+| `morphoz_snackapp.spec` | Configuration PyInstaller pour l'exécutable unique (`src/core/app.py` → launcher → 3 modes). Mode `onedir`, inclut `assets/`, `module_registry` data, `src/utils` (modules chargés uniquement via `plats_router` par import dynamique, non détectés par l'analyse statique de PyInstaller) et hidden imports USB. `UI_prep/` et `UI_stats/` sont importés statiquement par `app.py` : PyInstaller les détecte sans entrée `datas` dédiée. |
 
-Le pipeline CI/CD est scindé en deux workflows : `.github/workflows/auto-tag.yml` crée le tag `vX.Y.Z` (lu depuis `version.py`) à chaque push sur `main`, puis appelle `.github/workflows/build.yml` (workflow réutilisable, déclenché via `workflow_call`) qui compile les deux applications en parallèle sur Windows et sur Linux (matrice `x86_64` / `aarch64`, ce dernier pour cibler le Raspberry Pi 5) et publie 6 archives sur la release GitHub. Les deux étapes s'exécutent dans le même run, car un tag poussé avec le `GITHUB_TOKEN` par défaut ne déclenche pas d'autre workflow par déclenchement `push: tags:`.
+Le pipeline CI/CD est scindé en deux workflows : `.github/workflows/auto-tag.yml` crée le tag `vX.Y.Z` (lu depuis `version.py`) à chaque push sur `main`, puis appelle `.github/workflows/build.yml` (workflow réutilisable, déclenché via `workflow_call`) qui compile l'exécutable unique sur Windows et sur Linux (matrice `x86_64` / `aarch64`, ce dernier pour cibler le Raspberry Pi 5) et publie 3 archives sur la release GitHub. Les deux étapes s'exécutent dans le même run, car un tag poussé avec le `GITHUB_TOKEN` par défaut ne déclenche pas d'autre workflow par déclenchement `push: tags:`.
+
+Un seul `.spec` pour les 3 modes (Saisie/Gestion, Poste de préparation, Historique/Statistiques) : les modes Prépa et Historique/Statistiques n'ont pas de dépendances à exclure qui justifieraient un build séparé (contrairement à un hypothétique mode sans Qt, par exemple) — la sélection se fait entièrement à l'exécution via `LauncherWindow`, ce qui évite de tripler la matrice de builds/releases.
 
 ---
 
 ## 16. Diagramme de dépendances simplifié
 
 ```
-app.py  (application principale)
-  └── MainWindow
-        ├── UpdateChecker [update_checker.py]  ──► bannière notification
-        ├── InterfacePrincipaleWidget
-        │     ├── VoletNavigation [volet_navigation.py]
-        │     ├── SaisieCommandeModule
-        │     │     ├── BoutonMenu · ItemRow · PaymentDialog
-        │     │     ├── route_plat_selection()
-        │     │     │     └── PizzaDialog / GrilladeDialog / SaladeDialog / CrepeDialog / frites
-        │     │     ├── MAJ_commande()  [saver.py]
-        │     │     ├── annuler_plat() / valider_commande()  [gestion.py]
-        │     │     └── paiement_*()  [paiements.py]
-        │     ├── SuiviCommandesModule
-        │     │     └── ConteneurSuiviCommandes
-        │     │           └── plat_prêt() / livrer_plat()  [commandes_suivi_gestion.py]
-        │     ├── CommandesHistoriqueModule
-        │     │     ├── FiltreHistoriqueDialog
-        │     │     └── marquer_plat_pret/livre/annuler_plat_valide()  [commandes_suivi_gestion.py]
-        │     ├── PostePreparationModule
-        │     │     └── CartePlatWidget
-        │     ├── StockModule  →  StockCache  [cache.py]
-        │     ├── CarteModule
-        │     ├── ParametresModule  →  save_app_config()  [app_config.py]
-        │     └── LogsModule
-        │           └── FiltreTriLogDialog
-        └── SuiviExterieurWindow  →  get_live_orders_prep()
+app.py  (point d'entrée unique)
+  └── LauncherWindow [UI/launcher_window.py]  ──► mode_choisi(str)
+        │
+        ├── "complet" ──► MainWindow
+        │       ├── UpdateChecker [update_checker.py]  ──► bannière notification
+        │       ├── InterfacePrincipaleWidget
+        │       │     ├── VoletNavigation [volet_navigation.py]
+        │       │     ├── SaisieCommandeModule
+        │       │     │     ├── BoutonMenu · ItemRow · PaymentDialog
+        │       │     │     ├── route_plat_selection()
+        │       │     │     │     └── PizzaDialog / GrilladeDialog / SaladeDialog / CrepeDialog / frites
+        │       │     │     ├── MAJ_commande()  [saver.py]
+        │       │     │     ├── annuler_plat() / valider_commande()  [gestion.py]
+        │       │     │     └── paiement_*()  [paiements.py]
+        │       │     ├── SuiviCommandesModule
+        │       │     │     └── ConteneurSuiviCommandes
+        │       │     │           └── plat_prêt() / livrer_plat()  [commandes_suivi_gestion.py]
+        │       │     ├── CommandesHistoriqueModule
+        │       │     │     ├── FiltreHistoriqueDialog
+        │       │     │     └── marquer_plat_pret/livre/annuler_plat_valide()  [commandes_suivi_gestion.py]
+        │       │     ├── StockModule  →  StockCache  [cache.py]
+        │       │     ├── CarteModule
+        │       │     └── ParametresModule  →  save_app_config()  [app_config.py]
+        │       └── SuiviExterieurWindow  →  get_live_orders_prep()
+        │
+        ├── "prepa" ──► MainWindowPrep [UI_prep/main_window_prep.py]
+        │       ├── VoletPrep [UI_prep/panneau_lateral.py]
+        │       └── PostePreparationModule  →  get_live_orders_prep()
+        │
+        └── "stats" ──► MainWindowStats [UI_stats/main_window_stats.py]
+                ├── VoletStats [UI_stats/panneau_lateral_stats.py]
+                ├── StatsModule  →  calculer_statistiques() · generer_rapport_pdf()  (page d'accueil)
+                ├── CommandesHistoriqueModule
+                └── LogsModule
+                      └── FiltreTriLogDialog
 
-app_prep.py  (application légère postes cuisine)
-  └── MainWindowPrep [UI_prep/main_window_prep.py]
-        ├── PanneauLateral [UI_prep/panneau_lateral.py]
-        └── PostePreparationModule  →  get_live_orders_prep()
-
-Couche backend (partagée par tous les modules) :
+Couche backend (partagée par tous les modes) :
   version.py      ──► APP_VERSION
   app_config.py   ──► get_data_folder() · get_printer_config() · get_print_options()
   data_sources.py ──► get_card_data() · get_stock_cache() · get_live_orders() · ...

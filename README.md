@@ -12,16 +12,17 @@ Application de gestion de snack pour événements (ex : MégaSouye), développé
 - **Impression de tickets** — tickets client et cuisine via imprimante thermique USB (ESC-POS), réimpression depuis l'historique
 - **Gestion de la carte** — édition des catégories, recettes, prix et états (Disponible / Rupture / Retiré / Archivé)
 - **Historique des commandes** — recherche, filtres (statut, date, priorité), tri, réimpression
+- **Statistiques de vente** — totaux, ventilation par plat/paiement/recette pizza, chiffre d'affaires par jour, filtrage par période, graphiques et export de rapports en PDF
 - **Journal d'événements** — traçabilité complète au format JSON Lines (commandes, stock, paiements, paramètres, erreurs)
 - **Affichage extérieur** — fenêtre secondaire pour le suivi des commandes côté client
-- **Application légère pour postes cuisine** — point d'entrée `app_prep.py` sans dépendances USB ni modules de gestion (adapté aux machines à 4 Go RAM, partage réseau LAN)
+- **Launcher unique à 3 modes** — un seul exécutable propose au démarrage Saisie/Gestion, Poste de préparation ou Historique/Statistiques (ce dernier sans dépendances USB, adapté aux machines à 4 Go RAM en partage réseau LAN), avec sélection du dossier data avant l'ouverture du mode choisi
 - **Vérification des mises à jour** — détection automatique en arrière-plan via l'API GitHub Releases
 
 ## Utilisation
 
-Au lancement, l'application charge automatiquement la configuration (dossier de données, imprimante). La vue principale est divisée en deux panneaux : saisie des commandes à gauche et suivi en temps réel à droite.
+Au lancement, l'exécutable affiche un launcher proposant 3 modes : **Saisie / Gestion** (caisse + cuisine + gestion complète), **Poste de préparation** (affichage cuisine plein écran) et **Historique / Statistiques** (consultation des ventes + export PDF, sans impression USB). Le choix n'est pas mémorisé : il est redemandé à chaque lancement. Le launcher permet aussi de pointer vers le dossier data (utile pour un partage réseau LAN) avant d'ouvrir le mode choisi.
 
-Pour les paramètres (dossier de données, imprimante, options d'impression), accéder au module Paramètres via la barre de navigation.
+En mode Saisie/Gestion, la vue principale est divisée en deux panneaux : saisie des commandes à gauche et suivi en temps réel à droite. Pour les paramètres (dossier de données, imprimante, options d'impression), accéder au module Paramètres via la barre de navigation.
 
 ## Développement & maintenance
 
@@ -57,11 +58,8 @@ Pour les paramètres (dossier de données, imprimante, options d'impression), ac
 
 4. **Lancer l'application**
    ```bash
-   # Application principale (caisse + cuisine + gestion)
+   # Point d'entrée unique — affiche le launcher (Saisie/Gestion, Poste de préparation, Historique/Statistiques)
    python -m src.core.app
-
-   # Application allégée pour postes cuisine (sans impression USB)
-   python -m src.core.app_prep
    ```
 
 ### Structure du projet
@@ -79,21 +77,25 @@ Morphoz_SnackApp/
 │
 ├── src/
 │   ├── core/
-│   │   ├── app.py                          # Point d'entrée principal (thème sombre Fusion, vérif MAJ)
-│   │   ├── app_prep.py                     # Point d'entrée allégé pour postes cuisine (sans USB)
+│   │   ├── app.py                          # Point d'entrée unique (launcher → thème sombre Fusion, vérif MAJ)
 │   │   └── version.py                      # Version centralisée (APP_VERSION)
 │   │
 │   ├── UI/
-│   │   ├── main_window.py                  # Fenêtre principale (raccourcis F11/Ctrl+Q, bannière MAJ)
+│   │   ├── launcher_window.py              # Launcher : choix du mode de démarrage (3 boutons)
+│   │   ├── main_window.py                  # Fenêtre principale mode Saisie/Gestion (raccourcis F11/Ctrl+Q, bannière MAJ)
 │   │   ├── suivi_exterieur_window.py       # Fenêtre d'affichage extérieur client
 │   │   ├── module_registry.py              # Registre des modules chargés
 │   │   └── view/
-│   │       ├── interface_principale.py     # Assemblage vue principale (panneau gauche + droite)
+│   │       ├── interface_principale.py     # Assemblage vue Saisie/Gestion (panneau gauche + droite)
 │   │       └── volet_navigation.py         # Volet de navigation latéral tactile
 │   │
 │   ├── UI_prep/
-│   │   ├── main_window_prep.py             # Fenêtre principale de l'application légère
+│   │   ├── main_window_prep.py             # Fenêtre principale du mode Poste de préparation
 │   │   └── panneau_lateral.py              # Volet de configuration (dossier data, plein écran)
+│   │
+│   ├── UI_stats/
+│   │   ├── main_window_stats.py            # Fenêtre principale du mode Historique/Statistiques
+│   │   └── panneau_lateral_stats.py        # Volet de navigation (Historique/Stats, dossier data, plein écran)
 │   │
 │   ├── backend/
 │   │   ├── app_config.py                   # Gestion de la configuration (dossier, imprimante, options)
@@ -111,6 +113,7 @@ Morphoz_SnackApp/
 │       ├── commandes_suivi/                # Suivi en temps réel des commandes (panneau droit)
 │       ├── commandes_poste_preparation/    # Poste de préparation cuisine (plein écran)
 │       ├── commandes_historique/           # Historique avec filtres, tri et réimpression
+│       ├── stats/                          # Statistiques de vente, graphiques et export PDF
 │       ├── carte/                          # Gestion de la carte (catégories, recettes, prix, états)
 │       ├── stock/                          # Gestion des stocks (liste hiérarchique + formulaire d'édition)
 │       ├── logs/                           # Consultation du journal d'événements avec filtres et tri
@@ -125,10 +128,9 @@ Morphoz_SnackApp/
 ├── .github/
 │   └── workflows/
 │       ├── auto-tag.yml                    # Vérifie la doc, génère le CHANGELOG, crée le tag vX.Y.Z et déclenche build.yml
-│       └── build.yml                       # CI/CD : 6 builds PyInstaller (Windows + Linux x86_64/aarch64 × main/prep), appelé par auto-tag.yml
+│       └── build.yml                       # CI/CD : 3 builds PyInstaller (Windows + Linux x86_64/aarch64), appelé par auto-tag.yml
 │
-├── morphoz_snackapp.spec                   # Configuration PyInstaller (application principale)
-├── morphoz_prep.spec                       # Configuration PyInstaller (application légère)
+├── morphoz_snackapp.spec                   # Configuration PyInstaller (exécutable unique, 3 modes via launcher)
 │
 ├── archive/
 │   ├── libusb-1.0.dll                      # Bibliothèque USB (requis Windows)

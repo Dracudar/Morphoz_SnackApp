@@ -88,20 +88,27 @@ Pas de configuration ruff dans le dépôt — le linter est présent (`.ruff_cac
 
 ### Vue d'ensemble
 
-```
-MainWindow (QMainWindow)
-└── InterfacePrincipaleWidget
-    ├── Panneau gauche : QStackedWidget (un widget par module)
-    │   ├── SaisieCommandeModule      — prise de commande
-    │   ├── StockModule               — inventaire
-    │   ├── CarteModule               — éditeur de carte
-    │   ├── CommandesHistoriqueModule — historique + réimpression
-    │   ├── LogsModule                — consultation du journal
-    │   ├── ParametresModule          — config dossier/imprimante
-    │   └── PostePreparationModule    — affichage plein écran cuisine
-    └── Panneau droit : SuiviCommandesModule (suivi en temps réel, visible en mode saisie)
+Un seul exécutable (`python -m src.core.app`) affiche `LauncherWindow` à chaque lancement : elle laisse choisir l'un des 3 modes ci-dessous (le choix n'est jamais mémorisé). Cela évite de multiplier les builds/releases PyInstaller — un seul `.spec` (`morphoz_snackapp.spec`). Le launcher permet aussi de définir le dossier data avant d'ouvrir un mode, pour que la fenêtre choisie parte directement sur le bon dossier (évite par exemple que le poste de préparation construise ses boutons filtre depuis une carte périmée).
 
-SuiviExterieurWindow (QDialog)  — fenêtre secondaire affichage client
+```
+LauncherWindow (src/UI/launcher_window.py) — choix du mode au démarrage
+│
+├── "Saisie / Gestion" ──► MainWindow (QMainWindow)
+│   └── InterfacePrincipaleWidget
+│       ├── Panneau gauche : QStackedWidget (un widget par module)
+│       │   ├── SaisieCommandeModule      — prise de commande
+│       │   ├── StockModule               — inventaire
+│       │   ├── CarteModule               — éditeur de carte
+│       │   ├── CommandesHistoriqueModule — historique + réimpression
+│       │   └── ParametresModule          — config dossier/imprimante
+│       └── Panneau droit : SuiviCommandesModule (suivi en temps réel, visible en mode saisie)
+│
+├── "Poste de préparation" ──► MainWindowPrep (src/UI_prep/) — PostePreparationModule plein écran
+│
+└── "Historique / Statistiques" ──► MainWindowStats (src/UI_stats/) — StatsModule (page d'accueil),
+    CommandesHistoriqueModule, LogsModule
+
+SuiviExterieurWindow (QDialog)  — fenêtre secondaire affichage client (mode Saisie/Gestion uniquement)
     └── Activée via le menu "Affichage > Affichage extérieur"
 ```
 
@@ -128,6 +135,8 @@ Chaque module suit le même schéma :
 - Un widget QWidget/QFrame principal exposant `refresh()` ou `reload_from_disk()`.
 - Un sous-dossier `UI/` pour les composants visuels et, si nécessaire, un sous-dossier `backend/` pour la logique métier.
 - `module_registry.py` découvre dynamiquement les modules via un fichier `module.py` optionnel dans chaque dossier.
+
+Le module `stats` suit ce schéma (`UI.py` + `backend/stats.py` + `backend/pdf_export.py`) : `stats.calculer_statistiques()` agrège les commandes terminées de `get_all_history_orders()` (totaux, ventilation par plat/paiement/recette pizza, CA par jour), et `pdf_export.generer_rapport_pdf()` exporte ce récapitulatif via `reportlab`.
 
 ### Personnalisation des plats (`src/modules/plats/`)
 

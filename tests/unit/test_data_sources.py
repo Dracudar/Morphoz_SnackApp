@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.06.12
 
 Date de modification:
-    2026.06.14
+    2026.07.05
 """
 
 import json
@@ -28,6 +28,7 @@ from src.backend.data_sources import (
     _normalize_text,
     _normalized_state,
     _parse_order_file,
+    get_all_history_orders,
     get_menu_categories,
     invalider_cache_stock,
 )
@@ -185,6 +186,71 @@ class TestParseOrderFile:
         infos, commande = _parse_order_file(f)
         assert infos == {}
         assert commande == {}
+
+
+# ── get_all_history_orders ────────────────────────────────────────────────────
+
+class TestGetAllHistoryOrders:
+    def test_expose_recette_et_composition_par_plat(self, monkeypatch, tmp_path):
+        terminee = tmp_path / "terminee"
+        terminee.mkdir()
+        data = {
+            "Informations": {"ID": "20260701-001", "Statut": "Terminée", "Montant": 8.0},
+            "Commande": {
+                "P001": {
+                    "ID": "P001", "Plat": "Pizza", "Nom": "Pizza Margherita",
+                    "Statut": "Livré", "Prix": 8.0, "Recette": "Margherita",
+                    "Composition": {"Garnitures": ["Mozzarella"]},
+                }
+            },
+        }
+        (terminee / "commande_20260701-001.json").write_text(json.dumps(data), encoding="utf-8")
+        monkeypatch.setattr(data_sources, "get_command_root", lambda: tmp_path)
+
+        orders = get_all_history_orders()
+        assert len(orders) == 1
+        item = orders[0]["items"][0]
+        assert item["recette"] == "Margherita"
+        assert item["composition"] == {"Garnitures": ["Mozzarella"]}
+
+    def test_champs_absents_retournent_valeurs_par_defaut(self, monkeypatch, tmp_path):
+        terminee = tmp_path / "terminee"
+        terminee.mkdir()
+        data = {
+            "Informations": {"ID": "20260701-002", "Statut": "Terminée"},
+            "Commande": {"F001": {"ID": "F001", "Plat": "Frites", "Statut": "Livré"}},
+        }
+        (terminee / "commande_20260701-002.json").write_text(json.dumps(data), encoding="utf-8")
+        monkeypatch.setattr(data_sources, "get_command_root", lambda: tmp_path)
+
+        orders = get_all_history_orders()
+        item = orders[0]["items"][0]
+        assert item["recette"] == ""
+        assert item["composition"] == {}
+        assert item["ready_at"] == ["", ""]
+        assert item["delivered_at"] == ["", ""]
+        assert item["cancelled_at"] == ["", ""]
+
+    def test_expose_les_horodatages_par_plat(self, monkeypatch, tmp_path):
+        terminee = tmp_path / "terminee"
+        terminee.mkdir()
+        data = {
+            "Informations": {"ID": "20260701-003", "Statut": "Terminée"},
+            "Commande": {
+                "P001": {
+                    "ID": "P001", "Plat": "Pizza", "Statut": "Livré",
+                    "Date de mise en livraison": ["01/07/2026", "12:20"],
+                    "Date de livraison": ["01/07/2026", "12:27"],
+                }
+            },
+        }
+        (terminee / "commande_20260701-003.json").write_text(json.dumps(data), encoding="utf-8")
+        monkeypatch.setattr(data_sources, "get_command_root", lambda: tmp_path)
+
+        orders = get_all_history_orders()
+        item = orders[0]["items"][0]
+        assert item["ready_at"] == ["01/07/2026", "12:20"]
+        assert item["delivered_at"] == ["01/07/2026", "12:27"]
 
 
 # ── Signatures de court-circuit ───────────────────────────────────────────────

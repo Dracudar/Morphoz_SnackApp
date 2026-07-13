@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    2.4
+    2.5
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.06.10
+    2026.07.05
 """
 
 from __future__ import annotations
@@ -487,6 +487,11 @@ def get_all_history_orders() -> List[Dict[str, Any]]:
                         "nom": line_data.get("Nom", ""),
                         "status": str(line_data.get("Statut", "")) or "Inconnu",
                         "price": line_data.get("Prix"),
+                        "recette": line_data.get("Recette", ""),
+                        "composition": line_data.get("Composition", {}),
+                        "ready_at": line_data.get("Date de mise en livraison", ["", ""]),
+                        "delivered_at": line_data.get("Date de livraison", ["", ""]),
+                        "cancelled_at": line_data.get("Date d'annulation", ["", ""]),
                     }
                 )
 

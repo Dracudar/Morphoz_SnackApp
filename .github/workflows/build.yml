@@ -22,27 +22,18 @@ jobs:
       - name: Installer les dépendances
         run: pip install -r requirements.txt pyinstaller
 
-      - name: Compiler l'app principale
+      - name: Compiler l'application
         run: pyinstaller morphoz_snackapp.spec --clean --noconfirm
 
-      - name: Compiler l'app préparation
-        run: pyinstaller morphoz_prep.spec --clean --noconfirm
-
-      - name: Archiver les builds Windows
+      - name: Archiver le build Windows
         shell: pwsh
         run: |
           Compress-Archive -Path dist/MorphozSnackApp -DestinationPath MorphozSnackApp-windows.zip
-          Compress-Archive -Path dist/MorphozSnackApp_prep -DestinationPath MorphozSnackApp_prep-windows.zip
 
       - uses: actions/upload-artifact@v4
         with:
-          name: build-windows-main
+          name: build-windows
           path: MorphozSnackApp-windows.zip
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: build-windows-prep
-          path: MorphozSnackApp_prep-windows.zip
 
   build-linux:
     name: Build Linux (${{ matrix.arch }})
@@ -67,26 +58,17 @@ jobs:
       - name: Installer les dépendances Python
         run: pip install -r requirements.txt pyinstaller
 
-      - name: Compiler l'app principale
+      - name: Compiler l'application
         run: pyinstaller morphoz_snackapp.spec --clean --noconfirm
 
-      - name: Compiler l'app préparation
-        run: pyinstaller morphoz_prep.spec --clean --noconfirm
-
-      - name: Archiver les builds Linux
+      - name: Archiver le build Linux
         run: |
           tar -czf MorphozSnackApp-linux-${{ matrix.arch }}.tar.gz -C dist MorphozSnackApp
-          tar -czf MorphozSnackApp_prep-linux-${{ matrix.arch }}.tar.gz -C dist MorphozSnackApp_prep
 
       - uses: actions/upload-artifact@v4
         with:
-          name: build-linux-main-${{ matrix.arch }}
+          name: build-linux-${{ matrix.arch }}
           path: MorphozSnackApp-linux-${{ matrix.arch }}.tar.gz
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: build-linux-prep-${{ matrix.arch }}
-          path: MorphozSnackApp_prep-linux-${{ matrix.arch }}.tar.gz
 
   release:
     name: Créer la release GitHub
@@ -97,29 +79,17 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: build-windows-main
+          name: build-windows
 
       - uses: actions/download-artifact@v4
         with:
-          name: build-windows-prep
+          name: build-linux-x86_64
 
       - uses: actions/download-artifact@v4
         with:
-          name: build-linux-main-x86_64
+          name: build-linux-aarch64
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: build-linux-prep-x86_64
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: build-linux-main-aarch64
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: build-linux-prep-aarch64
-
-      - name: Publier la release avec les six exécutables
+      - name: Publier la release avec les trois exécutables
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -127,9 +97,6 @@ jobs:
             MorphozSnackApp-windows.zip \
             MorphozSnackApp-linux-x86_64.tar.gz \
             MorphozSnackApp-linux-aarch64.tar.gz \
-            MorphozSnackApp_prep-windows.zip \
-            MorphozSnackApp_prep-linux-x86_64.tar.gz \
-            MorphozSnackApp_prep-linux-aarch64.tar.gz \
             --repo "${{ github.repository }}" \
             --title "Release ${{ inputs.tag }}" \
             --generate-notes

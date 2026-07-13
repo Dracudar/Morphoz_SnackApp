@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.2
 
 Date de création :
     2026.06.12
 
 Date de modification:
-    2026.06.25
+    2026.07.05
 """
 
 import json

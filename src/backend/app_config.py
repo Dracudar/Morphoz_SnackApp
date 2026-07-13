@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    2.1
+    2.3
 
 Date de création :
     2026.05.31
 
 Date de modification:
-    2026.06.10
+    2026.07.05
 """
 
 from __future__ import annotations

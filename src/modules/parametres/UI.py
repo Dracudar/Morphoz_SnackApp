@@ -11,13 +11,13 @@ Author :
     Dracudar
 
 Version:
-    2.8
+    3.0
 
 Date de création :
     2025.05.29
 
 Date de modification:
-    2026.06.21
+    2026.07.05
 """
 
 from __future__ import annotations
@@ -56,7 +56,6 @@ class ParametresModule(QFrame):
 
 	config_changed = Signal()
 	go_back = Signal()
-	go_to_poste_prep = Signal()
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
