@@ -736,9 +736,21 @@ Fonctions pures (aucune dépendance Qt), toutes filtrées sur une période `[dat
 
 Génère le PDF (`reportlab.platypus`) : totaux, histogramme + tableau par plat, camembert + tableau par moyen de paiement, tableau des recettes pizza, histogramme du CA par jour, puis (si fournis) histogramme des horaires d'affluence, histogramme + tableau du temps de préparation par plat, histogramme + tableau du délai de retrait par plat.
 
+#### `backend/sumup.py` — rapprochement des paiements carte avec le relevé CSV SumUp
+
+Fonctions pures (aucune dépendance Qt) permettant de comparer les commandes de l'app payées par carte au relevé de ventes CSV exporté depuis SumUp (plusieurs TPE partagent le même export, isolés via la colonne `"Compte"`) :
+
+- `lire_lignes_csv(chemin_fichier) → list[dict]` — lit le CSV (délimiteur `,`) et corrige le mojibake UTF-8/Latin-1 constaté sur certains exports SumUp (`_corriger_encodage`).
+- `comptes_disponibles(lignes) → list[str]` — valeurs distinctes de la colonne `"Compte"`, pour peupler le sélecteur de TPE.
+- `grouper_transactions(lignes, compte) → list[dict]` — filtre sur le compte choisi et regroupe les lignes par `"Réf. transaction"` (un export SumUp peut détailler une transaction sur plusieurs lignes, une par article) ; retourne `{reference, datetime, montant, moyen_paiement, lisible}`, triée par date/heure.
+- `horodatage_commande(valeur) → datetime | None` — convertit un champ `["JJ/MM/AAAA", "HH:MM"]` d'une commande (ex. `"validation_at"`) en `datetime`.
+- `rapprocher_paiements_carte(commandes_carte, transactions_sumup, tolerance_minutes=5) → dict` — associe par montant identique + écart de date/heure minimal sous la tolérance donnée (algorithme glouton), la tolérance étant nécessaire car la validation du paiement sur l'app est manuelle. Retourne `paires`, `commandes_sans_correspondance` (carte sur l'app, absentes du relevé) et `transactions_sans_correspondance` (relevé SumUp, absentes de l'app).
+
 #### `UI.py` — `StatsModule`
 
 Filtre de période (`JJ/MM/AAAA`), cartes de totaux, graphiques `QChartView` (barres/camemberts, thème sombre), tableaux détaillés, sections "Horaires d'affluence", "Temps de préparation par type de plat" et "Délai de retrait" (calculées via `calculer_affluence`/`calculer_temps_preparation`/`calculer_delais_livraison`), bouton "Exporter en PDF" (`QFileDialog` + log `EXPORT_RAPPORT_STATS`). Rafraîchissement automatique (5 s) court-circuité par `signature_history_orders()` + filtre courant. Signal `go_back` (→ Historique).
+
+Le volet de navigation latéral comporte une troisième page, "Rapprochement SumUp" : sélection du relevé CSV (`QFileDialog`) et du compte TPE, tolérance en minutes réglable, bouton "Lancer la vérification" qui construit les commandes carte de la période filtrée (`payment_type == "Carte"`) et appelle `rapprocher_paiements_carte`, puis affiche les deux tableaux d'écarts (`log RAPPROCHEMENT_SUMUP`).
 
 ---
 

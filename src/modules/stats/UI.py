@@ -11,11 +11,15 @@ Description:
     Seules les commandes terminées sont comptabilisées (voir
     src.modules.stats.backend.stats.calculer_statistiques).
 
+    Propose également un rapprochement des paiements carte de l'app avec un
+    relevé de ventes CSV exporté depuis SumUp (voir
+    src.modules.stats.backend.sumup).
+
 Author :
     Dracudar
 
 Version:
-    1.2
+    1.3
 
 Date de création :
     2026.07.05
@@ -42,6 +46,7 @@ from PySide6.QtCharts import (
 from PySide6.QtCore import QSize, QTimer, Qt, Signal
 from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import (
+    QComboBox,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -50,6 +55,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QSpinBox,
     QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
@@ -70,6 +76,14 @@ from src.modules.stats.backend.stats import (
     calculer_delais_livraison,
     calculer_statistiques,
     calculer_temps_preparation,
+)
+from src.modules.stats.backend.sumup import (
+    comptes_disponibles,
+    grouper_transactions,
+    horodatage_commande,
+    lire_lignes_csv,
+    rapprocher_paiements_carte,
+    suggerer_commandes_probables,
 )
 
 # ── Couleurs (identiques aux autres modules de consultation) ─────────────────
@@ -107,6 +121,8 @@ class StatsModule(QFrame):
         self._delais_livraison: Dict[str, Any] = {}
         self._composition: Dict[str, Dict[str, Any]] = {}
         self._last_key: Optional[tuple] = None
+        self._sumup_lignes: List[Dict[str, str]] = []
+        self._sumup_chemin: Optional[str] = None
         self._build_ui()
         self._build_timer()
         self.refresh()
@@ -140,6 +156,11 @@ class StatsModule(QFrame):
         self._item_general.setData(0, Qt.ItemDataRole.UserRole, page_generale)
         self.nav_tree.setCurrentItem(self._item_general)
 
+        page_sumup, sumup_layout = self._build_page_generale()
+        self._build_sumup_controls(sumup_layout)
+        self.content_stack.addWidget(page_sumup)
+        self._item_sumup.setData(0, Qt.ItemDataRole.UserRole, page_sumup)
+
         main_layout.addLayout(self._build_bottom_bar())
 
         self.setStyleSheet(
@@ -167,7 +188,7 @@ class StatsModule(QFrame):
                 text-decoration: underline;
                 padding: 4px 0 10px 0;
             }}
-            QLineEdit {{
+            QLineEdit, QComboBox, QSpinBox {{
                 background-color: #3b3f46;
                 color: {_TEXT_TITLE};
                 border: 1px solid #676d79;
@@ -257,13 +278,15 @@ class StatsModule(QFrame):
         return scroll_area, content_layout
 
     def _build_nav_tree(self) -> QTreeWidget:
-        """Construit le volet de navigation latéral (Général / Plats), toujours visible.
+        """Construit le volet de navigation latéral (Général / Plats / Rapprochement SumUp),
+        toujours visible.
 
-        "Général" est un item de premier niveau sélectionnable ; "Plats" est un en-tête de
-        regroupement non sélectionnable dont les enfants (un par plat) sont ajoutés/retirés à
-        chaque rafraîchissement dans _render_par_plat. L'arbre reste toujours développé (pas
-        de repli/dépli manuel) : la place disponible en largeur (feuille au format A4) permet
-        de garder cette navigation visible en permanence plutôt que dans des onglets.
+        "Général" et "Rapprochement SumUp" sont des items de premier niveau sélectionnables ;
+        "Plats" est un en-tête de regroupement non sélectionnable dont les enfants (un par
+        plat) sont ajoutés/retirés à chaque rafraîchissement dans _render_par_plat. L'arbre
+        reste toujours développé (pas de repli/dépli manuel) : la place disponible en largeur
+        (feuille au format A4) permet de garder cette navigation visible en permanence plutôt
+        que dans des onglets.
         """
         self.nav_tree = QTreeWidget()
         self.nav_tree.setObjectName("navStats")
@@ -284,6 +307,9 @@ class StatsModule(QFrame):
         self._item_plats.setExpanded(True)
 
         self._nav_items_plats: Dict[str, QTreeWidgetItem] = {}
+
+        self._item_sumup = QTreeWidgetItem(["Rapprochement SumUp"])
+        self.nav_tree.addTopLevelItem(self._item_sumup)
 
         self.nav_tree.currentItemChanged.connect(self._on_nav_item_selected)
         return self.nav_tree
@@ -376,6 +402,260 @@ class StatsModule(QFrame):
         bar.addWidget(self.export_button)
 
         return bar
+
+    # ── Rapprochement SumUp ──────────────────────────────────────────────────
+
+    def _build_sumup_controls(self, layout: QVBoxLayout):
+        """Construit la page "Rapprochement SumUp" : sélection du relevé CSV et du
+        compte (TPE), lancement du rapprochement et affichage des écarts trouvés."""
+        titre = QLabel("Rapprochement des paiements carte (SumUp)")
+        titre.setObjectName("titrePlat")
+        titre.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(titre)
+
+        note = QLabel(
+            "Compare les commandes de l'app payées par carte au relevé de ventes CSV "
+            "exporté depuis SumUp, pour repérer les écarts de saisie du moyen de "
+            "paiement (montant + date/heure, avec une tolérance car la validation sur "
+            "l'app est manuelle)."
+        )
+        note.setWordWrap(True)
+        note.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 12px;")
+        layout.addWidget(note)
+
+        ligne_fichier = QHBoxLayout()
+        self.sumup_fichier_btn = QPushButton("  Choisir le relevé CSV...")
+        self.sumup_fichier_btn.setIcon(icone("card.svg", 18))
+        self.sumup_fichier_btn.setIconSize(QSize(18, 18))
+        self.sumup_fichier_btn.clicked.connect(self._on_choisir_fichier_sumup)
+        ligne_fichier.addWidget(self.sumup_fichier_btn)
+        self.sumup_fichier_label = QLabel("Aucun fichier sélectionné")
+        self.sumup_fichier_label.setStyleSheet(f"color: {_TEXT_MUTED};")
+        ligne_fichier.addWidget(self.sumup_fichier_label, 1)
+        layout.addLayout(ligne_fichier)
+
+        ligne_options = QHBoxLayout()
+        label_compte = QLabel("Compte (TPE) :")
+        label_compte.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 13px;")
+        ligne_options.addWidget(label_compte)
+        self.sumup_compte_combo = QComboBox()
+        self.sumup_compte_combo.setEnabled(False)
+        ligne_options.addWidget(self.sumup_compte_combo, 1)
+
+        label_tolerance = QLabel("Tolérance (min) :")
+        label_tolerance.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 13px;")
+        ligne_options.addWidget(label_tolerance)
+        self.sumup_tolerance_spin = QSpinBox()
+        self.sumup_tolerance_spin.setRange(1, 60)
+        self.sumup_tolerance_spin.setValue(5)
+        self.sumup_tolerance_spin.setMaximumWidth(70)
+        ligne_options.addWidget(self.sumup_tolerance_spin)
+        layout.addLayout(ligne_options)
+
+        self.sumup_verifier_btn = QPushButton("  Lancer la vérification")
+        self.sumup_verifier_btn.setIcon(icone("check.svg", 18))
+        self.sumup_verifier_btn.setIconSize(QSize(18, 18))
+        self.sumup_verifier_btn.setEnabled(False)
+        self.sumup_verifier_btn.clicked.connect(self._on_verifier_sumup)
+        layout.addWidget(self.sumup_verifier_btn)
+
+        self.sumup_resultats_container = QWidget()
+        self.sumup_resultats_layout = QVBoxLayout(self.sumup_resultats_container)
+        self.sumup_resultats_layout.setContentsMargins(0, 12, 0, 0)
+        self.sumup_resultats_layout.setSpacing(10)
+        layout.addWidget(self.sumup_resultats_container)
+
+        layout.addStretch()
+
+    def _on_choisir_fichier_sumup(self):
+        chemin, _ = QFileDialog.getOpenFileName(
+            self, "Sélectionner le relevé de ventes SumUp", "", "CSV (*.csv)",
+        )
+        if not chemin:
+            return
+
+        try:
+            lignes = lire_lignes_csv(chemin)
+        except OSError as e:
+            QMessageBox.warning(self, "Relevé SumUp", f"Impossible de lire le fichier :\n{e}")
+            return
+
+        comptes = comptes_disponibles(lignes)
+        if not comptes:
+            QMessageBox.warning(
+                self, "Relevé SumUp",
+                "Aucune colonne \"Compte\" exploitable n'a été trouvée dans ce fichier.",
+            )
+            return
+
+        self._sumup_lignes = lignes
+        self._sumup_chemin = chemin
+        self.sumup_fichier_label.setText(Path(chemin).name)
+
+        self.sumup_compte_combo.clear()
+        self.sumup_compte_combo.addItems(comptes)
+        self.sumup_compte_combo.setEnabled(True)
+        self.sumup_verifier_btn.setEnabled(True)
+        self._clear_layout(self.sumup_resultats_layout)
+
+    def _commandes_carte(self) -> List[Dict[str, Any]]:
+        """Construit la liste des commandes de l'historique payées par carte, dans la
+        période filtrée en haut de page : {id, datetime, montant}."""
+        date_from = self._parse_date(self.date_from_field.text(), "00:00")
+        date_to = self._parse_date(self.date_to_field.text(), "23:59")
+
+        commandes = []
+        for order in get_all_history_orders():
+            if (order.get("payment_type") or "") != "Carte":
+                continue
+            dt = horodatage_commande(order.get("validation_at"))
+            if date_from and (dt is None or dt < date_from):
+                continue
+            if date_to and (dt is None or dt > date_to):
+                continue
+            commandes.append({
+                "id": order.get("id", ""),
+                "datetime": dt,
+                "montant": order.get("amount") or 0,
+                "status": order.get("status", ""),
+            })
+        return commandes
+
+    def _toutes_commandes(self, exclure_ids: set) -> List[Dict[str, Any]]:
+        """Construit la liste de TOUTES les commandes de l'historique (quel que soit le
+        moyen de paiement), dans la période filtrée en haut de page, à l'exclusion des ID
+        donnés — sert de vivier de candidats pour suggerer_commandes_probables, afin de
+        repérer une commande dont le moyen de paiement aurait été mal saisi sur l'app."""
+        date_from = self._parse_date(self.date_from_field.text(), "00:00")
+        date_to = self._parse_date(self.date_to_field.text(), "23:59")
+
+        commandes = []
+        for order in get_all_history_orders():
+            id_ = order.get("id", "")
+            if id_ in exclure_ids:
+                continue
+            dt = horodatage_commande(order.get("validation_at"))
+            if date_from and (dt is None or dt < date_from):
+                continue
+            if date_to and (dt is None or dt > date_to):
+                continue
+            commandes.append({
+                "id": id_,
+                "datetime": dt,
+                "montant": order.get("amount") or 0,
+                "payment_type": order.get("payment_type") or "Inconnu",
+                "status": order.get("status", ""),
+            })
+        return commandes
+
+    def _on_verifier_sumup(self):
+        compte = self.sumup_compte_combo.currentText()
+        if not compte:
+            return
+
+        transactions = grouper_transactions(self._sumup_lignes, compte)
+        commandes_carte = self._commandes_carte()
+        tolerance = self.sumup_tolerance_spin.value()
+
+        resultat = rapprocher_paiements_carte(commandes_carte, transactions, tolerance_minutes=tolerance)
+
+        ids_apparies = {p["commande"]["id"] for p in resultat["paires"]}
+        commandes_candidates = self._toutes_commandes(ids_apparies)
+        suggestions = suggerer_commandes_probables(
+            resultat["transactions_sans_correspondance"], commandes_candidates, tolerance_minutes=tolerance,
+        )
+
+        self._afficher_resultats_sumup(resultat, suggestions, len(commandes_carte), len(transactions))
+
+        logger.log(logger.RAPPROCHEMENT_SUMUP, {
+            "fichier": self._sumup_chemin,
+            "compte": compte,
+            "tolerance_minutes": tolerance,
+            "nb_commandes_carte": len(commandes_carte),
+            "nb_transactions_sumup": len(transactions),
+            "nb_paires": len(resultat["paires"]),
+            "nb_ecarts": len(resultat["commandes_sans_correspondance"]) + len(resultat["transactions_sans_correspondance"]),
+        })
+
+    def _afficher_resultats_sumup(
+        self, resultat: Dict[str, Any], suggestions: Dict[str, List[Dict[str, Any]]],
+        nb_commandes: int, nb_transactions: int,
+    ):
+        self._clear_layout(self.sumup_resultats_layout)
+
+        resume = QLabel(
+            f"{len(resultat['paires'])} paiement(s) rapproché(s) sur {nb_commandes} commande(s) carte "
+            f"et {nb_transactions} transaction(s) SumUp."
+        )
+        resume.setWordWrap(True)
+        resume.setStyleSheet(f"color: {_TEXT_TITLE}; font-size: 13px; font-weight: 600;")
+        self.sumup_resultats_layout.addWidget(resume)
+
+        commandes_orphelines = resultat["commandes_sans_correspondance"]
+        self.sumup_resultats_layout.addWidget(self._build_section_title(
+            f"Paiements carte sur l'app sans transaction SumUp ({len(commandes_orphelines)})"
+        ))
+        if commandes_orphelines:
+            lignes = [
+                [c["id"], self._formater_datetime(c["datetime"]), f"{c['montant']:.2f} €", c.get("status", "")]
+                for c in commandes_orphelines
+            ]
+            self.sumup_resultats_layout.addWidget(
+                self._build_table(["Commande", "Date/heure", "Montant", "Statut"], lignes)
+            )
+        else:
+            self.sumup_resultats_layout.addWidget(self._label_vide("Aucun écart."))
+
+        transactions_orphelines = resultat["transactions_sans_correspondance"]
+        self.sumup_resultats_layout.addWidget(self._build_section_title(
+            f"Transactions SumUp sans commande carte correspondante ({len(transactions_orphelines)})"
+        ))
+        if transactions_orphelines:
+            note_suggestions = QLabel(
+                "\"Commande probable\" : commande de l'app (tout moyen de paiement confondu) au "
+                "même montant et à une date/heure proche — vérifiez si son moyen de paiement a été "
+                "mal saisi."
+            )
+            note_suggestions.setWordWrap(True)
+            note_suggestions.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 12px;")
+            self.sumup_resultats_layout.addWidget(note_suggestions)
+
+            lignes = [
+                [
+                    t["reference"],
+                    self._formater_datetime(t["datetime"]) if t["lisible"] else "(date illisible)",
+                    f"{t['montant']:.2f} €",
+                    t.get("moyen_paiement", ""),
+                    self._formater_suggestion(suggestions.get(t["reference"], [])),
+                ]
+                for t in transactions_orphelines
+            ]
+            self.sumup_resultats_layout.addWidget(
+                self._build_table(
+                    ["Référence", "Date/heure", "Montant", "Moyen de paiement", "Commande probable"], lignes,
+                )
+            )
+        else:
+            self.sumup_resultats_layout.addWidget(self._label_vide("Aucun écart."))
+
+    def _formater_suggestion(self, candidats: List[Dict[str, Any]]) -> str:
+        """Formate la (les) commande(s) candidate(s) suggérée(s) pour une transaction SumUp
+        sans correspondance : la plus proche en date/heure, plus un décompte des autres."""
+        if not candidats:
+            return "—"
+        meilleur = candidats[0]
+        texte = f"{meilleur['id']} ({meilleur['payment_type']}, écart {meilleur['ecart_minutes']:.1f} min)"
+        if len(candidats) > 1:
+            texte += f" (+{len(candidats) - 1} autre(s))"
+        return texte
+
+    def _label_vide(self, texte: str) -> QLabel:
+        label = QLabel(texte)
+        label.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 13px; padding: 4px 0;")
+        return label
+
+    def _formater_datetime(self, dt: Optional[datetime]) -> str:
+        return dt.strftime("%d/%m/%Y %H:%M") if dt else "(date illisible)"
 
     def _build_timer(self):
         self.refresh_timer = QTimer(self)
