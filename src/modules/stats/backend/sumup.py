@@ -241,3 +241,46 @@ def rapprocher_paiements_carte(
         "commandes_sans_correspondance": commandes_sans_correspondance,
         "transactions_sans_correspondance": transactions_sans_correspondance,
     }
+
+
+def suggerer_commandes_probables(
+    transactions_sans_correspondance: List[Dict[str, Any]],
+    commandes_candidates: List[Dict[str, Any]],
+    tolerance_minutes: float = 5,
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Pour chaque transaction SumUp restée sans commande carte correspondante, recherche
+    parmi TOUTES les commandes non déjà rapprochées (quel que soit leur moyen de paiement)
+    celles dont le montant est identique et la date/heure de validation proche : indice
+    probable d'une erreur de saisie du moyen de paiement sur l'app (ex. "Espèces" au lieu
+    de "Carte"), pour éviter de rouvrir chaque commande à la main.
+
+    :param transactions_sans_correspondance: transactions issues de
+        rapprocher_paiements_carte()["transactions_sans_correspondance"].
+    :param commandes_candidates: commandes {id, datetime, montant, payment_type} à passer
+        au crible, typiquement toutes les commandes de la période à l'exclusion de celles
+        déjà rapprochées.
+    :param tolerance_minutes: écart de date/heure maximal toléré.
+    :return: dict référence de transaction -> liste de commandes candidates (avec
+        "ecart_minutes" ajouté), triée par écart croissant.
+    """
+    suggestions: Dict[str, List[Dict[str, Any]]] = {}
+    for transaction in transactions_sans_correspondance:
+        if not transaction.get("lisible"):
+            suggestions[transaction["reference"]] = []
+            continue
+
+        candidats = []
+        for commande in commandes_candidates:
+            if commande.get("datetime") is None:
+                continue
+            if abs(commande["montant"] - transaction["montant"]) > 0.01:
+                continue
+            ecart_minutes = abs((commande["datetime"] - transaction["datetime"]).total_seconds()) / 60
+            if ecart_minutes > tolerance_minutes:
+                continue
+            candidats.append({**commande, "ecart_minutes": round(ecart_minutes, 1)})
+
+        candidats.sort(key=lambda c: c["ecart_minutes"])
+        suggestions[transaction["reference"]] = candidats
+
+    return suggestions

@@ -83,6 +83,7 @@ from src.modules.stats.backend.sumup import (
     horodatage_commande,
     lire_lignes_csv,
     rapprocher_paiements_carte,
+    suggerer_commandes_probables,
 )
 
 # ── Couleurs (identiques aux autres modules de consultation) ─────────────────
@@ -520,6 +521,33 @@ class StatsModule(QFrame):
             })
         return commandes
 
+    def _toutes_commandes(self, exclure_ids: set) -> List[Dict[str, Any]]:
+        """Construit la liste de TOUTES les commandes de l'historique (quel que soit le
+        moyen de paiement), dans la période filtrée en haut de page, à l'exclusion des ID
+        donnés — sert de vivier de candidats pour suggerer_commandes_probables, afin de
+        repérer une commande dont le moyen de paiement aurait été mal saisi sur l'app."""
+        date_from = self._parse_date(self.date_from_field.text(), "00:00")
+        date_to = self._parse_date(self.date_to_field.text(), "23:59")
+
+        commandes = []
+        for order in get_all_history_orders():
+            id_ = order.get("id", "")
+            if id_ in exclure_ids:
+                continue
+            dt = horodatage_commande(order.get("validation_at"))
+            if date_from and (dt is None or dt < date_from):
+                continue
+            if date_to and (dt is None or dt > date_to):
+                continue
+            commandes.append({
+                "id": id_,
+                "datetime": dt,
+                "montant": order.get("amount") or 0,
+                "payment_type": order.get("payment_type") or "Inconnu",
+                "status": order.get("status", ""),
+            })
+        return commandes
+
     def _on_verifier_sumup(self):
         compte = self.sumup_compte_combo.currentText()
         if not compte:
@@ -530,7 +558,14 @@ class StatsModule(QFrame):
         tolerance = self.sumup_tolerance_spin.value()
 
         resultat = rapprocher_paiements_carte(commandes_carte, transactions, tolerance_minutes=tolerance)
-        self._afficher_resultats_sumup(resultat, len(commandes_carte), len(transactions))
+
+        ids_apparies = {p["commande"]["id"] for p in resultat["paires"]}
+        commandes_candidates = self._toutes_commandes(ids_apparies)
+        suggestions = suggerer_commandes_probables(
+            resultat["transactions_sans_correspondance"], commandes_candidates, tolerance_minutes=tolerance,
+        )
+
+        self._afficher_resultats_sumup(resultat, suggestions, len(commandes_carte), len(transactions))
 
         logger.log(logger.RAPPROCHEMENT_SUMUP, {
             "fichier": self._sumup_chemin,
@@ -542,7 +577,10 @@ class StatsModule(QFrame):
             "nb_ecarts": len(resultat["commandes_sans_correspondance"]) + len(resultat["transactions_sans_correspondance"]),
         })
 
-    def _afficher_resultats_sumup(self, resultat: Dict[str, Any], nb_commandes: int, nb_transactions: int):
+    def _afficher_resultats_sumup(
+        self, resultat: Dict[str, Any], suggestions: Dict[str, List[Dict[str, Any]]],
+        nb_commandes: int, nb_transactions: int,
+    ):
         self._clear_layout(self.sumup_resultats_layout)
 
         resume = QLabel(
@@ -573,20 +611,43 @@ class StatsModule(QFrame):
             f"Transactions SumUp sans commande carte correspondante ({len(transactions_orphelines)})"
         ))
         if transactions_orphelines:
+            note_suggestions = QLabel(
+                "\"Commande probable\" : commande de l'app (tout moyen de paiement confondu) au "
+                "même montant et à une date/heure proche — vérifiez si son moyen de paiement a été "
+                "mal saisi."
+            )
+            note_suggestions.setWordWrap(True)
+            note_suggestions.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 12px;")
+            self.sumup_resultats_layout.addWidget(note_suggestions)
+
             lignes = [
                 [
                     t["reference"],
                     self._formater_datetime(t["datetime"]) if t["lisible"] else "(date illisible)",
                     f"{t['montant']:.2f} €",
                     t.get("moyen_paiement", ""),
+                    self._formater_suggestion(suggestions.get(t["reference"], [])),
                 ]
                 for t in transactions_orphelines
             ]
             self.sumup_resultats_layout.addWidget(
-                self._build_table(["Référence", "Date/heure", "Montant", "Moyen de paiement"], lignes)
+                self._build_table(
+                    ["Référence", "Date/heure", "Montant", "Moyen de paiement", "Commande probable"], lignes,
+                )
             )
         else:
             self.sumup_resultats_layout.addWidget(self._label_vide("Aucun écart."))
+
+    def _formater_suggestion(self, candidats: List[Dict[str, Any]]) -> str:
+        """Formate la (les) commande(s) candidate(s) suggérée(s) pour une transaction SumUp
+        sans correspondance : la plus proche en date/heure, plus un décompte des autres."""
+        if not candidats:
+            return "—"
+        meilleur = candidats[0]
+        texte = f"{meilleur['id']} ({meilleur['payment_type']}, écart {meilleur['ecart_minutes']:.1f} min)"
+        if len(candidats) > 1:
+            texte += f" (+{len(candidats) - 1} autre(s))"
+        return texte
 
     def _label_vide(self, texte: str) -> QLabel:
         label = QLabel(texte)

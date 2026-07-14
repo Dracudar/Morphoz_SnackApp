@@ -30,6 +30,7 @@ from src.modules.stats.backend.sumup import (
     horodatage_commande,
     lire_lignes_csv,
     rapprocher_paiements_carte,
+    suggerer_commandes_probables,
 )
 
 
@@ -44,6 +45,15 @@ def _transaction(reference, dt, montant, moyen="Carte", lisible=True):
         "montant": montant,
         "moyen_paiement": moyen,
         "lisible": lisible,
+    }
+
+
+def _commande(id_, date, heure, montant, payment_type="Espèces"):
+    return {
+        "id": id_,
+        "datetime": horodatage_commande([date, heure]),
+        "montant": montant,
+        "payment_type": payment_type,
     }
 
 
@@ -240,3 +250,56 @@ def test_rapprochement_ignore_commandes_sans_date():
 
     assert resultat["paires"] == []
     assert len(resultat["commandes_sans_correspondance"]) == 1
+
+
+# ── suggerer_commandes_probables ──────────────────────────────────────────────
+
+def test_suggestion_trouve_une_commande_espece_au_montant_et_a_l_heure_proches():
+    transaction = _transaction("TX1", datetime(2026, 7, 13, 14, 0, 0), 5.00)
+    commandes = [_commande("C1", "13/07/2026", "14:02", 5.00, payment_type="Espèces")]
+
+    suggestions = suggerer_commandes_probables([transaction], commandes, tolerance_minutes=5)
+
+    assert len(suggestions["TX1"]) == 1
+    assert suggestions["TX1"][0]["id"] == "C1"
+    assert suggestions["TX1"][0]["payment_type"] == "Espèces"
+    assert suggestions["TX1"][0]["ecart_minutes"] == 2.0
+
+
+def test_suggestion_montant_different_exclu():
+    transaction = _transaction("TX1", datetime(2026, 7, 13, 14, 0, 0), 5.00)
+    commandes = [_commande("C1", "13/07/2026", "14:00", 6.00, payment_type="Espèces")]
+
+    suggestions = suggerer_commandes_probables([transaction], commandes, tolerance_minutes=5)
+
+    assert suggestions["TX1"] == []
+
+
+def test_suggestion_hors_tolerance_temporelle_exclue():
+    transaction = _transaction("TX1", datetime(2026, 7, 13, 14, 0, 0), 5.00)
+    commandes = [_commande("C1", "13/07/2026", "14:10", 5.00, payment_type="Espèces")]
+
+    suggestions = suggerer_commandes_probables([transaction], commandes, tolerance_minutes=5)
+
+    assert suggestions["TX1"] == []
+
+
+def test_suggestion_triee_par_ecart_croissant():
+    transaction = _transaction("TX1", datetime(2026, 7, 13, 14, 0, 0), 5.00)
+    commandes = [
+        _commande("C1", "13/07/2026", "14:04", 5.00, payment_type="Espèces"),
+        _commande("C2", "13/07/2026", "14:01", 5.00, payment_type="Repas gratuit"),
+    ]
+
+    suggestions = suggerer_commandes_probables([transaction], commandes, tolerance_minutes=5)
+
+    assert [c["id"] for c in suggestions["TX1"]] == ["C2", "C1"]
+
+
+def test_suggestion_transaction_illisible_sans_candidat():
+    transaction = _transaction("TX1", None, 5.00, lisible=False)
+    commandes = [_commande("C1", "13/07/2026", "14:00", 5.00, payment_type="Espèces")]
+
+    suggestions = suggerer_commandes_probables([transaction], commandes, tolerance_minutes=5)
+
+    assert suggestions["TX1"] == []
