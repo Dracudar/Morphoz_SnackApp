@@ -107,6 +107,18 @@ def test_parser_date_sumup_invalide():
     assert _parser_date_sumup("pas une date") is None
 
 
+def test_parser_date_sumup_format_texte_francais():
+    assert _parser_date_sumup("3 juil. 2026 19:42") == datetime(2026, 7, 3, 19, 42)
+
+
+def test_parser_date_sumup_format_texte_francais_sans_point():
+    assert _parser_date_sumup("15 août 2026 09:05:30") == datetime(2026, 8, 15, 9, 5, 30)
+
+
+def test_parser_date_sumup_format_texte_francais_mois_inconnu():
+    assert _parser_date_sumup("3 xyz. 2026 19:42") is None
+
+
 # ── horodatage_commande ───────────────────────────────────────────────────────
 
 def test_horodatage_commande_valide():

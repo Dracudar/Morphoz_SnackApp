@@ -27,13 +27,13 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.07.13
 
 Date de modification:
-    2026.07.13
+    2026.07.14
 """
 
 from __future__ import annotations
@@ -52,6 +52,11 @@ _FORMATS_DATE = (
     "%Y-%m-%d %H:%M",
     "%Y-%m-%dT%H:%M:%S",
 )
+
+_MOIS_FR = {
+    "janv": 1, "févr": 2, "fevr": 2, "mars": 3, "avr": 4, "mai": 5, "juin": 6,
+    "juil": 7, "août": 8, "aout": 8, "sept": 9, "oct": 10, "nov": 11, "déc": 12, "dec": 12,
+}
 
 
 def _corriger_encodage(texte: str) -> str:
@@ -105,8 +110,34 @@ def _parser_montant(valeur: str) -> float:
         return 0.0
 
 
+def _parser_date_sumup_fr(texte: str) -> Optional[datetime]:
+    """Parse une date au format textuel français de SumUp ("3 juil. 2026 19:42"),
+    le mois en toutes lettres n'étant pas exploitable par strptime sans dépendre
+    de la locale système."""
+    morceaux = texte.split()
+    if len(morceaux) != 4:
+        return None
+    jour_str, mois_str, annee_str, heure_str = morceaux
+    mois = _MOIS_FR.get(mois_str.rstrip(".").lower())
+    if mois is None:
+        return None
+    heure_morceaux = heure_str.split(":")
+    if len(heure_morceaux) not in (2, 3):
+        return None
+    try:
+        jour = int(jour_str)
+        annee = int(annee_str)
+        heure = int(heure_morceaux[0])
+        minute = int(heure_morceaux[1])
+        seconde = int(heure_morceaux[2]) if len(heure_morceaux) == 3 else 0
+        return datetime(annee, mois, jour, heure, minute, seconde)
+    except ValueError:
+        return None
+
+
 def _parser_date_sumup(valeur: str) -> Optional[datetime]:
-    """Parse une date/heure de relevé SumUp en essayant les formats courants."""
+    """Parse une date/heure de relevé SumUp en essayant les formats courants, puis
+    le format textuel français ("3 juil. 2026 19:42")."""
     texte = (valeur or "").strip()
     if not texte:
         return None
@@ -115,7 +146,7 @@ def _parser_date_sumup(valeur: str) -> Optional[datetime]:
             return datetime.strptime(texte, fmt)
         except ValueError:
             continue
-    return None
+    return _parser_date_sumup_fr(texte)
 
 
 def horodatage_commande(valeur: Any) -> Optional[datetime]:
