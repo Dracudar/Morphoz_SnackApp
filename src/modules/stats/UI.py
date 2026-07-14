@@ -19,13 +19,13 @@ Author :
     Dracudar
 
 Version:
-    1.3
+    1.5
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.13
+    2026.07.14
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ from PySide6.QtCharts import (
     QPieSeries,
     QValueAxis,
 )
-from PySide6.QtCore import QSize, QTimer, Qt, Signal
+from PySide6.QtCore import QSize, QTimer, Qt
 from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import (
     QComboBox,
@@ -110,8 +110,6 @@ _LARGEUR_NAV = 190
 class StatsModule(QFrame):
     """Module de consultation des statistiques de vente, avec export PDF."""
 
-    go_back = Signal()
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("statsModule")
@@ -160,8 +158,6 @@ class StatsModule(QFrame):
         self._build_sumup_controls(sumup_layout)
         self.content_stack.addWidget(page_sumup)
         self._item_sumup.setData(0, Qt.ItemDataRole.UserRole, page_sumup)
-
-        main_layout.addLayout(self._build_bottom_bar())
 
         self.setStyleSheet(
             f"""
@@ -262,7 +258,7 @@ class StatsModule(QFrame):
         scroll_area = ScrollAreaTactile(couleur_fond)
 
         feuille = QWidget()
-        feuille.setMaximumWidth(_LARGEUR_FEUILLE)
+        feuille.setFixedWidth(_LARGEUR_FEUILLE)
         content_layout = QVBoxLayout(feuille)
         content_layout.setContentsMargins(16, 16, 16, 16)
         content_layout.setSpacing(12)
@@ -381,27 +377,14 @@ class StatsModule(QFrame):
         row.addWidget(reset_btn)
 
         row.addStretch()
-        return row
-
-    def _build_bottom_bar(self) -> QHBoxLayout:
-        bar = QHBoxLayout()
-
-        self.back_button = QPushButton("  Retour")
-        self.back_button.setObjectName("backButton")
-        self.back_button.setIcon(icone("return.svg", 18))
-        self.back_button.setIconSize(QSize(18, 18))
-        self.back_button.clicked.connect(self.go_back.emit)
-        bar.addWidget(self.back_button)
-
-        bar.addStretch()
 
         self.export_button = QPushButton("  Exporter en PDF")
         self.export_button.setIcon(icone("save.svg", 18))
         self.export_button.setIconSize(QSize(18, 18))
         self.export_button.clicked.connect(self._on_export_pdf)
-        bar.addWidget(self.export_button)
+        row.addWidget(self.export_button)
 
-        return bar
+        return row
 
     # ── Rapprochement SumUp ──────────────────────────────────────────────────
 

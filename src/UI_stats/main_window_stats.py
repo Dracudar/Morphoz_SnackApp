@@ -15,13 +15,13 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.2
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.13
+    2026.07.14
 """
 
 from __future__ import annotations
@@ -92,7 +92,7 @@ class MainWindowStats(QMainWindow):
         self._volet.hide()
 
         # Le bouton "Retour" de chaque module ramène à l'accueil de cette vue (Statistiques)
-        self.page_stats.go_back.connect(lambda: self.set_page("stats"))
+        # (page_stats n'a pas de bouton "Retour" : c'est déjà la page d'accueil)
         self.page_historique.go_back.connect(lambda: self.set_page("stats"))
         self.page_logs.go_back.connect(lambda: self.set_page("stats"))
 
