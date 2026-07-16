@@ -4,16 +4,18 @@
 panneau_lateral.py - Volet latéral du poste de préparation allégé
 
 Description:
-    Volet de navigation pour les postes de préparation : bascule entre le
-    poste de préparation et la page Paramètres (dossier data partagé en LAN),
-    plein écran, quitter. S'affiche en superposition sur le contenu principal
-    via un bouton hamburger dans la barre de navigation.
+    Volet de configuration pour les postes de préparation : plein écran,
+    quitter. S'affiche en superposition sur le contenu principal via un
+    bouton hamburger dans la barre de navigation. Le dossier data se choisit
+    désormais uniquement depuis le launcher (accessible via le choix de
+    fermeture "Revenir au launcher") : pas de page Paramètres tant qu'aucun
+    réglage spécifique à ce mode n'existe.
 
 Author :
     Dracudar
 
 Version:
-    3.0
+    3.1
 
 Date de création :
     2026.06.14
@@ -81,25 +83,17 @@ _STYLE_FERMER = f"""
     QPushButton:hover {{ color: {_CLR_TEXTE}; background-color: {_BG_HOVER}; }}
 """
 
-# (icône SVG, label affiché, identifiant de page)
-_ITEMS_NAV = [
-    ("prepa.svg",    "Poste de préparation", "poste"),
-    ("settings.svg", "Paramètres",           "parametres"),
-]
-
 
 class VoletPrep(QFrame):
-    """Volet de navigation latéral pour le poste de préparation (superposition dynamique)."""
+    """Volet de configuration latéral pour le poste de préparation (superposition dynamique)."""
 
-    page_demandee       = Signal(str)  # "poste" | "parametres"
-    action_app_demande  = Signal(str)  # "fullscreen" | "quit"
-    fermeture_demandee  = Signal()     # croix cliquée → la fenêtre parente doit aussi masquer l'overlay
+    action_app_demande = Signal(str)  # "fullscreen" | "quit"
+    fermeture_demandee = Signal()     # croix cliquée → la fenêtre parente doit aussi masquer l'overlay
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedWidth(260)
         self._btn_plein_ecran: QPushButton | None = None
-        self._boutons_nav: dict[str, QPushButton] = {}
         self._build_ui()
         self.hide()
 
@@ -113,11 +107,6 @@ class VoletPrep(QFrame):
                 "  Quitter plein écran" if actif else "  Plein écran"
             )
 
-    def maj_page_active(self, page_id: str):
-        """Met en évidence le bouton de la page actuellement affichée."""
-        for identifiant, bouton in self._boutons_nav.items():
-            bouton.setChecked(identifiant == page_id)
-
     # ── Construction ──────────────────────────────────────────────────────────
 
     def _build_ui(self):
@@ -127,14 +116,6 @@ class VoletPrep(QFrame):
         layout.setSpacing(0)
 
         layout.addWidget(self._build_header())
-
-        for icone_nom, label, page_id in _ITEMS_NAV:
-            btn = self._bouton_item(f"  {label}", checkable=True, icone=icone_nom)
-            btn.clicked.connect(lambda _, p=page_id: self._naviguer(p))
-            self._boutons_nav[page_id] = btn
-            layout.addWidget(btn)
-
-        layout.addWidget(self._separateur())
         layout.addStretch(1)
         layout.addWidget(self._separateur())
 
@@ -162,7 +143,7 @@ class VoletPrep(QFrame):
         layout.setContentsMargins(16, 0, 4, 0)
         layout.setSpacing(0)
 
-        titre = QLabel("Navigation")
+        titre = QLabel("Paramètres")
         titre.setStyleSheet(
             f"color: {_CLR_TEXTE}; font-size: 13px; font-weight: 700; border: none;"
         )
@@ -200,8 +181,3 @@ class VoletPrep(QFrame):
         sep.setFixedHeight(1)
         sep.setStyleSheet(f"background-color: {_CLR_SEP}; border: none;")
         return sep
-
-    def _naviguer(self, page_id: str):
-        self.maj_page_active(page_id)
-        self.page_demandee.emit(page_id)
-        self.fermeture_demandee.emit()

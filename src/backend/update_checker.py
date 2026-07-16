@@ -12,7 +12,7 @@ Author :
     Dracudar
 
 Version:
-    1.1
+    1.2
 
 Date de création :
     2026.06.14
@@ -82,3 +82,15 @@ class UpdateChecker(QThread):
 
         except (URLError, OSError, KeyError, ValueError):
             pass
+
+
+def attendre_verifications_en_cours(timeout_ms: int = 6000) -> None:
+    """Attend la fin des vérifications encore en cours (au plus timeout_ms chacune).
+
+    À appeler juste avant la fermeture définitive de l'application (ex. sur
+    QApplication.aboutToQuit) : sans cela, si le processus se termine pendant
+    qu'un fil de vérification tourne encore, Qt/PySide peut planter en le
+    détruisant en cours d'exécution.
+    """
+    for checker in list(_verifications_en_cours):
+        checker.wait(timeout_ms)

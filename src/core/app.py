@@ -58,7 +58,7 @@ if __name__ == "__main__":
     if sys.platform == "linux":
         os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
 
-    from src.backend import app_config, logger
+    from src.backend import app_config, logger, update_checker
     from src.core import session
 
     app = QApplication(sys.argv)
@@ -71,6 +71,9 @@ if __name__ == "__main__":
 
     logger.log(logger.DEMARRAGE_APP, {})
     app.aboutToQuit.connect(lambda: logger.log(logger.ARRET_APP, {}))
+    # Attend la fin des vérifications de mise à jour encore en cours (sinon Qt peut
+    # planter en détruisant un fil de vérification pendant qu'il tourne encore).
+    app.aboutToQuit.connect(lambda: update_checker.attendre_verifications_en_cours())
 
     # session.ouvrir_launcher() garde une référence forte sur la fenêtre créée
     # (sinon garbage collectée faute de variable locale conservée) ; le même

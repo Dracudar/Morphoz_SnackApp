@@ -5,15 +5,18 @@ panneau_lateral_stats.py - Volet latéral de la vue Historique/Statistiques all�
 
 Description:
     Volet de navigation pour la vue allégée Statistiques + Historique +
-    Journal + Paramètres : bascule entre les quatre pages, plein écran,
-    quitter. S'affiche en superposition sur le contenu principal via un
-    bouton hamburger dans la barre de navigation.
+    Journal : bascule entre les trois pages, plein écran, quitter. S'affiche
+    en superposition sur le contenu principal via un bouton hamburger dans la
+    barre de navigation. Le dossier data se choisit désormais uniquement
+    depuis le launcher (accessible via le choix de fermeture "Revenir au
+    launcher") : pas de page Paramètres tant qu'aucun réglage spécifique à ce
+    mode n'existe.
 
 Author :
     Dracudar
 
 Version:
-    2.0
+    2.1
 
 Date de création :
     2026.07.05
@@ -89,14 +92,13 @@ _ITEMS_NAV = [
     ("stats.svg",      "Statistiques",   "stats"),
     ("historique.svg", "Historique",     "historique"),
     ("log.svg",        "Journal",        "logs"),
-    ("settings.svg",   "Paramètres",     "parametres"),
 ]
 
 
 class VoletStats(QFrame):
     """Volet latéral de la vue Historique/Statistiques (superposition dynamique)."""
 
-    page_demandee      = Signal(str)  # "stats" | "historique" | "logs" | "parametres"
+    page_demandee      = Signal(str)  # "stats" | "historique" | "logs"
     action_app_demande = Signal(str)  # "fullscreen" | "quit"
     fermeture_demandee  = Signal()    # croix cliquée → la fenêtre parente doit aussi masquer l'overlay
 

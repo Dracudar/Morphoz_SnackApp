@@ -10,7 +10,7 @@ Author :
     Dracudar
 
 Version:
-    2.5
+    2.6
 
 Date de création :
     2026.05.12
@@ -22,15 +22,13 @@ Date de modification:
 # Importation des modules nécessaires
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QIcon, QKeySequence
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QMainWindow, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QMainWindow
 
 from src.UI.view.interface_principale import InterfacePrincipaleWidget
 from src.UI.suivi_exterieur_window import SuiviExterieurWindow
 from src.backend import logger
 from src.backend.app_config import get_assets_path
-from src.backend.update_checker import UpdateChecker
 from src.core import session
-from src.core.version import APP_VERSION
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -42,17 +40,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Morphoz SnackApp")
         self.setGeometry(100, 100, 1200, 800)
 
-        # Créer le widget central avec bannière de mise à jour
         self.interface_widget = InterfacePrincipaleWidget()
-        self._update_banner = self._create_update_banner()
-
-        container = QWidget()
-        container_layout = QVBoxLayout(container)
-        container_layout.setContentsMargins(0, 0, 0, 0)
-        container_layout.setSpacing(0)
-        container_layout.addWidget(self._update_banner)
-        container_layout.addWidget(self.interface_widget)
-        self.setCentralWidget(container)
+        self.setCentralWidget(self.interface_widget)
 
         # Initialiser les actions et les menus
         self.setup_shortcuts()
@@ -64,49 +53,6 @@ class MainWindow(QMainWindow):
 
         # Actions app depuis le volet de navigation
         self.interface_widget.action_app_demande.connect(self._on_action_app)
-        
-        # Vérification des mises à jour en arrière-plan. Pas de parent Qt : sa durée
-        # de vie est gérée par UpdateChecker.start() elle-même, indépendamment de
-        # cette fenêtre (voir docstring de start() dans update_checker.py).
-        self._update_checker = UpdateChecker(APP_VERSION)
-        self._update_checker.update_available.connect(self._show_update_banner)
-        self._update_checker.start()
-    
-    def _create_update_banner(self) -> QFrame:
-        """Crée la bannière de notification de mise à jour (masquée par défaut)."""
-        frame = QFrame()
-        frame.setObjectName("updateBanner")
-        frame.setStyleSheet("""
-            QFrame#updateBanner {
-                background-color: #1e3a2f;
-                border-bottom: 1px solid #2d6a4f;
-            }
-        """)
-        layout = QHBoxLayout(frame)
-        layout.setContentsMargins(12, 4, 8, 4)
-
-        self._update_label = QLabel()
-        self._update_label.setStyleSheet("color: #95d5b2; font-size: 12px;")
-        layout.addWidget(self._update_label)
-        layout.addStretch()
-
-        close_btn = QPushButton("✕")
-        close_btn.setFixedSize(22, 22)
-        close_btn.setFlat(True)
-        close_btn.setStyleSheet("color: #95d5b2; font-size: 11px; border: none;")
-        close_btn.clicked.connect(frame.hide)
-        layout.addWidget(close_btn)
-
-        frame.hide()
-        return frame
-
-    def _show_update_banner(self, latest_version: str):
-        """Affiche la bannière indiquant qu'une nouvelle version est disponible."""
-        self._update_label.setText(
-            f"Nouvelle version {latest_version} disponible — "
-            "téléchargez-la depuis GitHub Releases."
-        )
-        self._update_banner.show()
 
     def setup_shortcuts(self):
         """Configure les actions globales de la fenêtre."""

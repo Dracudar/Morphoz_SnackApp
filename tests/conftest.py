@@ -11,13 +11,13 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.06.12
 
 Date de modification:
-    2026.06.14
+    2026.07.16
 """
 
 import json
@@ -25,6 +25,17 @@ import pytest
 import src.backend.commandes_utils as commandes_utils
 import src.backend.data_sources as data_sources
 import src.backend.logger as logger_module
+import src.backend.update_checker as update_checker
+
+
+@pytest.fixture(autouse=True)
+def neutralise_update_checker(monkeypatch):
+    """Empêche les tests UI (LauncherWindow, MainWindow) de faire un vrai appel réseau.
+
+    Sans ça, un fil de vérification encore en cours à la fin du process pytest peut
+    faire planter l'interpréteur (Qt détruit un QThread pendant qu'il tourne encore).
+    """
+    monkeypatch.setattr(update_checker.UpdateChecker, "run", lambda self: None)
 
 
 @pytest.fixture(autouse=True)

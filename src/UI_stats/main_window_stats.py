@@ -8,14 +8,17 @@ Description:
     PDF), historique des commandes et journal des événements, sans saisie, ni
     stock, ni carte, ni impression. Barre de navigation tactile en haut (logo
     MegaSnack cliquable) et volet latéral dynamique en superposition (bascule
-    Statistiques/Historique/Journal/Paramètres, plein écran, quitter).
-    Démarre sur Statistiques, page d'accueil de ce mode.
+    Statistiques/Historique/Journal, plein écran, quitter). Le dossier data se
+    choisit désormais uniquement depuis le launcher (accessible via le choix
+    de fermeture "Revenir au launcher") : pas de page Paramètres tant qu'aucun
+    réglage spécifique à ce mode n'existe. Démarre sur Statistiques, page
+    d'accueil de ce mode.
 
 Author :
     Dracudar
 
 Version:
-    1.2
+    1.3
 
 Date de création :
     2026.07.05
@@ -40,10 +43,9 @@ from PySide6.QtWidgets import (
 
 from src.backend.app_config import get_assets_path
 from src.core import session
-from src.modules.commandes_historique.UI import CommandesHistoriqueModule
+from src.modules.commandes_historique.UI_consultation import HistoriqueConsultationModule
 from src.modules.logs.UI import LogsModule
 from src.modules.stats.UI import StatsModule
-from src.UI.view.parametres_dossier import PageParametresLegere
 from src.UI.view.volet_navigation import OverlayFermeture
 from src.UI_stats.panneau_lateral_stats import VoletStats
 
@@ -73,13 +75,11 @@ class MainWindowStats(QMainWindow):
 
         self.left_stack = QStackedWidget()
         self.page_stats = StatsModule()
-        self.page_historique = CommandesHistoriqueModule(mode="consultation")
+        self.page_historique = HistoriqueConsultationModule()
         self.page_logs = LogsModule()
-        self.page_parametres = PageParametresLegere()
         self.left_stack.addWidget(self.page_stats)
         self.left_stack.addWidget(self.page_historique)
         self.left_stack.addWidget(self.page_logs)
-        self.left_stack.addWidget(self.page_parametres)
         content_layout.addWidget(self.left_stack)
 
         root_layout.addWidget(self._content_area, 1)
@@ -99,8 +99,6 @@ class MainWindowStats(QMainWindow):
         self.page_stats.go_back.connect(lambda: self.set_page("stats"))
         self.page_historique.go_back.connect(lambda: self.set_page("stats"))
         self.page_logs.go_back.connect(lambda: self.set_page("stats"))
-        self.page_parametres.go_back.connect(lambda: self.set_page("stats"))
-        self.page_parametres.dossier_applique.connect(self._refresh_pages)
 
         # Repositionne overlay/volet lors des redimensionnements
         self._content_area.installEventFilter(self)
@@ -165,7 +163,6 @@ class MainWindowStats(QMainWindow):
             "stats": self.page_stats,
             "historique": self.page_historique,
             "logs": self.page_logs,
-            "parametres": self.page_parametres,
         }
         widget = pages.get(page_id)
         if widget is None:
@@ -176,12 +173,6 @@ class MainWindowStats(QMainWindow):
             widget.refresh()
         elif hasattr(widget, "refresh_orders"):
             widget.refresh_orders()
-
-    def _refresh_pages(self):
-        """Rafraîchit les trois pages après un changement de dossier data."""
-        self.page_stats.refresh()
-        self.page_historique.refresh_orders()
-        self.page_logs.refresh()
 
     # ── Volet ─────────────────────────────────────────────────────────────────
 

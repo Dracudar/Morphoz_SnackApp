@@ -40,20 +40,35 @@ def _conserver(fenetre) -> None:
 
 
 def lancer_mode(mode: str):
-    """Ouvre la fenêtre principale du mode demandé ("complet" | "prepa" | "stats")."""
-    # Import différé : chaque mode a ses propres dépendances lourdes (ex.
-    # Statistiques charge reportlab.graphics et PySide6.QtCharts) — ne charger
-    # que celles du mode réellement choisi évite de payer le coût des 3 modes
-    # à chaque démarrage, quel que soit le choix fait.
-    if mode == "complet":
-        from src.UI.main_window import MainWindow as classe
-    elif mode == "prepa":
-        from src.UI_prep.main_window_prep import MainWindowPrep as classe
-    elif mode == "stats":
-        from src.UI_stats.main_window_stats import MainWindowStats as classe
-    else:
-        return None
-    fenetre = classe()
+    """Ouvre la fenêtre principale du mode demandé ("complet" | "prepa" | "stats").
+
+    Affiche une petite fenêtre de chargement le temps de l'import et de la
+    construction (peut prendre quelques secondes pour Statistiques, qui charge
+    reportlab.graphics et PySide6.QtCharts), pour éviter l'impression de gel de
+    l'application pendant cet appel synchrone.
+    """
+    from PySide6.QtWidgets import QApplication
+
+    from src.UI.loading_window import FenetreChargement
+
+    chargement = FenetreChargement()
+    chargement.show()
+    QApplication.processEvents()
+    try:
+        # Import différé : chaque mode a ses propres dépendances lourdes — ne
+        # charger que celles du mode réellement choisi évite de payer le coût
+        # des 3 modes à chaque démarrage, quel que soit le choix fait.
+        if mode == "complet":
+            from src.UI.main_window import MainWindow as classe
+        elif mode == "prepa":
+            from src.UI_prep.main_window_prep import MainWindowPrep as classe
+        elif mode == "stats":
+            from src.UI_stats.main_window_stats import MainWindowStats as classe
+        else:
+            return None
+        fenetre = classe()
+    finally:
+        chargement.close()
     _conserver(fenetre)
     fenetre.show()
     return fenetre

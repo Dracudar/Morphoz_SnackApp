@@ -6,14 +6,16 @@ main_window_prep.py - Fenêtre principale du poste de préparation allégé
 Description:
     Fenêtre principale de l'application légère pour les postes de préparation.
     Barre de navigation tactile en haut (logo MegaSnack cliquable) et volet
-    latéral dynamique en superposition pour la navigation (poste de
-    préparation, paramètres, plein écran, quitter).
+    latéral dynamique en superposition (plein écran, quitter). Le dossier data
+    se choisit désormais uniquement depuis le launcher (accessible via le
+    choix de fermeture "Revenir au launcher") : pas de page Paramètres tant
+    qu'aucun réglage spécifique à ce mode n'existe.
 
 Author :
     Dracudar
 
 Version:
-    2.4
+    2.5
 
 Date de création :
     2026.06.14
@@ -29,7 +31,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
     QPushButton,
-    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -37,7 +38,6 @@ from PySide6.QtWidgets import (
 from src.backend.app_config import get_assets_path
 from src.core import session
 from src.modules.commandes_poste_preparation.UI.poste_preparation import PostePreparationModule
-from src.UI.view.parametres_dossier import PageParametresLegere
 from src.UI.view.volet_navigation import OverlayFermeture
 from src.UI_prep.panneau_lateral import VoletPrep
 
@@ -59,19 +59,14 @@ class MainWindowPrep(QMainWindow):
 
         root_layout.addWidget(self._build_barre_nav())
 
-        # Zone de contenu principale : PostePreparationModule (plein écran) ou
-        # page Paramètres, selon la navigation choisie dans le volet.
+        # Zone de contenu principale (PostePreparationModule plein écran)
         self._content_area = QWidget(central)
         content_layout = QHBoxLayout(self._content_area)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
 
-        self._content_stack = QStackedWidget()
         self._poste = PostePreparationModule()
-        self._page_parametres = PageParametresLegere()
-        self._content_stack.addWidget(self._poste)
-        self._content_stack.addWidget(self._page_parametres)
-        content_layout.addWidget(self._content_stack)
+        content_layout.addWidget(self._poste)
 
         root_layout.addWidget(self._content_area, 1)
 
@@ -81,20 +76,15 @@ class MainWindowPrep(QMainWindow):
         self._overlay.clicked.connect(self._fermer_volet)
 
         self._volet = VoletPrep(self._content_area)
-        self._volet.page_demandee.connect(self.set_page)
         self._volet.action_app_demande.connect(self._on_action_app)
         self._volet.fermeture_demandee.connect(self._fermer_volet)
         self._volet.hide()
-
-        self._page_parametres.go_back.connect(lambda: self.set_page("poste"))
-        self._page_parametres.dossier_applique.connect(self._poste.refresh)
 
         # Repositionne overlay/volet lors des redimensionnements
         self._content_area.installEventFilter(self)
 
         self.setCentralWidget(central)
         self._setup_shortcuts()
-        self._volet.maj_page_active("poste")
 
     # ── Construction ──────────────────────────────────────────────────────────
 
@@ -143,19 +133,6 @@ class MainWindowPrep(QMainWindow):
         esc_action.setShortcut(QKeySequence(Qt.Key.Key_Escape))
         esc_action.triggered.connect(self.exit_fullscreen)
         self.addAction(esc_action)
-
-    # ── Navigation ────────────────────────────────────────────────────────────
-
-    def set_page(self, page_id: str):
-        """Affiche la page demandée (poste ou paramètres)."""
-        pages = {"poste": self._poste, "parametres": self._page_parametres}
-        widget = pages.get(page_id)
-        if widget is None:
-            return
-        self._content_stack.setCurrentWidget(widget)
-        self._volet.maj_page_active(page_id)
-        if hasattr(widget, "refresh"):
-            widget.refresh()
 
     # ── Volet ─────────────────────────────────────────────────────────────────
 

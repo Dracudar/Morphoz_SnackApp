@@ -1,31 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-UI.py - Vue historique des commandes
+UI_consultation.py - Vue historique en lecture seule (mode Gestion et statistiques)
 
 Description:
-    Interface Qt/PySide6 de consultation de l'historique des commandes.
-    Affiche toutes les commandes (en cours, terminées, annulées) sauf celles
-    en cours de saisie et les fichiers corrompus.
-    La recherche libre reste accessible en permanence ; les filtres avancés
-    (statut, période, type de plat) sont regroupés dans une fenêtre dédiée.
-    Pour les commandes "validées", des boutons permettent de changer le statut
-    des plats "en préparation" ou "prêts" (→ Prêt, → Livré, annuler) et de
-    réimprimer les tickets récap (par commande) ou cuisine (par plat).
-    Un bouton global en bas à droite réimprime tous les tickets cuisine actifs.
-
-    Usage réservé au mode Saisie/Gestion (actions opérationnelles actives) —
-    le mode Gestion et statistiques utilise HistoriqueConsultationModule
-    (UI_consultation.py), un affichage indépendant et en lecture seule.
+    Affichage indépendant de l'historique des commandes, réservé au mode
+    Gestion et statistiques : recherche et filtres avancés identiques à
+    CommandesHistoriqueModule (mode Saisie/Gestion), mais aucune action
+    (changement de statut, annulation, impression) — uniquement de la
+    consultation. Le style des cartes reprend celui de ConteneurSuiviCommande
+    (module commandes_suivi) : pas de colonnes réservées à des boutons, un
+    badge de statut aligné à droite de chaque plat. En contrepartie, chaque
+    plat affiche plus de détails (prix, horodatage de préparation/livraison/
+    annulation) qu'un tableau de bord opérationnel n'a besoin d'afficher.
 
 Author :
     Dracudar
 
 Version:
-    4.1
+    1.0
 
 Date de création :
-    2026.05.26
+    2026.07.16
 
 Date de modification:
     2026.07.16
@@ -42,66 +38,18 @@ from PySide6.QtWidgets import (
 	QHBoxLayout,
 	QLabel,
 	QLineEdit,
-	QMessageBox,
 	QPushButton,
 	QVBoxLayout,
 	QWidget,
 )
 
 from src.utils.tactile import EnTeteCliquable, ScrollAreaTactile
-from src.UI.utils.icones import icone, icone_action, icone_coloree
-from src.backend.app_config import get_print_options
+from src.UI.utils.icones import icone
 from src.backend.data_sources import get_all_history_orders, signature_history_orders
-from src.backend.printer import reprint_all_active_cuisine, reprint_ticket_cuisine_plat, reprint_ticket_recap
 from src.modules.commandes_historique.filtre_dialog import FiltreHistoriqueDialog
-from src.modules.commandes_suivi.backend.commandes_suivi_gestion import (
-	annuler_commande_complete,
-	annuler_plat_valide,
-	marquer_plat_livre,
-	marquer_plat_pret,
-	retour_preparation,
-	retour_pret,
-)
 
 
-# ── Styles des boutons d'action dans les sous-cartes plat ───────────────────
-_STYLE_BTN_PRET = (
-	"QPushButton { background-color: #4a3a00; color: #d4a017; border: 1px solid #d4a017;"
-	" border-radius: 3px; font-size: 11px; font-weight: 600; padding: 2px 6px; min-height: 22px; }"
-	" QPushButton:hover { background-color: #5a4a10; }"
-)
-_STYLE_BTN_LIVRE = (
-	"QPushButton { background-color: #1a4a2a; color: #4caf50; border: 1px solid #4caf50;"
-	" border-radius: 3px; font-size: 11px; font-weight: 600; padding: 2px 6px; min-height: 22px; }"
-	" QPushButton:hover { background-color: #2a6a3a; }"
-)
-_STYLE_BTN_ANNULER_PLAT = (
-	"QPushButton { background-color: #d9534f; border: 1px solid #ac2925;"
-	" border-radius: 4px; padding: 2px 4px; min-width: 24px; min-height: 22px; }"
-	" QPushButton:hover:enabled { background-color: #c9302c; }"
-	" QPushButton:disabled { background-color: #3b3f46; border: 1px solid #4a4e55; }"
-)
-_STYLE_BTN_CANCEL_CMD = (
-	"QPushButton { background-color: #d9534f; border: 1px solid #ac2925;"
-	" border-radius: 4px; padding: 2px 4px; min-width: 26px; min-height: 26px; }"
-	" QPushButton:hover:enabled { background-color: #c9302c; }"
-	" QPushButton:disabled { background-color: #3b3f46; border: 1px solid #4a4e55; }"
-)
-_STYLE_BTN_PRINT = (
-	"QPushButton { background-color: #3d5068; border: 1px solid #5a80a8; border-radius: 4px;"
-	" padding: 2px 4px; min-width: 26px; min-height: 26px; }"
-	" QPushButton:hover:enabled { background-color: #4a6a90; }"
-	" QPushButton:disabled { background-color: #3b3f46; border: 1px solid #4a4e55; }"
-)
-_STYLE_BTN_RETOUR = (
-	"QPushButton { background-color: #28292f; color: #9098a8; border: 1px solid #4a5060;"
-	" border-radius: 3px; font-size: 11px; font-weight: 600; padding: 2px 4px; min-height: 22px; }"
-	" QPushButton:hover:enabled { background-color: #32343c; color: #b0b8c8; border-color: #606878; }"
-	" QPushButton:disabled { background-color: #1e1f25; color: #3a4050; border-color: #252a35; }"
-)
-
-
-# ── Couleurs (identiques à conteneur_suivi_commande) ─────────────────────────
+# ── Couleurs (identiques à commandes_historique/UI.py et conteneur_suivi_commande) ──
 _BG_MAIN       = "#2f3136"
 _BG_CARD       = "#3a3d43"
 _BG_PLAT       = "#4a4e55"
@@ -111,6 +59,7 @@ _TEXT_TITLE    = "#f5f5f5"
 _TEXT_CARD_ID  = "#f5f5f5"
 _TEXT_CARD_CNT = "#a8acb3"
 _TEXT_PLAT     = "#d6d6d6"
+_TEXT_DETAIL   = "#9098a8"
 
 # ── Badges statut plat ───────────────────────────────────────────────────────
 _STATUTS_PLAT: Dict[str, tuple] = {
@@ -131,6 +80,13 @@ _STATUTS_COMMANDE: Dict[str, tuple] = {
 # ── Labels statut pour l'indicateur de filtres actifs ────────────────────────
 _STATUT_LABELS = {"validée": "En cours", "terminée": "Terminée", "annulée": "Annulée"}
 
+# ── Libellé de l'horodatage affiché par plat, selon son statut ───────────────
+_HORODATAGE_PAR_STATUT = {
+	"prêt":      ("Prêt à", "ready_at"),
+	"livré":     ("Livré à", "delivered_at"),
+	"annulé":    ("Annulé à", "cancelled_at"),
+}
+
 # ── État de filtres par défaut (aucun filtre actif) ──────────────────────────
 _FILTERS_DEFAULT: Dict[str, Any] = {
 	"status":        None,
@@ -144,14 +100,14 @@ _FILTERS_DEFAULT: Dict[str, Any] = {
 }
 
 
-class CommandesHistoriqueModule(QFrame):
-	"""Module de consultation de l'historique de toutes les commandes."""
+class HistoriqueConsultationModule(QFrame):
+	"""Consultation en lecture seule de l'historique des commandes (mode Gestion et statistiques)."""
 
 	go_back = Signal()
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
-		self.setObjectName("historiqueModule")
+		self.setObjectName("historiqueConsultationModule")
 		self._expanded_orders: set[str] = set()
 		self._filters: Dict[str, Any] = dict(_FILTERS_DEFAULT)
 		self._filters["plat_types"] = set()
@@ -174,13 +130,11 @@ class CommandesHistoriqueModule(QFrame):
 		main_layout.setContentsMargins(14, 14, 14, 14)
 		main_layout.setSpacing(8)
 
-		# Titre
 		title = QLabel("Historique des commandes")
 		title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 		title.setObjectName("sectionTitle")
 		main_layout.addWidget(title)
 
-		# Ligne : recherche + bouton filtres
 		search_row = QHBoxLayout()
 		self.search_field = QLineEdit()
 		self.search_field.setPlaceholderText("Rechercher par ID, plat ou statut…")
@@ -197,13 +151,11 @@ class CommandesHistoriqueModule(QFrame):
 		search_row.addWidget(self.filter_btn)
 		main_layout.addLayout(search_row)
 
-		# Indicateur de filtres actifs (masqué par défaut)
 		self.filter_indicator = QLabel("")
 		self.filter_indicator.setObjectName("filterIndicator")
 		self.filter_indicator.setVisible(False)
 		main_layout.addWidget(self.filter_indicator)
 
-		# Zone scrollable
 		self.scroll_area = ScrollAreaTactile(_BG_MAIN)
 		main_layout.addWidget(self.scroll_area, 1)
 
@@ -214,7 +166,6 @@ class CommandesHistoriqueModule(QFrame):
 		self.list_layout.addStretch()
 		self.scroll_area.setWidget(self.list_container)
 
-		# Barre de bas : bouton retour + compteur centré + impression cuisine active
 		bottom_bar = QHBoxLayout()
 		bottom_bar.setContentsMargins(0, 4, 0, 0)
 
@@ -228,23 +179,15 @@ class CommandesHistoriqueModule(QFrame):
 		self.summary_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 		self.summary_label.setObjectName("summaryLabel")
 
-		self.print_all_btn = QPushButton("  Tickets cuisine (en cours)")
-		self.print_all_btn.setObjectName("printAllButton")
-		self.print_all_btn.setIcon(icone("print.svg", 16))
-		self.print_all_btn.setIconSize(QSize(16, 16))
-		self.print_all_btn.setToolTip("Imprimer les tickets cuisine de tous les plats en préparation ou prêts")
-		self.print_all_btn.clicked.connect(self._on_print_all_active)
-
 		bottom_bar.addWidget(self.back_button)
 		bottom_bar.addStretch()
 		bottom_bar.addWidget(self.summary_label)
 		bottom_bar.addStretch()
-		bottom_bar.addWidget(self.print_all_btn)
 		main_layout.addLayout(bottom_bar)
 
 		self.setStyleSheet(
 			f"""
-			QFrame#historiqueModule {{
+			QFrame#historiqueConsultationModule {{
 				background-color: {_BG_MAIN};
 				border: 1px solid {_BORDER_CARD};
 			}}
@@ -295,24 +238,6 @@ class CommandesHistoriqueModule(QFrame):
 			}}
 			QPushButton#filterOpenButton:hover {{
 				background-color: #626978;
-			}}
-			QPushButton#printAllButton {{
-				background-color: #4f545e;
-				border: 1px solid #7d8390;
-				border-radius: 7px;
-				color: {_TEXT_TITLE};
-				font-size: 14px;
-				font-weight: 700;
-				min-height: 38px;
-				padding: 6px 12px;
-			}}
-			QPushButton#printAllButton:hover:enabled {{
-				background-color: #626978;
-			}}
-			QPushButton#printAllButton:disabled {{
-				background-color: #3b3f46;
-				border: 1px solid #4a4e55;
-				color: #595d64;
 			}}
 			"""
 		)
@@ -504,34 +429,23 @@ class CommandesHistoriqueModule(QFrame):
 		)
 
 	def refresh_orders(self):
-		impression_active = get_print_options()["impression_active"]
-
-		# Couche 2 — court-circuit : la clé combine l'état des dossiers d'historique,
-		# les filtres, la recherche et l'état de l'impression (qui pilote l'activation
-		# des boutons d'impression des cartes).
-		cle = (signature_history_orders(), self._filters_snapshot(), impression_active)
+		# Court-circuit : la clé combine l'état des dossiers d'historique, les
+		# filtres et la recherche (pas d'impression ici, contrairement au module
+		# opérationnel — aucun bouton dont l'état dépend de la config imprimante).
+		cle = (signature_history_orders(), self._filters_snapshot())
 		if cle == self._last_key:
 			return
 		self._last_key = cle
 
-		self.print_all_btn.setEnabled(impression_active)
-		self.print_all_btn.setToolTip(
-			"Imprimer les tickets cuisine de tous les plats en préparation ou prêts"
-			if impression_active else "Impression désactivée"
-		)
-
 		orders = get_all_history_orders()
 		f = self._filters
 
-		# Filtre statut commande
 		if f.get("status") is not None:
 			orders = [o for o in orders if o.get("status", "").lower() == f["status"]]
 
-		# Filtre commandes prioritaires
 		if f.get("priority_only"):
 			orders = [o for o in orders if o.get("priority", False)]
 
-		# Filtre période
 		dt_from = self._parse_filter_datetime(f.get("date_from", ""), f.get("time_from", ""), "00:00")
 		dt_to   = self._parse_filter_datetime(f.get("date_to", ""),   f.get("time_to", ""),   "23:59")
 		if dt_from or dt_to:
@@ -547,7 +461,6 @@ class CommandesHistoriqueModule(QFrame):
 				filtered.append(o)
 			orders = filtered
 
-		# Filtres plat (type et statut) : seuls les plats correspondants sont affichés
 		active_types: Set[str] = set(f.get("plat_types") or set())
 		active_plat_statuses: Set[str] = set(f.get("plat_statuses") or set())
 		if active_types or active_plat_statuses:
@@ -564,7 +477,6 @@ class CommandesHistoriqueModule(QFrame):
 					filtered_orders.append(order_copy)
 			orders = filtered_orders
 
-		# Filtre recherche libre
 		query = self.search_field.text().strip().lower()
 		if query:
 			orders = [o for o in orders if self._matches_search(o, query)]
@@ -572,7 +484,6 @@ class CommandesHistoriqueModule(QFrame):
 		total_plats = sum(len(o.get("items", [])) for o in orders)
 		self.summary_label.setText(f"Commandes : {len(orders)}  ·  Plats : {total_plats}")
 
-		# Label "aucune commande" : géré comme un état exclusif des cartes.
 		if self._empty_label is not None:
 			self.list_layout.removeWidget(self._empty_label)
 			self._empty_label.deleteLater()
@@ -586,7 +497,6 @@ class CommandesHistoriqueModule(QFrame):
 			self.list_layout.insertWidget(0, self._empty_label)
 			return
 
-		# Couche 3 — diff : ne reconstruire que les cartes ajoutées ou modifiées.
 		nouvel_ordre = [o.get("id", "") for o in orders]
 		nouvel_ensemble = set(nouvel_ordre)
 
@@ -599,7 +509,7 @@ class CommandesHistoriqueModule(QFrame):
 
 		for order in orders:
 			order_id = order.get("id", "")
-			sig = (impression_active, repr(order))
+			sig = repr(order)
 			if order_id not in self._cards:
 				card = self._build_order_card(order)
 				self._cards[order_id] = card
@@ -634,7 +544,6 @@ class CommandesHistoriqueModule(QFrame):
 		card_layout.setContentsMargins(8, 8, 8, 8)
 		card_layout.setSpacing(6)
 
-		# Contenu dépliable : panneau d'infos + sous-cartes plats
 		content_container = QWidget()
 		content_layout = QVBoxLayout(content_container)
 		content_layout.setContentsMargins(0, 0, 0, 0)
@@ -642,7 +551,7 @@ class CommandesHistoriqueModule(QFrame):
 
 		content_layout.addWidget(self._build_order_info_panel(order))
 		for item in order.get("items", []):
-			content_layout.addWidget(self._build_plat_subcard(item, order))
+			content_layout.addWidget(self._build_plat_subcard(item))
 
 		card_layout.addWidget(self._build_card_header(order, content_container, is_collapsed))
 		card_layout.addWidget(content_container)
@@ -691,33 +600,9 @@ class CommandesHistoriqueModule(QFrame):
 
 		id_label = QLabel(order_id)
 		id_label.setStyleSheet(f"color: {_TEXT_CARD_ID}; font-size: 14px; font-weight: 700;")
-		header_layout.addWidget(id_label)
-
-		header_layout.addStretch()
+		header_layout.addWidget(id_label, 1)
 
 		header_layout.addWidget(self._build_order_status_badge(order.get("status", "")))
-
-		# Bouton annulation commande (avant le bouton impression)
-		order_status = (order.get("status") or "").lower()
-		btn_cancel_cmd = QPushButton()
-		btn_cancel_cmd.setIcon(icone_action("cancel.svg", 14, "white", "#595d64"))
-		btn_cancel_cmd.setIconSize(QSize(14, 14))
-		btn_cancel_cmd.setToolTip("Annuler la commande")
-		btn_cancel_cmd.setEnabled(order_status == "validée")
-		btn_cancel_cmd.setStyleSheet(_STYLE_BTN_CANCEL_CMD)
-		btn_cancel_cmd.clicked.connect(lambda _, o=order: self._on_annuler_commande(o))
-		header_layout.addWidget(btn_cancel_cmd)
-
-		# Bouton impression ticket récap (le plus à droite, désactivé si impression globalement off)
-		options = get_print_options()
-		btn_recap = QPushButton()
-		btn_recap.setIcon(icone("print.svg", 14))
-		btn_recap.setIconSize(QSize(14, 14))
-		btn_recap.setToolTip("Réimprimer ticket récap" if options["impression_active"] else "Impression désactivée")
-		btn_recap.setEnabled(options["impression_active"])
-		btn_recap.setStyleSheet(_STYLE_BTN_PRINT)
-		btn_recap.clicked.connect(lambda _, o=order: self._on_print_recap(o))
-		header_layout.addWidget(btn_recap)
 
 		return header
 
@@ -732,7 +617,7 @@ class CommandesHistoriqueModule(QFrame):
 			toggle_btn.setText("▼")
 
 	def _build_order_info_panel(self, order: Dict[str, Any]) -> QFrame:
-		"""Panneau de synthèse affiché en haut du bloc déplié."""
+		"""Panneau de synthèse affiché en haut du bloc déplié (détails côté "général")."""
 		panel = QFrame()
 		panel.setObjectName("orderInfoPanel")
 		layout = QHBoxLayout(panel)
@@ -748,6 +633,7 @@ class CommandesHistoriqueModule(QFrame):
 		cancelled = self._format_date(order.get("cancelled_at", ["", ""]))
 
 		infos = [
+			("Statut", _STATUTS_COMMANDE.get(status, (None, None, order.get("status") or "?"))[2]),
 			("Plats", str(nb_plats)),
 			("Montant", f"{amount:.2f} €" if isinstance(amount, (int, float)) else "-"),
 		]
@@ -787,141 +673,49 @@ class CommandesHistoriqueModule(QFrame):
 		)
 		return panel
 
-	def _build_plat_subcard(self, item: Dict[str, Any], order: Dict[str, Any]) -> QFrame:
-		order_status = (order.get("status") or "").lower()
-		item_status = (item.get("status") or "").lower()
-		is_active_order = order_status == "validée"
-		is_terminal_item = item_status in ("livré", "annulé")
-		show_pret = is_active_order and item_status == "en préparation"
-		show_livre = is_active_order and item_status in ("en préparation", "prêt")
-		show_retour_preparation = is_active_order and item_status == "prêt"
-		show_retour_pret = item_status == "livré" and order_status in ("validée", "terminée")
+	def _build_plat_subcard(self, item: Dict[str, Any]) -> QFrame:
+		"""Sous-carte plat : ID + nom à gauche, détails (prix, horodatage) et badge à droite.
 
-		options = get_print_options()
-		print_enabled = options["impression_active"] and not is_terminal_item
+		Reprend le principe de conteneur_suivi_commande (pas de colonnes réservées à
+		des boutons puisqu'il n'y a aucune action ici) en ajoutant le détail que la
+		vue opérationnelle n'a pas besoin d'afficher : prix et horodatage du plat.
+		"""
+		status = (item.get("status") or "").strip()
+		status_key = status.lower()
 
 		subcard = QFrame()
 		subcard.setObjectName("platSubCard")
-		outer_layout = QVBoxLayout(subcard)
-		outer_layout.setContentsMargins(8, 4, 8, 4)
-		outer_layout.setSpacing(0)
-
-		# ── Ligne : ID, Nom, Badge, boutons d'action, impression (le plus à droite) ──
-		main_row = QHBoxLayout()
-		main_row.setContentsMargins(0, 0, 0, 0)
-		main_row.setSpacing(6)
+		row = QHBoxLayout(subcard)
+		row.setContentsMargins(8, 6, 8, 6)
+		row.setSpacing(10)
 
 		full_id = item.get("id", "")
 		plat_id_reduit = full_id.rsplit("-", 1)[-1] if "-" in full_id else full_id
 		id_label = QLabel(plat_id_reduit)
 		id_label.setStyleSheet(f"color: {_TEXT_PLAT}; font-size: 13px; font-weight: 500;")
-		main_row.addWidget(id_label)
+		row.addWidget(id_label)
 
 		nom = item.get("nom") or item.get("plat") or ""
 		if nom:
 			nom_label = QLabel(nom)
 			nom_label.setStyleSheet(f"color: {_TEXT_PLAT}; font-size: 12px;")
-			main_row.addWidget(nom_label, 1)
+			row.addWidget(nom_label, 1)
 		else:
-			main_row.addStretch(1)
+			row.addStretch(1)
 
-		# ── Zone d'action à 3 colonnes fixes ──────────────────────────────────
-		# Col 1 (78px) : position "En préparation"
-		# Col 2 (62px) : position "Prêt"
-		# Col 3 (72px) : position terminal (Livré / Annulé / Non livré)
-		# Chaque colonne : badge (statut courant), bouton (avancement/retour) ou QWidget vide.
+		prix = item.get("price")
+		if isinstance(prix, (int, float)):
+			prix_label = QLabel(f"{prix:.2f} €")
+			prix_label.setStyleSheet(f"color: {_TEXT_DETAIL}; font-size: 12px;")
+			row.addWidget(prix_label)
 
-		# ─ Colonne 1 : En préparation ─────────────────────────────────────────
-		if item_status == "en préparation":
-			w1 = self._build_plat_status_badge("en préparation")
-			w1.setFixedWidth(78)
-		elif item_status in ("prêt", "livré"):
-			w1 = QPushButton("En prép.")
-			w1.setIcon(icone_action("arrow_left.svg", 12, "#9098a8", "#3a4050"))
-			w1.setIconSize(QSize(12, 12))
-			w1.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-			w1.setFixedWidth(78)
-			w1.setStyleSheet(_STYLE_BTN_RETOUR)
-			w1.setEnabled(show_retour_preparation)
-			if show_retour_preparation:
-				w1.setToolTip("Retour au statut En préparation")
-				w1.clicked.connect(lambda _, o=order, i=item: self._on_retour_preparation(o, i))
-			else:
-				w1.setToolTip("Retour direct indisponible depuis ce statut")
-		else:
-			w1 = QWidget()
-			w1.setFixedWidth(78)
-		main_row.addWidget(w1)
+		horodatage = self._format_horodatage(item, status_key)
+		if horodatage:
+			horaire_label = QLabel(horodatage)
+			horaire_label.setStyleSheet(f"color: {_TEXT_DETAIL}; font-size: 12px;")
+			row.addWidget(horaire_label)
 
-		# ─ Colonne 2 : Prêt ───────────────────────────────────────────────────
-		if item_status == "prêt":
-			w2 = self._build_plat_status_badge("prêt")
-			w2.setFixedWidth(62)
-		elif item_status == "en préparation" and show_pret:
-			w2 = QPushButton("Prêt")
-			w2.setIcon(icone_coloree("arrow_right.svg", "#d4a017", 12))
-			w2.setIconSize(QSize(12, 12))
-			w2.setFixedWidth(62)
-			w2.setStyleSheet(_STYLE_BTN_PRET)
-			w2.setToolTip("Passer ce plat au statut Prêt")
-			w2.clicked.connect(lambda _, o=order, i=item: self._on_marquer_pret(o, i))
-		elif item_status == "livré":
-			w2 = QPushButton("Prêt")
-			w2.setIcon(icone_action("arrow_left.svg", 12, "#9098a8", "#3a4050"))
-			w2.setIconSize(QSize(12, 12))
-			w2.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-			w2.setFixedWidth(62)
-			w2.setStyleSheet(_STYLE_BTN_RETOUR)
-			w2.setEnabled(show_retour_pret)
-			if show_retour_pret:
-				w2.setToolTip("Retour au statut Prêt (peut rouvrir la commande si terminée)")
-				w2.clicked.connect(lambda _, o=order, i=item: self._on_retour_pret(o, i))
-		else:
-			w2 = QWidget()
-			w2.setFixedWidth(62)
-		main_row.addWidget(w2)
-
-		# ─ Colonne 3 : terminal ────────────────────────────────────────────────
-		if item_status in ("livré", "annulé", "non livré"):
-			w3 = self._build_plat_status_badge(item_status)
-			w3.setFixedWidth(72)
-		elif show_livre:
-			w3 = QPushButton("Livré")
-			w3.setIcon(icone_coloree("arrow_right.svg", "#4caf50", 12))
-			w3.setIconSize(QSize(12, 12))
-			w3.setFixedWidth(72)
-			w3.setStyleSheet(_STYLE_BTN_LIVRE)
-			w3.setToolTip("Passer ce plat au statut Livré")
-			w3.clicked.connect(lambda _, o=order, i=item: self._on_marquer_livre(o, i))
-		else:
-			w3 = QWidget()
-			w3.setFixedWidth(72)
-		main_row.addWidget(w3)
-
-		# Bouton annulation plat (toujours affiché pour commandes validées, désactivé si terminal)
-		if is_active_order:
-			btn_annuler = QPushButton()
-			btn_annuler.setIcon(icone_action("cancel.svg", 12, "white", "#595d64"))
-			btn_annuler.setIconSize(QSize(12, 12))
-			btn_annuler.setToolTip("Annuler ce plat")
-			btn_annuler.setEnabled(not is_terminal_item)
-			btn_annuler.setStyleSheet(_STYLE_BTN_ANNULER_PLAT)
-			btn_annuler.clicked.connect(lambda _, o=order, i=item: self._on_annuler_plat(o, i))
-			main_row.addWidget(btn_annuler)
-
-		# Bouton impression cuisine (le plus à droite, désactivé si terminal ou impression off)
-		btn_print = QPushButton()
-		btn_print.setIcon(icone("print.svg", 12))
-		btn_print.setIconSize(QSize(12, 12))
-		btn_print.setToolTip(
-			"Réimprimer ticket cuisine pour ce plat" if print_enabled else "Impression désactivée"
-		)
-		btn_print.setEnabled(print_enabled)
-		btn_print.setStyleSheet(_STYLE_BTN_PRINT)
-		btn_print.clicked.connect(lambda _, o=order, i=item: self._on_print_cuisine_plat(o, i))
-		main_row.addWidget(btn_print)
-
-		outer_layout.addLayout(main_row)
+		row.addWidget(self._build_plat_status_badge(status))
 
 		subcard.setStyleSheet(
 			f"""
@@ -933,6 +727,20 @@ class CommandesHistoriqueModule(QFrame):
 			"""
 		)
 		return subcard
+
+	def _format_horodatage(self, item: Dict[str, Any], status_key: str) -> str:
+		"""Retourne "Prêt à HH:MM" / "Livré à HH:MM" / "Annulé à HH:MM" selon le statut du plat."""
+		info = _HORODATAGE_PAR_STATUT.get(status_key)
+		if info is None:
+			return ""
+		libelle, champ = info
+		valeur = item.get(champ)
+		if not isinstance(valeur, list) or len(valeur) < 2:
+			return ""
+		heure = str(valeur[1]).strip()
+		if not heure:
+			return ""
+		return f"{libelle} {heure}"
 
 	def _build_plat_status_badge(self, status: str) -> QLabel:
 		key = status.lower()
@@ -980,88 +788,3 @@ class CommandesHistoriqueModule(QFrame):
 		if isinstance(value, str):
 			return value
 		return "-"
-
-	# ── Actions sur les commandes / plats ───────────────────────────────────
-
-	def _on_print_recap(self, order: Dict[str, Any]):
-		"""Réimprime le ticket récapitulatif de la commande."""
-		try:
-			reprint_ticket_recap(str(order["file"]))
-		except Exception as e:
-			QMessageBox.warning(self, "Impression", f"Erreur d'impression :\n{e}")
-
-	def _on_print_cuisine_plat(self, order: Dict[str, Any], item: Dict[str, Any]):
-		"""Réimprime le ticket cuisine d'un plat spécifique."""
-		try:
-			reprint_ticket_cuisine_plat(str(order["file"]), item["id"])
-		except Exception as e:
-			QMessageBox.warning(self, "Impression", f"Erreur d'impression :\n{e}")
-
-	def _on_print_all_active(self):
-		"""Imprime les tickets cuisine de tous les plats en préparation ou prêts."""
-		try:
-			count = reprint_all_active_cuisine()
-			if count == 0:
-				QMessageBox.information(self, "Impression", "Aucun plat en préparation ou prêt.")
-			else:
-				QMessageBox.information(
-					self,
-					"Impression",
-					f"{count} ticket{'s' if count > 1 else ''} cuisine imprimé{'s' if count > 1 else ''}.",
-				)
-		except Exception as e:
-			QMessageBox.warning(self, "Impression", f"Erreur d'impression :\n{e}")
-
-	def _on_marquer_pret(self, order: Dict[str, Any], item: Dict[str, Any]):
-		"""Passe le plat au statut Prêt et rafraîchit l'affichage."""
-		marquer_plat_pret(str(order["file"]), item["id"])
-		self.refresh_orders()
-
-	def _on_marquer_livre(self, order: Dict[str, Any], item: Dict[str, Any]):
-		"""Passe le plat directement au statut Livré (depuis En préparation ou Prêt) et rafraîchit."""
-		marquer_plat_livre(str(order["file"]), item["id"])
-		self.refresh_orders()
-
-	def _on_annuler_plat(self, order: Dict[str, Any], item: Dict[str, Any]):
-		"""Demande confirmation puis annule le plat avec horodatage."""
-		nom_plat = item.get("nom") or item.get("plat") or item["id"]
-		reponse = QMessageBox.question(
-			self,
-			"Confirmer l'annulation",
-			f"Annuler le plat « {nom_plat} » ?",
-			QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-		)
-		if reponse == QMessageBox.StandardButton.Yes:
-			annuler_plat_valide(str(order["file"]), item["id"])
-			self.refresh_orders()
-
-	def _on_annuler_commande(self, order: Dict[str, Any]):
-		"""Demande confirmation puis annule tous les plats restants de la commande."""
-		reponse = QMessageBox.question(
-			self,
-			"Confirmer l'annulation",
-			f"Annuler tous les plats restants de la commande « {order.get('id', '')} » ?",
-			QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-		)
-		if reponse == QMessageBox.StandardButton.Yes:
-			annuler_commande_complete(str(order["file"]))
-			self.refresh_orders()
-
-	def _on_retour_preparation(self, order: Dict[str, Any], item: Dict[str, Any]):
-		"""Retour du statut Prêt à En préparation (correction cuisine)."""
-		retour_preparation(None, str(order["file"]), item["id"], lambda _: None)
-		self.refresh_orders()
-
-	def _on_retour_pret(self, order: Dict[str, Any], item: Dict[str, Any]):
-		"""Retour du statut Livré à Prêt, avec confirmation si la commande était terminée."""
-		nom_plat = item.get("nom") or item.get("plat") or item["id"]
-		reponse = QMessageBox.question(
-			self,
-			"Confirmer le retour",
-			f"Ramener le plat « {nom_plat} » au statut Prêt ?\n"
-			"Si la commande est terminée, elle sera réouverte.",
-			QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-		)
-		if reponse == QMessageBox.StandardButton.Yes:
-			retour_pret(str(order["file"]), item["id"])
-			self.refresh_orders()
