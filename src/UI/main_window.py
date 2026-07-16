@@ -10,13 +10,13 @@ Author :
     Dracudar
 
 Version:
-    2.4
+    2.5
 
 Date de création :
     2026.05.12
 
 Date de modification:
-    2026.06.14
+    2026.07.16
 """
 
 # Importation des modules nécessaires
@@ -29,11 +29,13 @@ from src.UI.suivi_exterieur_window import SuiviExterieurWindow
 from src.backend import logger
 from src.backend.app_config import get_assets_path
 from src.backend.update_checker import UpdateChecker
+from src.core import session
 from src.core.version import APP_VERSION
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         # Configuration de la fenêtre
         self.setWindowIcon(QIcon(get_assets_path("imgs", "logo_snack.svg")))
@@ -63,8 +65,10 @@ class MainWindow(QMainWindow):
         # Actions app depuis le volet de navigation
         self.interface_widget.action_app_demande.connect(self._on_action_app)
         
-        # Vérification des mises à jour en arrière-plan
-        self._update_checker = UpdateChecker(APP_VERSION, parent=self)
+        # Vérification des mises à jour en arrière-plan. Pas de parent Qt : sa durée
+        # de vie est gérée par UpdateChecker.start() elle-même, indépendamment de
+        # cette fenêtre (voir docstring de start() dans update_checker.py).
+        self._update_checker = UpdateChecker(APP_VERSION)
         self._update_checker.update_available.connect(self._show_update_banner)
         self._update_checker.start()
     
@@ -109,7 +113,7 @@ class MainWindow(QMainWindow):
 
         self.quit_action = QAction("Quitter", self)
         self.quit_action.setShortcut(QKeySequence("Ctrl+Q"))
-        self.quit_action.triggered.connect(self.close)
+        self.quit_action.triggered.connect(lambda: session.gerer_fermeture(self))
         self.addAction(self.quit_action)
 
         self.fullscreen_action = QAction("Plein écran", self)
@@ -137,7 +141,7 @@ class MainWindow(QMainWindow):
         if action == "fullscreen":
             self.toggle_fullscreen()  # maj_etat_volet appelé en interne
         elif action == "quit":
-            self.close()
+            session.gerer_fermeture(self)
         elif action == "suivi_ext_toggle":
             est_visible = self._suivi_exterieur_window is not None and self._suivi_exterieur_window.isVisible()
             self._toggle_suivi_exterieur(not est_visible)
@@ -172,7 +176,7 @@ class MainWindow(QMainWindow):
             self.interface_widget.maj_etat_volet("plein_ecran", False)
 
     def closeEvent(self, event):
-        """Ferme l'affichage externe avant de quitter l'application."""
+        """Ferme l'affichage externe avant de fermer la fenêtre."""
         if self._suivi_exterieur_window is not None:
             self._suivi_exterieur_window.force_close()
         event.accept()

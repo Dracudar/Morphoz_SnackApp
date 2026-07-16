@@ -6,20 +6,20 @@ main_window_prep.py - Fenêtre principale du poste de préparation allégé
 Description:
     Fenêtre principale de l'application légère pour les postes de préparation.
     Barre de navigation tactile en haut (logo MegaSnack cliquable) et volet
-    latéral dynamique en superposition pour les paramètres (dossier data,
-    plein écran, quitter).
+    latéral dynamique en superposition pour la navigation (poste de
+    préparation, paramètres, plein écran, quitter).
 
 Author :
     Dracudar
 
 Version:
-    2.3
+    2.4
 
 Date de création :
     2026.06.14
 
 Date de modification:
-    2026.06.24
+    2026.07.16
 """
 
 from PySide6.QtCore import QEvent, QSize, Qt
@@ -29,12 +29,15 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
     QPushButton,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
 
 from src.backend.app_config import get_assets_path
+from src.core import session
 from src.modules.commandes_poste_preparation.UI.poste_preparation import PostePreparationModule
+from src.UI.view.parametres_dossier import PageParametresLegere
 from src.UI.view.volet_navigation import OverlayFermeture
 from src.UI_prep.panneau_lateral import VoletPrep
 
@@ -44,6 +47,7 @@ class MainWindowPrep(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setWindowTitle("Morphoz SnackApp — Poste de préparation")
         self.setWindowIcon(QIcon(get_assets_path("imgs", "logo_snack.svg")))
         self.setGeometry(100, 100, 1200, 800)
@@ -55,14 +59,19 @@ class MainWindowPrep(QMainWindow):
 
         root_layout.addWidget(self._build_barre_nav())
 
-        # Zone de contenu principale (PostePreparationModule plein écran)
+        # Zone de contenu principale : PostePreparationModule (plein écran) ou
+        # page Paramètres, selon la navigation choisie dans le volet.
         self._content_area = QWidget(central)
         content_layout = QHBoxLayout(self._content_area)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
 
+        self._content_stack = QStackedWidget()
         self._poste = PostePreparationModule()
-        content_layout.addWidget(self._poste)
+        self._page_parametres = PageParametresLegere()
+        self._content_stack.addWidget(self._poste)
+        self._content_stack.addWidget(self._page_parametres)
+        content_layout.addWidget(self._content_stack)
 
         root_layout.addWidget(self._content_area, 1)
 
@@ -72,16 +81,20 @@ class MainWindowPrep(QMainWindow):
         self._overlay.clicked.connect(self._fermer_volet)
 
         self._volet = VoletPrep(self._content_area)
+        self._volet.page_demandee.connect(self.set_page)
         self._volet.action_app_demande.connect(self._on_action_app)
-        self._volet.dossier_applique.connect(self._poste.refresh)
         self._volet.fermeture_demandee.connect(self._fermer_volet)
         self._volet.hide()
+
+        self._page_parametres.go_back.connect(lambda: self.set_page("poste"))
+        self._page_parametres.dossier_applique.connect(self._poste.refresh)
 
         # Repositionne overlay/volet lors des redimensionnements
         self._content_area.installEventFilter(self)
 
         self.setCentralWidget(central)
         self._setup_shortcuts()
+        self._volet.maj_page_active("poste")
 
     # ── Construction ──────────────────────────────────────────────────────────
 
@@ -118,7 +131,7 @@ class MainWindowPrep(QMainWindow):
         """Configure les raccourcis clavier globaux."""
         quit_action = QAction("Quitter", self)
         quit_action.setShortcut(QKeySequence("Ctrl+Q"))
-        quit_action.triggered.connect(self.close)
+        quit_action.triggered.connect(lambda: session.gerer_fermeture(self))
         self.addAction(quit_action)
 
         fs_action = QAction("Plein écran", self)
@@ -130,6 +143,19 @@ class MainWindowPrep(QMainWindow):
         esc_action.setShortcut(QKeySequence(Qt.Key.Key_Escape))
         esc_action.triggered.connect(self.exit_fullscreen)
         self.addAction(esc_action)
+
+    # ── Navigation ────────────────────────────────────────────────────────────
+
+    def set_page(self, page_id: str):
+        """Affiche la page demandée (poste ou paramètres)."""
+        pages = {"poste": self._poste, "parametres": self._page_parametres}
+        widget = pages.get(page_id)
+        if widget is None:
+            return
+        self._content_stack.setCurrentWidget(widget)
+        self._volet.maj_page_active(page_id)
+        if hasattr(widget, "refresh"):
+            widget.refresh()
 
     # ── Volet ─────────────────────────────────────────────────────────────────
 
@@ -158,7 +184,7 @@ class MainWindowPrep(QMainWindow):
         if action == "fullscreen":
             self.toggle_fullscreen()
         elif action == "quit":
-            self.close()
+            session.gerer_fermeture(self)
 
     # ── Événements ────────────────────────────────────────────────────────────
 

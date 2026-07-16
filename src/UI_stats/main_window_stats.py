@@ -8,20 +8,20 @@ Description:
     PDF), historique des commandes et journal des événements, sans saisie, ni
     stock, ni carte, ni impression. Barre de navigation tactile en haut (logo
     MegaSnack cliquable) et volet latéral dynamique en superposition (bascule
-    Statistiques/Historique/Journal, dossier data, plein écran, quitter).
+    Statistiques/Historique/Journal/Paramètres, plein écran, quitter).
     Démarre sur Statistiques, page d'accueil de ce mode.
 
 Author :
     Dracudar
 
 Version:
-    1.1
+    1.2
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.13
+    2026.07.16
 """
 
 from __future__ import annotations
@@ -39,9 +39,11 @@ from PySide6.QtWidgets import (
 )
 
 from src.backend.app_config import get_assets_path
+from src.core import session
 from src.modules.commandes_historique.UI import CommandesHistoriqueModule
 from src.modules.logs.UI import LogsModule
 from src.modules.stats.UI import StatsModule
+from src.UI.view.parametres_dossier import PageParametresLegere
 from src.UI.view.volet_navigation import OverlayFermeture
 from src.UI_stats.panneau_lateral_stats import VoletStats
 
@@ -51,6 +53,7 @@ class MainWindowStats(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setWindowTitle("Morphoz SnackApp — Statistiques / Historique / Journal")
         self.setWindowIcon(QIcon(get_assets_path("imgs", "logo_snack.svg")))
         self.setGeometry(100, 100, 1200, 800)
@@ -70,11 +73,13 @@ class MainWindowStats(QMainWindow):
 
         self.left_stack = QStackedWidget()
         self.page_stats = StatsModule()
-        self.page_historique = CommandesHistoriqueModule()
+        self.page_historique = CommandesHistoriqueModule(mode="consultation")
         self.page_logs = LogsModule()
+        self.page_parametres = PageParametresLegere()
         self.left_stack.addWidget(self.page_stats)
         self.left_stack.addWidget(self.page_historique)
         self.left_stack.addWidget(self.page_logs)
+        self.left_stack.addWidget(self.page_parametres)
         content_layout.addWidget(self.left_stack)
 
         root_layout.addWidget(self._content_area, 1)
@@ -87,7 +92,6 @@ class MainWindowStats(QMainWindow):
         self._volet = VoletStats(self._content_area)
         self._volet.page_demandee.connect(self.set_page)
         self._volet.action_app_demande.connect(self._on_action_app)
-        self._volet.dossier_applique.connect(self._refresh_pages)
         self._volet.fermeture_demandee.connect(self._fermer_volet)
         self._volet.hide()
 
@@ -95,6 +99,8 @@ class MainWindowStats(QMainWindow):
         self.page_stats.go_back.connect(lambda: self.set_page("stats"))
         self.page_historique.go_back.connect(lambda: self.set_page("stats"))
         self.page_logs.go_back.connect(lambda: self.set_page("stats"))
+        self.page_parametres.go_back.connect(lambda: self.set_page("stats"))
+        self.page_parametres.dossier_applique.connect(self._refresh_pages)
 
         # Repositionne overlay/volet lors des redimensionnements
         self._content_area.installEventFilter(self)
@@ -138,7 +144,7 @@ class MainWindowStats(QMainWindow):
         """Configure les raccourcis clavier globaux."""
         quit_action = QAction("Quitter", self)
         quit_action.setShortcut(QKeySequence("Ctrl+Q"))
-        quit_action.triggered.connect(self.close)
+        quit_action.triggered.connect(lambda: session.gerer_fermeture(self))
         self.addAction(quit_action)
 
         fs_action = QAction("Plein écran", self)
@@ -159,6 +165,7 @@ class MainWindowStats(QMainWindow):
             "stats": self.page_stats,
             "historique": self.page_historique,
             "logs": self.page_logs,
+            "parametres": self.page_parametres,
         }
         widget = pages.get(page_id)
         if widget is None:
@@ -203,7 +210,7 @@ class MainWindowStats(QMainWindow):
         if action == "fullscreen":
             self.toggle_fullscreen()
         elif action == "quit":
-            self.close()
+            session.gerer_fermeture(self)
 
     # ── Événements ────────────────────────────────────────────────────────────
 

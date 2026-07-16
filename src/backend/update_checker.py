@@ -12,13 +12,13 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.06.14
 
 Date de modification:
-    2026.06.14
+    2026.07.16
 """
 
 import json
@@ -29,6 +29,12 @@ from PySide6.QtCore import QThread, Signal
 
 _GITHUB_API_URL = "https://api.github.com/repos/dracudar/morphoz_snackapp/releases/latest"
 _TIMEOUT = 5
+
+# Référence forte sur les vérifications en cours : run() bloque sur un appel réseau
+# (pas de boucle d'événements à interrompre proprement), donc si la fenêtre qui l'a
+# lancée est fermée entre-temps, ce fil ne doit pas être détruit pendant qu'il tourne
+# encore (crash Qt) — il reste ici jusqu'à sa fin naturelle (au pire le timeout réseau).
+_verifications_en_cours: set = set()
 
 
 def _parse_version(v: str) -> tuple:
@@ -47,6 +53,16 @@ class UpdateChecker(QThread):
     def __init__(self, current_version: str, parent=None):
         super().__init__(parent)
         self._current_version = current_version
+
+    def start(self, *args, **kwargs):
+        """Démarre la vérification en gardant une référence forte jusqu'à la fin.
+
+        Ainsi la fenêtre appelante peut être fermée/détruite (ex. WA_DeleteOnClose)
+        sans risquer de détruire ce fil pendant qu'il tourne encore.
+        """
+        _verifications_en_cours.add(self)
+        self.finished.connect(lambda: _verifications_en_cours.discard(self))
+        super().start(*args, **kwargs)
 
     def run(self):
         try:

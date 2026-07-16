@@ -21,13 +21,13 @@ Author :
     Dracudar
 
 Version:
-    1.2
+    1.3
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.09
+    2026.07.16
 """
 
 from __future__ import annotations
@@ -92,6 +92,7 @@ class LauncherWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setWindowTitle("Morphoz SnackApp — Choix du mode")
         self.setWindowIcon(QIcon(get_assets_path("imgs", "logo_snack.svg")))
         self.resize(640, 560)

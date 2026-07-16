@@ -4,41 +4,37 @@
 panneau_lateral_stats.py - Volet latéral de la vue Historique/Statistiques allégée
 
 Description:
-    Volet de navigation et de configuration pour la vue allégée Statistiques +
-    Historique + Journal : bascule entre les trois pages, sélection du dossier
-    data partagé en LAN, plein écran, quitter. S'affiche en superposition sur
-    le contenu principal via un bouton hamburger dans la barre de navigation.
+    Volet de navigation pour la vue allégée Statistiques + Historique +
+    Journal + Paramètres : bascule entre les quatre pages, plein écran,
+    quitter. S'affiche en superposition sur le contenu principal via un
+    bouton hamburger dans la barre de navigation.
 
 Author :
     Dracudar
 
 Version:
-    1.1
+    2.0
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.13
+    2026.07.16
 """
 
 from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import (
-    QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QPushButton,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
 
-from src.backend import file_io
-from src.backend.app_config import CONFIG_FILE, get_data_folder_brut
 from src.UI.utils.icones import icone_coloree
 
 # ── Palette ───────────────────────────────────────────────────────────────────
@@ -93,15 +89,15 @@ _ITEMS_NAV = [
     ("stats.svg",      "Statistiques",   "stats"),
     ("historique.svg", "Historique",     "historique"),
     ("log.svg",        "Journal",        "logs"),
+    ("settings.svg",   "Paramètres",     "parametres"),
 ]
 
 
 class VoletStats(QFrame):
     """Volet latéral de la vue Historique/Statistiques (superposition dynamique)."""
 
-    page_demandee      = Signal(str)  # "historique" | "stats"
+    page_demandee      = Signal(str)  # "stats" | "historique" | "logs" | "parametres"
     action_app_demande = Signal(str)  # "fullscreen" | "quit"
-    dossier_applique    = Signal()    # nouveau dossier data persisté → demande un refresh
     fermeture_demandee  = Signal()    # croix cliquée → la fenêtre parente doit aussi masquer l'overlay
 
     def __init__(self, parent=None):
@@ -144,8 +140,6 @@ class VoletStats(QFrame):
             layout.addWidget(btn)
 
         layout.addWidget(self._separateur())
-        layout.addWidget(self._build_section_data())
-        layout.addWidget(self._separateur())
         layout.addStretch(1)
         layout.addWidget(self._separateur())
 
@@ -187,69 +181,6 @@ class VoletStats(QFrame):
 
         return header
 
-    def _build_section_data(self) -> QWidget:
-        container = QWidget()
-        container.setStyleSheet(f"background-color: {_BG};")
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(8)
-
-        lbl_section = QLabel("DOSSIER DATA PARTAGÉ")
-        lbl_section.setStyleSheet(
-            "color: #a8acb3; font-size: 10px; font-weight: 700; letter-spacing: 1px;"
-        )
-        layout.addWidget(lbl_section)
-
-        self._path_edit = QLineEdit(get_data_folder_brut())
-        self._path_edit.setReadOnly(True)
-        self._path_edit.setToolTip(self._path_edit.text())
-        self._path_edit.setStyleSheet(
-            "QLineEdit {"
-            "  background-color: #2f3136; color: #d6d6d6;"
-            "  border: 1px solid #60646c; border-radius: 4px;"
-            "  padding: 6px 8px; font-size: 11px;"
-            "}"
-        )
-        layout.addWidget(self._path_edit)
-
-        btn_parcourir = QPushButton("Parcourir…")
-        btn_parcourir.setStyleSheet(
-            "QPushButton {"
-            "  background-color: #4f545e; color: #f5f5f5;"
-            "  border: none; border-radius: 4px;"
-            "  padding: 8px 10px; font-size: 13px;"
-            "}"
-            "QPushButton:hover { background-color: #5a606b; }"
-            "QPushButton:pressed { background-color: #3a3d43; }"
-        )
-        btn_parcourir.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_parcourir.clicked.connect(self._choisir_dossier)
-        layout.addWidget(btn_parcourir)
-
-        self._btn_appliquer = QPushButton("Appliquer")
-        self._btn_appliquer.setStyleSheet(
-            "QPushButton {"
-            "  background-color: #4a7fcb; color: #ffffff;"
-            "  border: none; border-radius: 4px;"
-            "  padding: 8px 10px; font-size: 13px; font-weight: 700;"
-            "}"
-            "QPushButton:hover { background-color: #5a8fdb; }"
-            "QPushButton:pressed { background-color: #3a6fbb; }"
-            "QPushButton:disabled { background-color: #2f3540; color: #6a7080; }"
-        )
-        self._btn_appliquer.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._btn_appliquer.setEnabled(False)
-        self._btn_appliquer.clicked.connect(self._appliquer_dossier)
-        layout.addWidget(self._btn_appliquer)
-
-        self._lbl_status = QLabel("")
-        self._lbl_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._lbl_status.setWordWrap(True)
-        self._lbl_status.setStyleSheet(f"font-size: 11px; background-color: {_BG};")
-        layout.addWidget(self._lbl_status)
-
-        return container
-
     def _bouton_item(
         self,
         label: str,
@@ -279,36 +210,3 @@ class VoletStats(QFrame):
         self.maj_page_active(page_id)
         self.page_demandee.emit(page_id)
         self.fermeture_demandee.emit()
-
-    # ── Actions ───────────────────────────────────────────────────────────────
-
-    def _choisir_dossier(self):
-        """Ouvre un sélecteur de dossier et pré-remplit le champ."""
-        dossier = QFileDialog.getExistingDirectory(
-            self,
-            "Sélectionner le dossier data",
-            self._path_edit.text(),
-        )
-        if dossier:
-            self._path_edit.setText(dossier)
-            self._path_edit.setToolTip(dossier)
-            self._btn_appliquer.setEnabled(True)
-            self._lbl_status.setText("")
-
-    def _appliquer_dossier(self):
-        """Persiste le nouveau chemin data dans config.json sans écraser les autres clés."""
-        new_path = self._path_edit.text().strip()
-        if not new_path:
-            return
-        try:
-            with file_io.verrou_fichier(CONFIG_FILE):
-                config = file_io.charger_json(CONFIG_FILE)
-                config["data_folder"] = new_path
-                file_io.sauvegarder_json(CONFIG_FILE, config)
-            self._btn_appliquer.setEnabled(False)
-            self._lbl_status.setStyleSheet("color: #4caf50; font-size: 11px;")
-            self._lbl_status.setText("✓ Appliqué")
-            self.dossier_applique.emit()
-        except OSError:
-            self._lbl_status.setStyleSheet("color: #e74c3c; font-size: 11px;")
-            self._lbl_status.setText("Erreur d'écriture")
