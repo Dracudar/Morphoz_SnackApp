@@ -227,6 +227,42 @@ class TestCalculerAffluence:
         stats = calculer_affluence(orders, date_from=datetime(2026, 7, 5))
         assert stats["totaux"]["nb_commandes_validees"] == 1
 
+    def test_par_jour_ventile_par_date_sans_cumuler(self):
+        """Deux commandes à la même heure mais des jours différents ne doivent pas se cumuler
+        dans la même tranche horaire d'un jour donné."""
+        orders = [
+            _commande_validee("1", date_validation="01/07/2026", heure_validation="12:00"),
+            _commande_validee("2", date_validation="02/07/2026", heure_validation="12:00"),
+        ]
+        stats = calculer_affluence(orders)
+        assert [j["date"] for j in stats["par_jour"]] == ["01/07/2026", "02/07/2026"]
+        for jour in stats["par_jour"]:
+            par_heure = {p["heure"]: p["quantite"] for p in jour["par_heure"]}
+            assert par_heure["12h"] == 1
+        assert sum(p["quantite"] for p in stats["par_heure"]) == 2
+
+    def test_par_jour_trie_chronologiquement(self):
+        orders = [
+            _commande_validee("1", date_validation="10/07/2026"),
+            _commande_validee("2", date_validation="01/07/2026"),
+        ]
+        stats = calculer_affluence(orders)
+        assert [j["date"] for j in stats["par_jour"]] == ["01/07/2026", "10/07/2026"]
+
+    def test_par_jour_totaux_par_statut(self):
+        orders = [
+            _commande_validee("1", date_validation="01/07/2026", statut="Terminée"),
+            _commande_validee("2", date_validation="01/07/2026", statut="Annulée"),
+        ]
+        stats = calculer_affluence(orders)
+        totaux_jour = stats["par_jour"][0]["totaux"]
+        assert totaux_jour == {
+            "nb_commandes_validees": 2, "nb_terminees": 1, "nb_annulees": 1, "nb_en_cours": 0,
+        }
+
+    def test_par_jour_vide_si_aucune_commande(self):
+        assert calculer_affluence([])["par_jour"] == []
+
 
 class TestCalculerTempsPreparation:
     def test_liste_vide(self):

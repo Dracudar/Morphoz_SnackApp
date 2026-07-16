@@ -19,13 +19,13 @@ Author :
     Dracudar
 
 Version:
-    1.3
+    1.4
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.13
+    2026.07.16
 """
 
 from __future__ import annotations
@@ -71,6 +71,7 @@ from src.backend import logger
 from src.backend.data_sources import get_all_history_orders, signature_history_orders
 from src.modules.stats.backend.pdf_export import generer_rapport_pdf
 from src.modules.stats.backend.stats import (
+    SEUIL_JOURS_AFFLUENCE_DETAILLEE,
     calculer_affluence,
     calculer_composition_par_plat,
     calculer_delais_livraison,
@@ -180,6 +181,12 @@ class StatsModule(QFrame):
                 font-size: 15px;
                 font-weight: 700;
                 padding: 2px 0;
+            }}
+            QLabel#labelJourAffluence {{
+                color: {_TEXT_MUTED};
+                font-size: 13px;
+                font-weight: 700;
+                padding: 6px 0 0 0;
             }}
             QLabel#titrePlat {{
                 color: {_TEXT_TITLE};
@@ -766,8 +773,8 @@ class StatsModule(QFrame):
                 [j["date"] for j in ca_par_jour], [j["montant"] for j in ca_par_jour], "Montant (€)",
             ))
 
-        affluence = self._affluence.get("par_heure", [])
         totaux_affluence = self._affluence.get("totaux", {})
+        par_jour_affluence = self._affluence.get("par_jour", [])
         if totaux_affluence.get("nb_commandes_validees"):
             self.general_layout.addWidget(self._build_section_title("Horaires d'affluence"))
             note = QLabel(
@@ -778,9 +785,25 @@ class StatsModule(QFrame):
             note.setWordWrap(True)
             note.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 12px;")
             self.general_layout.addWidget(note)
-            self.general_layout.addWidget(self._build_bar_chart(
-                [h["heure"] for h in affluence], [h["quantite"] for h in affluence], "Commandes validées",
-            ))
+
+            if 0 < len(par_jour_affluence) <= SEUIL_JOURS_AFFLUENCE_DETAILLEE:
+                # Période courte (événement de quelques jours) : un graphique par jour pour ne
+                # pas cumuler les tranches horaires de dates différentes dans les mêmes barres.
+                for jour in par_jour_affluence:
+                    label_jour = QLabel(jour["date"])
+                    label_jour.setObjectName("labelJourAffluence")
+                    self.general_layout.addWidget(label_jour)
+                    self.general_layout.addWidget(self._build_bar_chart(
+                        [h["heure"] for h in jour["par_heure"]],
+                        [h["quantite"] for h in jour["par_heure"]],
+                        "Commandes validées",
+                    ))
+            else:
+                # Période longue : un graphique par jour serait trop lourd, on garde la vue agrégée.
+                affluence = self._affluence.get("par_heure", [])
+                self.general_layout.addWidget(self._build_bar_chart(
+                    [h["heure"] for h in affluence], [h["quantite"] for h in affluence], "Commandes validées",
+                ))
 
         if not totaux.get("nb_commandes"):
             vide = QLabel("Aucune commande terminée sur cette période.")

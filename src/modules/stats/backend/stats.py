@@ -16,7 +16,8 @@ Description:
     Fournit également des statistiques opérationnelles calculées sur toutes
     les commandes validées (terminées, annulées ou encore en cours), car une
     commande annulée a bien été validée et compte donc dans l'affluence :
-    - calculer_affluence : répartition horaire des validations de commande.
+    - calculer_affluence : répartition horaire des validations de commande,
+      globale et par jour (utile pour distinguer les jours d'un même événement).
     - calculer_temps_preparation : durée entre validation de la commande et
       mise à disposition ("Prêt") de chaque plat, par type de plat.
     - calculer_delais_retrait : durée entre la mise à disposition d'un plat
@@ -26,13 +27,13 @@ Author :
     Dracudar
 
 Version:
-    1.2
+    1.3
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.08
+    2026.07.16
 """
 
 from __future__ import annotations
@@ -40,6 +41,11 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+
+# Nombre maximal de jours distincts pour lesquels le graphique d'affluence horaire
+# reste détaillé (un graphique par jour) : au-delà, la vue reste agrégée sur toute
+# la période, pour ne pas empiler trop de graphiques sur une période longue durée.
+SEUIL_JOURS_AFFLUENCE_DETAILLEE = 4
 
 
 def _horodatage(valeur: Any) -> Optional[datetime]:
@@ -298,13 +304,24 @@ def calculer_affluence(
     moment de sa validation, même si elle n'a pas été facturée. Le filtrage de
     période se fait sur la date de validation, pas sur la date de création.
 
+    En plus de la répartition agrégée sur toute la période ("par_heure"), fournit
+    une ventilation "par_jour" (une répartition horaire par date de validation,
+    triée chronologiquement) : utile pour les événements courts (quelques jours),
+    où cumuler toutes les dates sur les mêmes 24 tranches horaires masquerait les
+    variations d'un jour à l'autre.
+
     :param orders: commandes issues de get_all_history_orders()
     :param date_from: borne de début incluse (None = pas de borne)
     :param date_to: borne de fin incluse (None = pas de borne)
-    :return: dict avec "par_heure" (24 tranches horaires) et "totaux" (répartition
+    :return: dict avec "par_heure" (24 tranches horaires agrégées), "par_jour"
+        (liste de {"date", "par_heure", "totaux"} par date) et "totaux" (répartition
         par statut des commandes prises en compte).
     """
     par_heure: Dict[int, int] = defaultdict(int)
+    par_jour_heure: Dict[str, Dict[int, int]] = defaultdict(lambda: defaultdict(int))
+    par_jour_statuts: Dict[str, Dict[str, int]] = defaultdict(
+        lambda: {"nb_terminees": 0, "nb_annulees": 0, "nb_en_cours": 0}
+    )
     nb_terminees = 0
     nb_annulees = 0
     nb_en_cours = 0
@@ -317,22 +334,43 @@ def calculer_affluence(
             continue
 
         par_heure[dt_validation.hour] += 1
+        date_str = dt_validation.strftime("%d/%m/%Y")
+        par_jour_heure[date_str][dt_validation.hour] += 1
 
         statut = (order.get("status") or "").lower()
         if statut == "terminée":
             nb_terminees += 1
+            par_jour_statuts[date_str]["nb_terminees"] += 1
         elif statut == "annulée":
             nb_annulees += 1
+            par_jour_statuts[date_str]["nb_annulees"] += 1
         else:
             nb_en_cours += 1
+            par_jour_statuts[date_str]["nb_en_cours"] += 1
 
     liste_par_heure = [
         {"heure": f"{h:02d}h", "quantite": par_heure.get(h, 0)}
         for h in range(24)
     ]
 
+    liste_par_jour = [
+        {
+            "date": date_str,
+            "par_heure": [
+                {"heure": f"{h:02d}h", "quantite": par_jour_heure[date_str].get(h, 0)}
+                for h in range(24)
+            ],
+            "totaux": {
+                "nb_commandes_validees": sum(par_jour_statuts[date_str].values()),
+                **par_jour_statuts[date_str],
+            },
+        }
+        for date_str in sorted(par_jour_heure, key=_cle_tri_date)
+    ]
+
     return {
         "par_heure": liste_par_heure,
+        "par_jour": liste_par_jour,
         "totaux": {
             "nb_commandes_validees": nb_terminees + nb_annulees + nb_en_cours,
             "nb_terminees": nb_terminees,

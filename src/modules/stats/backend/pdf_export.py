@@ -13,13 +13,13 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.1
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.05
+    2026.07.16
 """
 
 from __future__ import annotations
@@ -41,6 +41,8 @@ from reportlab.platypus import (
     Table,
     TableStyle,
 )
+
+from src.modules.stats.backend.stats import SEUIL_JOURS_AFFLUENCE_DETAILLEE
 
 _PALETTE = [
     colors.HexColor("#4a7fcb"),
@@ -233,7 +235,7 @@ def generer_rapport_pdf(
         ))
 
     affluence = affluence or {}
-    par_heure = affluence.get("par_heure", [])
+    par_jour_affluence = affluence.get("par_jour", [])
     totaux_affluence = affluence.get("totaux", {})
     if totaux_affluence.get("nb_commandes_validees"):
         elements.append(Paragraph("Horaires d'affluence", styles["TitreSection"]))
@@ -244,9 +246,22 @@ def generer_rapport_pdf(
             styles["Normal"],
         ))
         elements.append(Spacer(1, 6))
-        elements.append(_graphique_barres(
-            [h["heure"] for h in par_heure], [h["quantite"] for h in par_heure],
-        ))
+
+        if 0 < len(par_jour_affluence) <= SEUIL_JOURS_AFFLUENCE_DETAILLEE:
+            # Période courte (événement de quelques jours) : un graphique par jour pour ne pas
+            # cumuler les tranches horaires de dates différentes dans les mêmes barres.
+            for jour in par_jour_affluence:
+                elements.append(Paragraph(jour["date"], styles["Normal"]))
+                elements.append(_graphique_barres(
+                    [h["heure"] for h in jour["par_heure"]], [h["quantite"] for h in jour["par_heure"]],
+                ))
+                elements.append(Spacer(1, 6))
+        else:
+            # Période longue : un graphique par jour serait trop lourd, on garde la vue agrégée.
+            par_heure = affluence.get("par_heure", [])
+            elements.append(_graphique_barres(
+                [h["heure"] for h in par_heure], [h["quantite"] for h in par_heure],
+            ))
 
     temps_preparation = temps_preparation or {}
     par_plat_prepa = temps_preparation.get("par_plat", [])
