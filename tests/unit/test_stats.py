@@ -16,7 +16,7 @@ Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.05
+    2026.07.16
 """
 
 from datetime import datetime
@@ -262,6 +262,45 @@ class TestCalculerAffluence:
 
     def test_par_jour_vide_si_aucune_commande(self):
         assert calculer_affluence([])["par_jour"] == []
+
+    def test_par_semaine_regroupe_par_lundi(self):
+        """01/07/2026 et 02/07/2026 tombent dans la même semaine ISO (lundi 29/06/2026) ;
+        10/07/2026 est dans la semaine suivante (lundi 06/07/2026)."""
+        orders = [
+            _commande_validee("1", date_validation="01/07/2026"),
+            _commande_validee("2", date_validation="02/07/2026"),
+            _commande_validee("3", date_validation="10/07/2026"),
+        ]
+        stats = calculer_affluence(orders)
+        par_semaine = {s["semaine"]: s["quantite"] for s in stats["par_semaine"]}
+        assert par_semaine == {
+            "Sem. 29/06": 2,
+            "Sem. 06/07": 1,
+        }
+        assert [s["semaine"] for s in stats["par_semaine"]] == ["Sem. 29/06", "Sem. 06/07"]
+
+    def test_par_mois_regroupe_par_mois(self):
+        orders = [
+            _commande_validee("1", date_validation="01/07/2026"),
+            _commande_validee("2", date_validation="15/07/2026"),
+            _commande_validee("3", date_validation="02/08/2026"),
+        ]
+        stats = calculer_affluence(orders)
+        par_mois = {m["mois"]: m["quantite"] for m in stats["par_mois"]}
+        assert par_mois == {"07/2026": 2, "08/2026": 1}
+        assert [m["mois"] for m in stats["par_mois"]] == ["07/2026", "08/2026"]
+
+    def test_moyenne_par_jour(self):
+        orders = [
+            _commande_validee("1", date_validation="01/07/2026"),
+            _commande_validee("2", date_validation="01/07/2026"),
+            _commande_validee("3", date_validation="02/07/2026"),
+        ]
+        stats = calculer_affluence(orders)
+        assert stats["moyenne_par_jour"] == 1.5
+
+    def test_moyenne_par_jour_zero_si_aucune_commande(self):
+        assert calculer_affluence([])["moyenne_par_jour"] == 0.0
 
 
 class TestCalculerTempsPreparation:

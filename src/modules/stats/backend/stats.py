@@ -27,7 +27,7 @@ Author :
     Dracudar
 
 Version:
-    1.3
+    1.4
 
 Date de création :
     2026.07.05
@@ -39,13 +39,18 @@ Date de modification:
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
 
 # Nombre maximal de jours distincts pour lesquels le graphique d'affluence horaire
-# reste détaillé (un graphique par jour) : au-delà, la vue reste agrégée sur toute
-# la période, pour ne pas empiler trop de graphiques sur une période longue durée.
-SEUIL_JOURS_AFFLUENCE_DETAILLEE = 4
+# reste détaillé (un graphique horaire par jour, adapté au suivi d'un événement sur
+# une semaine) : au-delà, le détail horaire n'est plus lisible ni pertinent et la
+# vue passe à une agrégation par semaine (voir SEUIL_JOURS_AFFLUENCE_HEBDOMADAIRE).
+SEUIL_JOURS_AFFLUENCE_DETAILLEE = 7
+
+# Au-delà de ce nombre de jours distincts (environ un mois), l'agrégation par semaine
+# devient elle-même trop dense : la vue passe à une agrégation par mois.
+SEUIL_JOURS_AFFLUENCE_HEBDOMADAIRE = 31
 
 
 def _horodatage(valeur: Any) -> Optional[datetime]:
@@ -310,12 +315,23 @@ def calculer_affluence(
     où cumuler toutes les dates sur les mêmes 24 tranches horaires masquerait les
     variations d'un jour à l'autre.
 
+    Sur une période plus longue, le détail horaire par jour devient à la fois
+    illisible (trop de graphiques) et peu pertinent (le suivi se fait alors plutôt
+    par semaine ou par mois) : "par_semaine" et "par_mois" fournissent le nombre de
+    commandes validées agrégé à ces granularités plus grossières, et
+    "moyenne_par_jour" la moyenne quotidienne sur la période. C'est à l'appelant
+    (UI, export PDF) de choisir la granularité affichée selon le nombre de jours
+    distincts couverts (voir SEUIL_JOURS_AFFLUENCE_DETAILLEE et
+    SEUIL_JOURS_AFFLUENCE_HEBDOMADAIRE).
+
     :param orders: commandes issues de get_all_history_orders()
     :param date_from: borne de début incluse (None = pas de borne)
     :param date_to: borne de fin incluse (None = pas de borne)
     :return: dict avec "par_heure" (24 tranches horaires agrégées), "par_jour"
-        (liste de {"date", "par_heure", "totaux"} par date) et "totaux" (répartition
-        par statut des commandes prises en compte).
+        (liste de {"date", "par_heure", "totaux"} par date), "par_semaine" (liste de
+        {"semaine", "quantite"}), "par_mois" (liste de {"mois", "quantite"}),
+        "moyenne_par_jour" et "totaux" (répartition par statut des commandes prises
+        en compte).
     """
     par_heure: Dict[int, int] = defaultdict(int)
     par_jour_heure: Dict[str, Dict[int, int]] = defaultdict(lambda: defaultdict(int))
@@ -368,9 +384,36 @@ def calculer_affluence(
         for date_str in sorted(par_jour_heure, key=_cle_tri_date)
     ]
 
+    quantite_par_jour: Dict[str, int] = {
+        date_str: sum(statuts.values()) for date_str, statuts in par_jour_statuts.items()
+    }
+    par_semaine_qte: Dict[datetime, int] = defaultdict(int)
+    par_mois_qte: Dict[Tuple[int, int], int] = defaultdict(int)
+    for date_str, quantite in quantite_par_jour.items():
+        dt = _cle_tri_date(date_str)
+        lundi = dt - timedelta(days=dt.weekday())
+        par_semaine_qte[lundi] += quantite
+        par_mois_qte[(dt.year, dt.month)] += quantite
+
+    liste_par_semaine = [
+        # Libellé volontairement court (sans année) : sur l'axe d'un graphique, "Sem. du
+        # 06/07/2026" est trop long pour tenir lisiblement même incliné à 45°.
+        {"semaine": lundi.strftime("Sem. %d/%m"), "quantite": quantite}
+        for lundi, quantite in sorted(par_semaine_qte.items())
+    ]
+    liste_par_mois = [
+        {"mois": f"{mois:02d}/{annee}", "quantite": quantite}
+        for (annee, mois), quantite in sorted(par_mois_qte.items())
+    ]
+    nb_jours = len(quantite_par_jour)
+    moyenne_par_jour = round(sum(quantite_par_jour.values()) / nb_jours, 1) if nb_jours else 0.0
+
     return {
         "par_heure": liste_par_heure,
         "par_jour": liste_par_jour,
+        "par_semaine": liste_par_semaine,
+        "par_mois": liste_par_mois,
+        "moyenne_par_jour": moyenne_par_jour,
         "totaux": {
             "nb_commandes_validees": nb_terminees + nb_annulees + nb_en_cours,
             "nb_terminees": nb_terminees,
