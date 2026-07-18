@@ -48,3 +48,6 @@ data/
 
 # Ruff
 .ruff_cache/
+
+# AI
+.claude/
