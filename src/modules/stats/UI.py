@@ -19,13 +19,13 @@ Author :
     Dracudar
 
 Version:
-    1.5
+    1.6
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.14
+    2026.07.18
 """
 
 from __future__ import annotations
@@ -71,6 +71,8 @@ from src.backend import logger
 from src.backend.data_sources import get_all_history_orders, signature_history_orders
 from src.modules.stats.backend.pdf_export import generer_rapport_pdf
 from src.modules.stats.backend.stats import (
+    SEUIL_JOURS_AFFLUENCE_DETAILLEE,
+    SEUIL_JOURS_AFFLUENCE_HEBDOMADAIRE,
     calculer_affluence,
     calculer_composition_par_plat,
     calculer_delais_livraison,
@@ -176,6 +178,12 @@ class StatsModule(QFrame):
                 font-size: 15px;
                 font-weight: 700;
                 padding: 2px 0;
+            }}
+            QLabel#labelJourAffluence {{
+                color: {_TEXT_MUTED};
+                font-size: 13px;
+                font-weight: 700;
+                padding: 6px 0 0 0;
             }}
             QLabel#titrePlat {{
                 color: {_TEXT_TITLE};
@@ -749,8 +757,9 @@ class StatsModule(QFrame):
                 [j["date"] for j in ca_par_jour], [j["montant"] for j in ca_par_jour], "Montant (€)",
             ))
 
-        affluence = self._affluence.get("par_heure", [])
         totaux_affluence = self._affluence.get("totaux", {})
+        par_jour_affluence = self._affluence.get("par_jour", [])
+        nb_jours_affluence = len(par_jour_affluence)
         if totaux_affluence.get("nb_commandes_validees"):
             self.general_layout.addWidget(self._build_section_title("Horaires d'affluence"))
             note = QLabel(
@@ -761,9 +770,45 @@ class StatsModule(QFrame):
             note.setWordWrap(True)
             note.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 12px;")
             self.general_layout.addWidget(note)
-            self.general_layout.addWidget(self._build_bar_chart(
-                [h["heure"] for h in affluence], [h["quantite"] for h in affluence], "Commandes validées",
-            ))
+
+            if nb_jours_affluence <= SEUIL_JOURS_AFFLUENCE_DETAILLEE:
+                # Période courte (événement de quelques jours, suivi jusqu'à la semaine) : un
+                # graphique horaire par jour pour ne pas cumuler des dates différentes dans les
+                # mêmes tranches horaires.
+                for jour in par_jour_affluence:
+                    label_jour = QLabel(jour["date"])
+                    label_jour.setObjectName("labelJourAffluence")
+                    self.general_layout.addWidget(label_jour)
+                    self.general_layout.addWidget(self._build_bar_chart(
+                        [h["heure"] for h in jour["par_heure"]],
+                        [h["quantite"] for h in jour["par_heure"]],
+                        "Commandes validées",
+                    ))
+            else:
+                # Période longue : le détail horaire n'est plus lisible ni pertinent. On affiche
+                # la moyenne quotidienne, puis une agrégation par semaine (jusqu'à environ un
+                # mois) ou par mois (au-delà) plutôt qu'un graphique par jour.
+                self.general_layout.addWidget(self._build_cartes_row([
+                    ("Moyenne journalière", f"{self._affluence.get('moyenne_par_jour', 0):.1f} commande(s)"),
+                ]))
+                if nb_jours_affluence <= SEUIL_JOURS_AFFLUENCE_HEBDOMADAIRE:
+                    note_granularite = QLabel("Commandes validées par semaine (date du lundi)")
+                    note_granularite.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 12px;")
+                    self.general_layout.addWidget(note_granularite)
+                    par_semaine = self._affluence.get("par_semaine", [])
+                    self.general_layout.addWidget(self._build_bar_chart(
+                        [s["semaine"] for s in par_semaine], [s["quantite"] for s in par_semaine],
+                        "Commandes validées",
+                    ))
+                else:
+                    note_granularite = QLabel("Commandes validées par mois")
+                    note_granularite.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 12px;")
+                    self.general_layout.addWidget(note_granularite)
+                    par_mois = self._affluence.get("par_mois", [])
+                    self.general_layout.addWidget(self._build_bar_chart(
+                        [m["mois"] for m in par_mois], [m["quantite"] for m in par_mois],
+                        "Commandes validées",
+                    ))
 
         if not totaux.get("nb_commandes"):
             vide = QLabel("Aucune commande terminée sur cette période.")
@@ -963,6 +1008,12 @@ class StatsModule(QFrame):
 
         axis_x = QBarCategoryAxis()
         axis_x.append(categories)
+        # Libellés verticaux (90°) : à l'horizontale ou même inclinés à 45°, Qt tronque les
+        # libellés en "..." dès que les catégories sont nombreuses (24 heures, jours d'un
+        # mois, mois d'une année...), car la largeur disponible par catégorie ne dépend que
+        # du nombre total de catégories, pas de la longueur du texte voisin. À la verticale,
+        # l'empreinte horizontale du texte est minimale et les libellés restent lisibles.
+        axis_x.setLabelsAngle(90)
         chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
         series.attachAxis(axis_x)
 
@@ -982,7 +1033,17 @@ class StatsModule(QFrame):
         view = QChartView(chart)
         view.setRenderHint(QPainter.RenderHint.Antialiasing)
         view.setBackgroundBrush(QColor(_BG_CARD))
-        view.setMinimumHeight(240)
+        # Un peu plus haut que la valeur historique (240) pour laisser de la place aux
+        # libellés verticaux des catégories les plus longues ("Sem. 06/07", "Grillade"...).
+        view.setMinimumHeight(270)
+        # Sans largeur minimale, QChartView se contente de son sizeHint naturel (~560px) et
+        # la "feuille" parente ne s'étire pas jusqu'à sa largeur maximale (voir
+        # _LARGEUR_FEUILLE) même quand la fenêtre est large : au-delà d'une poignée de
+        # catégories, la place par catégorie devient alors trop étroite pour un libellé
+        # lisible, même à la verticale. On réserve ~32px par catégorie (borné à la largeur
+        # de la feuille) pour que les libellés aient la place de s'afficher en entier.
+        largeur_min = min(_LARGEUR_FEUILLE, max(400, len(categories) * 32))
+        view.setMinimumWidth(largeur_min)
         return view
 
     def _build_pie_chart(self, libelles: List[str], valeurs: List[float]) -> QChartView:

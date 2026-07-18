@@ -13,13 +13,13 @@ Author :
     Dracudar
 
 Version:
-    1.0
+    1.2
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.05
+    2026.07.16
 """
 
 from __future__ import annotations
@@ -40,6 +40,11 @@ from reportlab.platypus import (
     Spacer,
     Table,
     TableStyle,
+)
+
+from src.modules.stats.backend.stats import (
+    SEUIL_JOURS_AFFLUENCE_DETAILLEE,
+    SEUIL_JOURS_AFFLUENCE_HEBDOMADAIRE,
 )
 
 _PALETTE = [
@@ -84,7 +89,7 @@ def _graphique_barres(libelles: Sequence[str], valeurs: Sequence[float], largeur
     graphique.height = hauteur - 60
     graphique.data = [list(valeurs)]
     graphique.categoryAxis.categoryNames = list(libelles)
-    graphique.categoryAxis.labels.angle = 30
+    graphique.categoryAxis.labels.angle = 45
     graphique.categoryAxis.labels.dy = -12
     graphique.categoryAxis.labels.fontSize = 8
     graphique.valueAxis.valueMin = 0
@@ -233,7 +238,7 @@ def generer_rapport_pdf(
         ))
 
     affluence = affluence or {}
-    par_heure = affluence.get("par_heure", [])
+    par_jour_affluence = affluence.get("par_jour", [])
     totaux_affluence = affluence.get("totaux", {})
     if totaux_affluence.get("nb_commandes_validees"):
         elements.append(Paragraph("Horaires d'affluence", styles["TitreSection"]))
@@ -244,9 +249,39 @@ def generer_rapport_pdf(
             styles["Normal"],
         ))
         elements.append(Spacer(1, 6))
-        elements.append(_graphique_barres(
-            [h["heure"] for h in par_heure], [h["quantite"] for h in par_heure],
-        ))
+
+        nb_jours_affluence = len(par_jour_affluence)
+        if nb_jours_affluence <= SEUIL_JOURS_AFFLUENCE_DETAILLEE:
+            # Période courte (événement de quelques jours, suivi jusqu'à la semaine) : un
+            # graphique horaire par jour pour ne pas cumuler des dates différentes dans les
+            # mêmes tranches horaires.
+            for jour in par_jour_affluence:
+                elements.append(Paragraph(jour["date"], styles["Normal"]))
+                elements.append(_graphique_barres(
+                    [h["heure"] for h in jour["par_heure"]], [h["quantite"] for h in jour["par_heure"]],
+                ))
+                elements.append(Spacer(1, 6))
+        else:
+            # Période longue : le détail horaire n'est plus lisible ni pertinent. On affiche la
+            # moyenne quotidienne, puis une agrégation par semaine (jusqu'à environ un mois) ou
+            # par mois (au-delà) plutôt qu'un graphique par jour.
+            elements.append(Paragraph(
+                f"Moyenne journalière : {affluence.get('moyenne_par_jour', 0):.1f} commande(s).",
+                styles["Normal"],
+            ))
+            elements.append(Spacer(1, 6))
+            if nb_jours_affluence <= SEUIL_JOURS_AFFLUENCE_HEBDOMADAIRE:
+                elements.append(Paragraph("Commandes validées par semaine (date du lundi)", styles["Normal"]))
+                par_semaine = affluence.get("par_semaine", [])
+                elements.append(_graphique_barres(
+                    [s["semaine"] for s in par_semaine], [s["quantite"] for s in par_semaine],
+                ))
+            else:
+                elements.append(Paragraph("Commandes validées par mois", styles["Normal"]))
+                par_mois = affluence.get("par_mois", [])
+                elements.append(_graphique_barres(
+                    [m["mois"] for m in par_mois], [m["quantite"] for m in par_mois],
+                ))
 
     temps_preparation = temps_preparation or {}
     par_plat_prepa = temps_preparation.get("par_plat", [])
