@@ -35,11 +35,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from dev.backend.app_config import get_assets_path
-from dev.core import session
-from dev.mod.prepa.UI.views.poste_preparation import PostePreparationModule
-from dev.mod.saisie.UI.volet_navigation import OverlayFermeture
-from dev.mod.prepa.UI.panneau_lateral import VoletPrep
+from src.backend.app_config import get_assets_path
+from src.core import session
+from src.mod.prepa.UI.views.poste_preparation import PostePreparationModule
+from src.mod.saisie.UI.volet_navigation import OverlayFermeture
+from src.mod.prepa.UI.panneau_lateral import VoletPrep
 
 
 class MainWindowPrep(QMainWindow):

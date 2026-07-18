@@ -59,11 +59,11 @@ def lancer_mode(mode: str):
         # charger que celles du mode réellement choisi évite de payer le coût
         # des 3 modes à chaque démarrage, quel que soit le choix fait.
         if mode == "complet":
-            from src.UI.main_window import MainWindow as classe
+            from src.mod.saisie.UI.main_window import MainWindow as classe
         elif mode == "prepa":
-            from src.UI_prep.main_window_prep import MainWindowPrep as classe
+            from src.mod.prepa.UI.main_window import MainWindowPrep as classe
         elif mode == "stats":
-            from src.UI_stats.main_window_stats import MainWindowStats as classe
+            from src.mod.stats.UI.main_window import MainWindowStats as classe
         else:
             return None
         fenetre = classe()

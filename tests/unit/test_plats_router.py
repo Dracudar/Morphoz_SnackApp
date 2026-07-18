@@ -25,7 +25,7 @@ Date de modification:
 import pytest
 from unittest.mock import MagicMock
 
-from src.modules.commandes_saisie.utils import plats_router
+from src.mod.saisie.utils import plats_router
 
 
 @pytest.fixture
@@ -59,12 +59,12 @@ class TestToSlug:
 class TestResolveModulePath:
     def test_champ_module_explicite_prioritaire(self, mock_card):
         chemin = plats_router._resolve_module_path("Pizza", mock_card["Pizza"])
-        assert chemin == "src.modules.plats.pizza.rooting"
+        assert chemin == "src.mod.saisie.modules.pizza.rooting"
 
     def test_decouverte_par_slug_module_existant(self, mock_card):
-        # "Frites" n'a pas de champ "module", mais src/modules/plats/frites/rooting.py existe.
+        # "Frites" n'a pas de champ "module", mais src/mod/saisie/modules/frites/rooting.py existe.
         chemin = plats_router._resolve_module_path("Frites", mock_card["Frites"])
-        assert chemin == "src.modules.plats.frites.rooting"
+        assert chemin == "src.mod.saisie.modules.frites.rooting"
 
     def test_aucun_module_correspondant(self, mock_card):
         chemin = plats_router._resolve_module_path("Mr Freez", mock_card["Mr Freez"])

@@ -24,7 +24,7 @@ from unittest.mock import patch
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel
 
-from src.modules.commandes_saisie.UI.widgets.bouton_menu import BoutonMenu
+from src.mod.saisie.UI.widgets.bouton_menu import BoutonMenu
 
 
 @pytest.fixture

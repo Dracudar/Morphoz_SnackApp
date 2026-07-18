@@ -23,7 +23,7 @@ from typing import Dict
 from PySide6.QtCore import Qt, Signal, QSize
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton
 
-from dev.UI.utils.icones import icone_action
+from src.UI.utils.icones import icone_action
 
 
 ROW_HEIGHT = 48

@@ -9,11 +9,11 @@ Description:
     par jour), tableaux détaillés, filtrage par période et export du rapport
     en PDF.
     Seules les commandes terminées sont comptabilisées (voir
-    src.modules.stats.backend.stats.calculer_statistiques).
+    src.mod.stats.backend.stats.calculer_statistiques).
 
     Propose également un rapprochement des paiements carte de l'app avec un
     relevé de ventes CSV exporté depuis SumUp (voir
-    src.modules.stats.backend.sumup).
+    src.mod.stats.backend.sumup).
 
 Author :
     Dracudar
@@ -65,12 +65,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from dev.UI.utils.tactile import ScrollAreaTactile
-from dev.UI.utils.icones import icone
-from dev.backend import logger
-from dev.backend.data_sources import get_all_history_orders, signature_history_orders
-from dev.mod.stats.backend.pdf_export import generer_rapport_pdf
-from dev.mod.stats.backend.stats import (
+from src.UI.utils.tactile import ScrollAreaTactile
+from src.UI.utils.icones import icone
+from src.backend import logger
+from src.backend.data_sources import get_all_history_orders, signature_history_orders
+from src.mod.stats.backend.pdf_export import generer_rapport_pdf
+from src.mod.stats.backend.stats import (
     SEUIL_JOURS_AFFLUENCE_DETAILLEE,
     SEUIL_JOURS_AFFLUENCE_HEBDOMADAIRE,
     calculer_affluence,
@@ -79,7 +79,7 @@ from dev.mod.stats.backend.stats import (
     calculer_statistiques,
     calculer_temps_preparation,
 )
-from dev.mod.stats.backend.sumup import (
+from src.mod.stats.backend.sumup import (
     comptes_disponibles,
     grouper_transactions,
     horodatage_commande,

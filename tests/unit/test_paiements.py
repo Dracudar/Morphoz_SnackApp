@@ -24,7 +24,7 @@ import pytest
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from src.modules.commandes_saisie.backend import paiements
+from src.mod.saisie.backend import paiements
 
 
 # ── Données de test ───────────────────────────────────────────────────────────

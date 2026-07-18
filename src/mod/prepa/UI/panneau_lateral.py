@@ -1,31 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-panneau_lateral_stats.py - Volet latéral de la vue Historique/Statistiques allégée
+panneau_lateral.py - Volet latéral du poste de préparation allégé
 
 Description:
-    Volet de navigation pour la vue allégée Statistiques + Historique +
-    Journal : bascule entre les trois pages, plein écran, quitter. S'affiche
-    en superposition sur le contenu principal via un bouton hamburger dans la
-    barre de navigation. Le dossier data se choisit désormais uniquement
-    depuis le launcher (accessible via le choix de fermeture "Revenir au
-    launcher") : pas de page Paramètres tant qu'aucun réglage spécifique à ce
-    mode n'existe.
+    Volet de configuration pour les postes de préparation : plein écran,
+    quitter. S'affiche en superposition sur le contenu principal via un
+    bouton hamburger dans la barre de navigation. Le dossier data se choisit
+    désormais uniquement depuis le launcher (accessible via le choix de
+    fermeture "Revenir au launcher") : pas de page Paramètres tant qu'aucun
+    réglage spécifique à ce mode n'existe.
 
 Author :
     Dracudar
 
 Version:
-    2.1
+    3.1
 
 Date de création :
-    2026.07.05
+    2026.06.14
 
 Date de modification:
     2026.07.16
 """
-
-from __future__ import annotations
 
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import (
@@ -43,7 +40,6 @@ from src.UI.utils.icones import icone_coloree
 # ── Palette ───────────────────────────────────────────────────────────────────
 _BG          = "#1e2124"
 _BG_HOVER    = "#2c2f33"
-_BG_ACTIF    = "#4a7fcb"
 _CLR_TEXTE   = "#e8e8e8"
 _CLR_DANGER  = "#e05c5c"
 _CLR_SEP     = "#36393f"
@@ -61,7 +57,7 @@ _STYLE_ITEM = f"""
         min-height: {_HAUTEUR_ITEM}px;
     }}
     QPushButton:hover {{ background-color: {_BG_HOVER}; }}
-    QPushButton:checked {{ background-color: {_BG_ACTIF}; font-weight: 700; }}
+    QPushButton:checked {{ background-color: #4a7fcb; font-weight: 700; }}
 """
 
 _STYLE_DANGER = f"""
@@ -87,26 +83,17 @@ _STYLE_FERMER = f"""
     QPushButton:hover {{ color: {_CLR_TEXTE}; background-color: {_BG_HOVER}; }}
 """
 
-# (icône SVG, label affiché, identifiant de page)
-_ITEMS_NAV = [
-    ("stats.svg",      "Statistiques",   "stats"),
-    ("historique.svg", "Historique",     "historique"),
-    ("log.svg",        "Journal",        "logs"),
-]
 
+class VoletPrep(QFrame):
+    """Volet de configuration latéral pour le poste de préparation (superposition dynamique)."""
 
-class VoletStats(QFrame):
-    """Volet latéral de la vue Historique/Statistiques (superposition dynamique)."""
-
-    page_demandee      = Signal(str)  # "stats" | "historique" | "logs"
     action_app_demande = Signal(str)  # "fullscreen" | "quit"
-    fermeture_demandee  = Signal()    # croix cliquée → la fenêtre parente doit aussi masquer l'overlay
+    fermeture_demandee = Signal()     # croix cliquée → la fenêtre parente doit aussi masquer l'overlay
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedWidth(260)
         self._btn_plein_ecran: QPushButton | None = None
-        self._boutons_nav: dict[str, QPushButton] = {}
         self._build_ui()
         self.hide()
 
@@ -120,11 +107,6 @@ class VoletStats(QFrame):
                 "  Quitter plein écran" if actif else "  Plein écran"
             )
 
-    def maj_page_active(self, page_id: str):
-        """Met en évidence le bouton de la page actuellement affichée."""
-        for identifiant, bouton in self._boutons_nav.items():
-            bouton.setChecked(identifiant == page_id)
-
     # ── Construction ──────────────────────────────────────────────────────────
 
     def _build_ui(self):
@@ -134,14 +116,6 @@ class VoletStats(QFrame):
         layout.setSpacing(0)
 
         layout.addWidget(self._build_header())
-
-        for icone, label, page_id in _ITEMS_NAV:
-            btn = self._bouton_item(f"  {label}", checkable=True, icone=icone)
-            btn.clicked.connect(lambda _, p=page_id: self._naviguer(p))
-            self._boutons_nav[page_id] = btn
-            layout.addWidget(btn)
-
-        layout.addWidget(self._separateur())
         layout.addStretch(1)
         layout.addWidget(self._separateur())
 
@@ -169,7 +143,7 @@ class VoletStats(QFrame):
         layout.setContentsMargins(16, 0, 4, 0)
         layout.setSpacing(0)
 
-        titre = QLabel("Navigation")
+        titre = QLabel("Paramètres")
         titre.setStyleSheet(
             f"color: {_CLR_TEXTE}; font-size: 13px; font-weight: 700; border: none;"
         )
@@ -207,8 +181,3 @@ class VoletStats(QFrame):
         sep.setFixedHeight(1)
         sep.setStyleSheet(f"background-color: {_CLR_SEP}; border: none;")
         return sep
-
-    def _naviguer(self, page_id: str):
-        self.maj_page_active(page_id)
-        self.page_demandee.emit(page_id)
-        self.fermeture_demandee.emit()

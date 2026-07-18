@@ -43,10 +43,10 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
-from dev.UI.utils.tactile import EnTeteCliquable, ScrollAreaTactile
-from dev.UI.utils.icones import icone
-from dev.backend.data_sources import get_all_history_orders, signature_history_orders
-from dev.mod.saisie.UI.dialogs.filtres_historique import FiltreHistoriqueDialog
+from src.UI.utils.tactile import EnTeteCliquable, ScrollAreaTactile
+from src.UI.utils.icones import icone
+from src.backend.data_sources import get_all_history_orders, signature_history_orders
+from src.mod.saisie.UI.dialogs.filtres_historique import FiltreHistoriqueDialog
 
 
 # ── Couleurs (identiques à commandes_historique/UI.py et conteneur_suivi_commande) ──

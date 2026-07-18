@@ -41,13 +41,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from dev.backend.app_config import get_assets_path
-from dev.core import session
-from dev.mod.stats.UI.view.historique import HistoriqueConsultationModule
-from dev.mod.stats.UI.view.logs import LogsModule
-from dev.mod.stats.UI.view.stats import StatsModule
-from dev.mod.saisie.UI.volet_navigation import OverlayFermeture
-from dev.mod.stats.UI.panneau_lateral import VoletStats
+from src.backend.app_config import get_assets_path
+from src.core import session
+from src.mod.stats.UI.views.historique import HistoriqueConsultationModule
+from src.mod.stats.UI.views.logs import LogsModule
+from src.mod.stats.UI.views.stats import StatsModule
+from src.mod.saisie.UI.volet_navigation import OverlayFermeture
+from src.mod.stats.UI.panneau_lateral import VoletStats
 
 
 class MainWindowStats(QMainWindow):

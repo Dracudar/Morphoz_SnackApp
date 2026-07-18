@@ -22,13 +22,13 @@ Date de modification:
 import os
 from datetime import datetime
 from collections import OrderedDict
-from dev.mod.prepa.backend import file_io
-from dev.backend.commandes_utils import (
+from src.backend import file_io
+from src.backend.commandes_utils import (
     acceder_commande,
     generer_ID_commande,
     generer_ID_plat,
 )
-from dev.backend import logger
+from src.backend import logger
 
 
 def initialiser_dossiers_commandes(commandes_path, logs_path):

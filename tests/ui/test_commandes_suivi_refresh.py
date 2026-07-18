@@ -20,8 +20,8 @@ Date de création :
 
 import pytest
 
-from src.modules.commandes_suivi.UI.widgets import conteneur_suivi_commande as mod
-from src.modules.commandes_suivi.UI.widgets.conteneur_suivi_commande import (
+from src.mod.saisie.UI import conteneur_suivi_commande as mod
+from src.mod.saisie.UI.conteneur_suivi_commande import (
     ConteneurSuiviCommande,
 )
 

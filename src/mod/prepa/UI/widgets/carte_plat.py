@@ -35,9 +35,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
-from dev.mod.saisie.UI.views.commandes_suivi.backend.commandes_suivi_gestion import livrer_plat, plat_prêt, retour_preparation
-from dev.UI.utils.icones import icone_coloree, pixmap_coloree
-from dev.UI.utils.tactile import BoutonTactile, ScrollAreaTactile
+from src.mod.saisie.backend.commandes_suivi_gestion import livrer_plat, plat_prêt, retour_preparation
+from src.UI.utils.icones import icone_coloree, pixmap_coloree
+from src.UI.utils.tactile import BoutonTactile, ScrollAreaTactile
 
 # ── Dimensions ────────────────────────────────────────────────────────────────
 CARD_H = 250   # hauteur fixe pour uniformité de la grille

@@ -25,6 +25,9 @@ Date de modification:
 from PySide6.QtGui import QColor, QIcon, QPalette
 from PySide6.QtWidgets import QApplication
 
+from src.backend import logger
+from src.backend import update_checker
+
 
 def _build_dark_palette() -> QPalette:
     """Construit et retourne la palette sombre de l'application."""
@@ -58,7 +61,7 @@ if __name__ == "__main__":
     if sys.platform == "linux":
         os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
 
-    from src.backend import app_config, logger, update_checker
+    from src.backend import app_config
     from src.core import session
 
     app = QApplication(sys.argv)

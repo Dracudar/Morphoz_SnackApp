@@ -26,7 +26,8 @@ import json
 import os
 from contextlib import contextmanager
 from datetime import datetime
-from src.backend import file_io, logger
+from src.backend import logger
+from src.backend import file_io
 
 # Préfixe par type de plat pour les ID_plat (P001, G001, etc.)
 PREFIXES_PLAT = {

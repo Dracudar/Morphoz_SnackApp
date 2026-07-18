@@ -36,7 +36,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from dev.UI.utils.icones import icone_coloree
+from src.UI.utils.icones import icone_coloree
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 _BG          = "#1e2124"

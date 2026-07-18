@@ -25,7 +25,7 @@ from PySide6.QtCore import Qt, QEvent, QPointF
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import QPushButton, QFrame, QWidget, QScroller
 
-from src.utils.tactile import (
+from src.UI.utils.tactile import (
     BoutonIngredientTactile,
     BoutonTactile,
     EnTeteCliquable,

@@ -24,7 +24,7 @@ import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from src.modules.commandes_saisie.backend.gestion import (
+from src.mod.saisie.backend.gestion_commande import (
     annuler_all_plats,
     annuler_commande,
     annuler_plat,
@@ -96,25 +96,25 @@ def mocks_gestion(monkeypatch, id_cache):
     """Neutralise les effets de bord de gestion.py (logger, stock, printer)."""
     monkeypatch.setattr("src.backend.logger.log", lambda *a, **kw: None)
     monkeypatch.setattr(
-        "src.modules.commandes_saisie.backend.gestion.restaurer_stock_plat",
+        "src.mod.saisie.backend.gestion_commande.restaurer_stock_plat",
         lambda plat: None,
     )
     monkeypatch.setattr(
-        "src.modules.commandes_saisie.backend.gestion.log_stock_restauration",
+        "src.mod.saisie.backend.gestion_commande.log_stock_restauration",
         lambda plat, id_cmd: None,
     )
     mock_cache = MagicMock()
     mock_cache.save = MagicMock()
     monkeypatch.setattr(
-        "src.modules.commandes_saisie.backend.gestion.get_stock_cache",
+        "src.mod.saisie.backend.gestion_commande.get_stock_cache",
         lambda: mock_cache,
     )
     monkeypatch.setattr(
-        "src.modules.commandes_saisie.backend.gestion.print_ticket_recap",
+        "src.mod.saisie.backend.gestion_commande.print_ticket_recap",
         lambda *a: None,
     )
     monkeypatch.setattr(
-        "src.modules.commandes_saisie.backend.gestion.print_ticket_cuisine",
+        "src.mod.saisie.backend.gestion_commande.print_ticket_cuisine",
         lambda *a: None,
     )
     return mock_cache

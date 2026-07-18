@@ -40,15 +40,15 @@ from PySide6.QtWidgets import (
 
 from pathlib import Path
 
-from dev.UI.utils.icones import icone
-from dev.backend.app_config import (
+from src.UI.utils.icones import icone
+from src.backend.app_config import (
 	get_data_folder_brut,
 	get_print_options,
 	get_printer_config,
 	save_app_config,
 )
-from dev.backend.data_sources import invalider_cache_stock
-from dev.backend import logger
+from src.backend.data_sources import invalider_cache_stock
+from src.backend import logger
 
 
 class ParametresModule(QFrame):

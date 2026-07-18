@@ -34,7 +34,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from dev.UI.styles import dialogues_plats
+from src.UI.styles import dialogues_plats
 
 
 # ── Feuilles de style ──────────────────────────────────────────────────────────

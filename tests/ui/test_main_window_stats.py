@@ -22,7 +22,7 @@ Date de modification:
 
 import pytest
 
-from src.UI_stats.main_window_stats import MainWindowStats
+from src.mod.stats.UI.main_window import MainWindowStats
 
 
 @pytest.fixture

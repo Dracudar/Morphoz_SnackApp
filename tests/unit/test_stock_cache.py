@@ -21,7 +21,7 @@ Date de modification:
 
 import json
 import pytest
-from src.modules.stock.cache import StockCache
+from src.mod.saisie.backend.cache_stock import StockCache
 
 
 @pytest.fixture

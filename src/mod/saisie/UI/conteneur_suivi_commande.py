@@ -33,8 +33,8 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
-from dev.UI.utils.tactile import EnTeteCliquable, ScrollAreaTactile
-from dev.backend.data_sources import get_live_orders, signature_live_orders
+from src.UI.utils.tactile import EnTeteCliquable, ScrollAreaTactile
+from src.backend.data_sources import get_live_orders, signature_live_orders
 
 
 # ── Couleurs ────────────────────────────────────────────────────────────────

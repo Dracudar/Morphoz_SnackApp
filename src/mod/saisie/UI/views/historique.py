@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -48,13 +49,13 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
-from dev.UI.utils.tactile import EnTeteCliquable, ScrollAreaTactile
-from dev.UI.utils.icones import icone, icone_action, icone_coloree
-from dev.backend.app_config import get_print_options
-from dev.backend.data_sources import get_all_history_orders, signature_history_orders
-from dev.backend.printer import reprint_all_active_cuisine, reprint_ticket_cuisine_plat, reprint_ticket_recap
-from dev.mod.saisie.UI.dialogs.filtres_historique import FiltreHistoriqueDialog
-from dev.mod.saisie.UI.views.commandes_suivi.backend.commandes_suivi_gestion import (
+from src.UI.utils.tactile import EnTeteCliquable, ScrollAreaTactile
+from src.UI.utils.icones import icone, icone_action, icone_coloree
+from src.backend.app_config import get_print_options
+from src.backend.data_sources import get_all_history_orders, signature_history_orders
+from src.backend.printer import reprint_all_active_cuisine, reprint_ticket_cuisine_plat, reprint_ticket_recap
+from src.mod.saisie.UI.dialogs.filtres_historique import FiltreHistoriqueDialog
+from src.mod.saisie.backend.commandes_suivi_gestion import (
 	annuler_commande_complete,
 	annuler_plat_valide,
 	marquer_plat_livre,

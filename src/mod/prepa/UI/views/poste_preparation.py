@@ -32,9 +32,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from dev.UI.utils.tactile import ScrollAreaTactile
-from dev.backend.data_sources import get_live_orders_prep, get_types_carte_actifs, signature_live_orders
-from dev.mod.prepa.UI.widgets.carte_plat import CartePlatWidget
+from src.UI.utils.tactile import ScrollAreaTactile
+from src.backend.data_sources import get_live_orders_prep, get_types_carte_actifs, signature_live_orders
+from src.mod.prepa.UI.widgets.carte_plat import CartePlatWidget
 
 _COLUMNS = 4  # colonnes en grille (adapté à l'écran 10")
 

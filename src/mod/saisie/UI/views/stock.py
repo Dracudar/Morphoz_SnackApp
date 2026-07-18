@@ -51,9 +51,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from dev.UI.utils.tactile import ScrollAreaTactile
-from dev.backend import logger
-from dev.backend.data_sources import (
+from src.UI.utils.tactile import ScrollAreaTactile
+from src.backend import logger
+from src.backend.data_sources import (
     get_card_data,
     get_live_orders_prep,
     get_stock_cache,

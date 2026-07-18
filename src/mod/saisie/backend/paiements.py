@@ -19,8 +19,8 @@ Date de modification:
     2026.06.19
 """
 
-from dev.backend.commandes_utils import acceder_commande
-from dev.mod.saisie.UI.views.commandes_saisie.backend.gestion import valider_commande
+from src.backend.commandes_utils import acceder_commande
+from src.mod.saisie.backend.gestion_commande import valider_commande
 
 
 def paiement_carte(chemin_fichier):

@@ -21,16 +21,16 @@ Date de modification:
 
 import os
 from datetime import datetime
-from dev.mod.prepa.backend import file_io
-from dev.backend.commandes_utils import (
+from src.backend import file_io
+from src.backend.commandes_utils import (
     charger_fichier_commande,
     sauvegarder_fichier_commande,
     restaurer_stock_plat,
     log_stock_restauration,
     trouver_candidat_transfert,
 )
-from dev.backend.data_sources import get_stock_cache
-from dev.backend import logger
+from src.backend.data_sources import get_stock_cache
+from src.backend import logger
 
 
 def _trouver_cle_plat(commande_data: dict, plat_id_complet: str):

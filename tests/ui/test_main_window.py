@@ -61,9 +61,9 @@ class FakeSuiviWindow(QMainWindow):
 @pytest.fixture
 def main_window(qtbot, monkeypatch):
     monkeypatch.setattr("src.backend.logger.log", lambda *a, **kw: None)
-    with patch("src.UI.main_window.InterfacePrincipaleWidget", FakeInterface), \
-         patch("src.UI.main_window.SuiviExterieurWindow", FakeSuiviWindow):
-        from src.UI.main_window import MainWindow
+    with patch("src.mod.saisie.UI.main_window.InterfacePrincipaleWidget", FakeInterface), \
+         patch("src.mod.saisie.UI.main_window.SuiviExterieurWindow", FakeSuiviWindow):
+        from src.mod.saisie.UI.main_window import MainWindow
         window = MainWindow()
         qtbot.addWidget(window)
         return window

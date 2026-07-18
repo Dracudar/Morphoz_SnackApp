@@ -21,8 +21,8 @@ Date de modification:
 
 import os
 from datetime import datetime
-from .....dev.mod.prepa.backend import file_io
-from .......backend.commandes_utils import (
+from src.backend import file_io
+from src.backend.commandes_utils import (
     acceder_commande,
     charger_fichier_commande,
     decrementer_ID_commande,
@@ -31,9 +31,9 @@ from .......backend.commandes_utils import (
     sauvegarder_fichier_commande,
     log_stock_restauration,
 )
-from .......backend.printer import print_ticket_recap, print_ticket_cuisine
-from .......backend.data_sources import get_stock_cache
-from .....dev.backend import logger
+from src.backend.printer import print_ticket_recap, print_ticket_cuisine
+from src.backend.data_sources import get_stock_cache
+from src.backend import logger
 
 
 def set_prioritaire(chemin_fichier: str, valeur: bool):

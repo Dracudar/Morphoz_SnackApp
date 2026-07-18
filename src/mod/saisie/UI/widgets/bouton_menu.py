@@ -26,9 +26,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QPushButton, QVBoxLayout, QLabel
 
-from dev.UI.utils.icones import pixmap_depuis_svg
-from dev.backend.app_config import PROJECT_ROOT, get_assets_path
-from dev.backend import logger
+from src.UI.utils.icones import pixmap_depuis_svg
+from src.backend.app_config import PROJECT_ROOT, get_assets_path
+from src.backend import logger
 
 
 BOUTON_MENU_STYLE = """

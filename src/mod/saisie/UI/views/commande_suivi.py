@@ -21,7 +21,7 @@ Date de modification:
 
 from PySide6.QtWidgets import QFrame, QVBoxLayout
 
-from dev.mod.saisie.UI.views.commandes_suivi.UI.widgets.conteneur_suivi_commande import ConteneurSuiviCommande
+from src.mod.saisie.UI.conteneur_suivi_commande import ConteneurSuiviCommande
 
 
 class SuiviCommandesModule(QFrame):

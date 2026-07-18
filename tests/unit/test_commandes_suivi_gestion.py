@@ -26,8 +26,8 @@ import pytest
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from src.modules.commandes_suivi.backend import commandes_suivi_gestion as suivi
-from src.modules.commandes_suivi.backend.commandes_suivi_gestion import (
+from src.mod.saisie.backend import commandes_suivi_gestion as suivi
+from src.mod.saisie.backend.commandes_suivi_gestion import (
     annuler_commande_complete,
     annuler_plat_valide,
     livrer_plat,

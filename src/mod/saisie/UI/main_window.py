@@ -24,11 +24,11 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtWidgets import QMainWindow
 
-from dev.mod.saisie.UI.interface_principale import InterfacePrincipaleWidget
-from dev.mod.saisie.UI.suivi_exterieur_window import SuiviExterieurWindow
-from dev.backend import logger
-from dev.backend.app_config import get_assets_path
-from dev.core import session
+from src.mod.saisie.UI.interface_principale import InterfacePrincipaleWidget
+from src.mod.saisie.UI.suivi_exterieur_window import SuiviExterieurWindow
+from src.backend import logger
+from src.backend.app_config import get_assets_path
+from src.core import session
 
 class MainWindow(QMainWindow):
     def __init__(self):

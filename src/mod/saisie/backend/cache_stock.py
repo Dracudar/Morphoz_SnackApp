@@ -28,7 +28,7 @@ Date de modification:
 
 import copy
 
-from dev.mod.prepa.backend import file_io
+from src.backend import file_io
 
 
 class StockCache:

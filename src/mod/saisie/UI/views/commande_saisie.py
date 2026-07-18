@@ -36,21 +36,21 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from dev.UI.utils.tactile import ScrollAreaTactile
-from dev.UI.utils.icones import icone_action
-from dev.backend.data_sources import get_draft_orders, get_menu_categories
-from dev.backend.app_config import get_archive_folder_path, get_logs_folder_path
-from dev.mod.saisie.UI.views.commandes_saisie.UI.widgets.bouton_menu import BoutonMenu
-from dev.mod.saisie.UI.views.commandes_saisie.UI.widgets.item_row import ItemRow, extract_plat_sort_key
-from dev.mod.saisie.UI.views.commandes_saisie.UI.payment_dialog import PaymentDialog
-from dev.mod.saisie.UI.views.commandes_saisie.utils.plats_router import route_plat_selection, check_disponibilite_plat
-from dev.mod.saisie.UI.views.commandes_saisie.backend.saver import MAJ_commande
-from dev.mod.saisie.UI.views.commandes_saisie.backend.gestion import (
+from src.UI.utils.tactile import ScrollAreaTactile
+from src.UI.utils.icones import icone_action
+from src.backend.data_sources import get_draft_orders, get_menu_categories
+from src.backend.app_config import get_archive_folder_path, get_logs_folder_path
+from src.mod.saisie.UI.widgets.bouton_menu import BoutonMenu
+from src.mod.saisie.UI.widgets.item_row import ItemRow, extract_plat_sort_key
+from src.mod.saisie.UI.dialogs.payment import PaymentDialog
+from src.mod.saisie.utils.plats_router import route_plat_selection, check_disponibilite_plat
+from src.mod.saisie.backend.saver import MAJ_commande
+from src.mod.saisie.backend.gestion_commande import (
     annuler_plat,
     annuler_all_plats,
     set_prioritaire,
 )
-from dev.mod.saisie.UI.views.commandes_saisie.backend.paiements import (
+from src.mod.saisie.backend.paiements import (
     paiement_carte,
     paiement_especes,
     gratuit,

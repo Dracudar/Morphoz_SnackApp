@@ -23,13 +23,13 @@ Date de modification:
 
 import pytest
 
-from src.UI.view.interface_principale import InterfacePrincipaleWidget
+from src.mod.saisie.UI.interface_principale import InterfacePrincipaleWidget
 
 
 class TestPageDeDemarrage:
     def test_demarre_sur_saisie_si_dossier_configure(self, qtbot, monkeypatch):
         monkeypatch.setattr(
-            "src.UI.view.interface_principale.data_folder_est_configure", lambda: True
+            "src.mod.saisie.UI.interface_principale.data_folder_est_configure", lambda: True
         )
         widget = InterfacePrincipaleWidget()
         qtbot.addWidget(widget)
@@ -37,7 +37,7 @@ class TestPageDeDemarrage:
 
     def test_demarre_sur_parametres_si_dossier_non_configure(self, qtbot, monkeypatch):
         monkeypatch.setattr(
-            "src.UI.view.interface_principale.data_folder_est_configure", lambda: False
+            "src.mod.saisie.UI.interface_principale.data_folder_est_configure", lambda: False
         )
         widget = InterfacePrincipaleWidget()
         qtbot.addWidget(widget)

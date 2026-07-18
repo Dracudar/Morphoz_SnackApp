@@ -134,7 +134,7 @@ def get_stock_cache():
     """
     global _stock_cache_instance
     if _stock_cache_instance is None:
-        from src.modules.stock.cache import StockCache
+        from src.mod.saisie.backend.cache_stock import StockCache
         _stock_cache_instance = StockCache(str(get_stock_file_path()))
         _reconcilier_brouillons(_stock_cache_instance)
     return _stock_cache_instance

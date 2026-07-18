@@ -42,7 +42,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from dev.mod.stats.backend.stats import (
+from src.mod.stats.backend.stats import (
     SEUIL_JOURS_AFFLUENCE_DETAILLEE,
     SEUIL_JOURS_AFFLUENCE_HEBDOMADAIRE,
 )

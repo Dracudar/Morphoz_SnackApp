@@ -21,7 +21,7 @@ Date de modification:
 
 from datetime import datetime
 
-from src.modules.stats.backend.sumup import (
+from src.mod.stats.backend.sumup import (
     _corriger_encodage,
     _parser_date_sumup,
     _parser_montant,

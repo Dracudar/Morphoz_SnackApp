@@ -42,8 +42,8 @@ from PySide6.QtWidgets import (
 	QWidget,
 )
 
-from dev.backend.data_sources import get_card_data, save_card_data
-from dev.backend import logger
+from src.backend.data_sources import get_card_data, save_card_data
+from src.backend import logger
 
 
 class CarteModule(QFrame):

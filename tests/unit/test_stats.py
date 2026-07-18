@@ -21,7 +21,7 @@ Date de modification:
 
 from datetime import datetime
 
-from src.modules.stats.backend.stats import (
+from src.mod.stats.backend.stats import (
     calculer_affluence,
     calculer_composition_par_plat,
     calculer_delais_livraison,

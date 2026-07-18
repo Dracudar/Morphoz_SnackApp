@@ -23,8 +23,8 @@ from typing import Dict, Optional
 
 from PySide6.QtWidgets import QApplication, QDialog
 
-from dev.backend.data_sources import get_card_data, get_stock_cache
-from dev.mod.saisie.modules.grillade.grillade_dialog import GrilladeDialog
+from src.backend.data_sources import get_card_data, get_stock_cache
+from src.mod.saisie.modules.grillade.grillade_dialog import GrilladeDialog
 
 
 def route_selection(context, command_path: str) -> Optional[Dict]:
