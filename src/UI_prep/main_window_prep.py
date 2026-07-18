@@ -6,20 +6,22 @@ main_window_prep.py - Fenêtre principale du poste de préparation allégé
 Description:
     Fenêtre principale de l'application légère pour les postes de préparation.
     Barre de navigation tactile en haut (logo MegaSnack cliquable) et volet
-    latéral dynamique en superposition pour les paramètres (dossier data,
-    plein écran, quitter).
+    latéral dynamique en superposition (plein écran, quitter). Le dossier data
+    se choisit désormais uniquement depuis le launcher (accessible via le
+    choix de fermeture "Revenir au launcher") : pas de page Paramètres tant
+    qu'aucun réglage spécifique à ce mode n'existe.
 
 Author :
     Dracudar
 
 Version:
-    2.3
+    2.5
 
 Date de création :
     2026.06.14
 
 Date de modification:
-    2026.06.24
+    2026.07.16
 """
 
 from PySide6.QtCore import QEvent, QSize, Qt
@@ -34,6 +36,7 @@ from PySide6.QtWidgets import (
 )
 
 from src.backend.app_config import get_assets_path
+from src.core import session
 from src.modules.commandes_poste_preparation.UI.poste_preparation import PostePreparationModule
 from src.UI.view.volet_navigation import OverlayFermeture
 from src.UI_prep.panneau_lateral import VoletPrep
@@ -44,6 +47,7 @@ class MainWindowPrep(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setWindowTitle("Morphoz SnackApp — Poste de préparation")
         self.setWindowIcon(QIcon(get_assets_path("imgs", "logo_snack.svg")))
         self.setGeometry(100, 100, 1200, 800)
@@ -73,7 +77,6 @@ class MainWindowPrep(QMainWindow):
 
         self._volet = VoletPrep(self._content_area)
         self._volet.action_app_demande.connect(self._on_action_app)
-        self._volet.dossier_applique.connect(self._poste.refresh)
         self._volet.fermeture_demandee.connect(self._fermer_volet)
         self._volet.hide()
 
@@ -118,7 +121,7 @@ class MainWindowPrep(QMainWindow):
         """Configure les raccourcis clavier globaux."""
         quit_action = QAction("Quitter", self)
         quit_action.setShortcut(QKeySequence("Ctrl+Q"))
-        quit_action.triggered.connect(self.close)
+        quit_action.triggered.connect(lambda: session.gerer_fermeture(self))
         self.addAction(quit_action)
 
         fs_action = QAction("Plein écran", self)
@@ -158,7 +161,7 @@ class MainWindowPrep(QMainWindow):
         if action == "fullscreen":
             self.toggle_fullscreen()
         elif action == "quit":
-            self.close()
+            session.gerer_fermeture(self)
 
     # ── Événements ────────────────────────────────────────────────────────────
 

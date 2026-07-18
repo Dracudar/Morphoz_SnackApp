@@ -8,20 +8,23 @@ Description:
     PDF), historique des commandes et journal des événements, sans saisie, ni
     stock, ni carte, ni impression. Barre de navigation tactile en haut (logo
     MegaSnack cliquable) et volet latéral dynamique en superposition (bascule
-    Statistiques/Historique/Journal, dossier data, plein écran, quitter).
-    Démarre sur Statistiques, page d'accueil de ce mode.
+    Statistiques/Historique/Journal, plein écran, quitter). Le dossier data se
+    choisit désormais uniquement depuis le launcher (accessible via le choix
+    de fermeture "Revenir au launcher") : pas de page Paramètres tant qu'aucun
+    réglage spécifique à ce mode n'existe. Démarre sur Statistiques, page
+    d'accueil de ce mode.
 
 Author :
     Dracudar
 
 Version:
-    1.2
+    1.3
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.14
+    2026.07.16
 """
 
 from __future__ import annotations
@@ -39,7 +42,8 @@ from PySide6.QtWidgets import (
 )
 
 from src.backend.app_config import get_assets_path
-from src.modules.commandes_historique.UI import CommandesHistoriqueModule
+from src.core import session
+from src.modules.commandes_historique.UI_consultation import HistoriqueConsultationModule
 from src.modules.logs.UI import LogsModule
 from src.modules.stats.UI import StatsModule
 from src.UI.view.volet_navigation import OverlayFermeture
@@ -51,6 +55,7 @@ class MainWindowStats(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setWindowTitle("Morphoz SnackApp — Statistiques / Historique / Journal")
         self.setWindowIcon(QIcon(get_assets_path("imgs", "logo_snack.svg")))
         self.setGeometry(100, 100, 1200, 800)
@@ -70,7 +75,7 @@ class MainWindowStats(QMainWindow):
 
         self.left_stack = QStackedWidget()
         self.page_stats = StatsModule()
-        self.page_historique = CommandesHistoriqueModule()
+        self.page_historique = HistoriqueConsultationModule()
         self.page_logs = LogsModule()
         self.left_stack.addWidget(self.page_stats)
         self.left_stack.addWidget(self.page_historique)
@@ -87,7 +92,6 @@ class MainWindowStats(QMainWindow):
         self._volet = VoletStats(self._content_area)
         self._volet.page_demandee.connect(self.set_page)
         self._volet.action_app_demande.connect(self._on_action_app)
-        self._volet.dossier_applique.connect(self._refresh_pages)
         self._volet.fermeture_demandee.connect(self._fermer_volet)
         self._volet.hide()
 
@@ -138,7 +142,7 @@ class MainWindowStats(QMainWindow):
         """Configure les raccourcis clavier globaux."""
         quit_action = QAction("Quitter", self)
         quit_action.setShortcut(QKeySequence("Ctrl+Q"))
-        quit_action.triggered.connect(self.close)
+        quit_action.triggered.connect(lambda: session.gerer_fermeture(self))
         self.addAction(quit_action)
 
         fs_action = QAction("Plein écran", self)
@@ -170,12 +174,6 @@ class MainWindowStats(QMainWindow):
         elif hasattr(widget, "refresh_orders"):
             widget.refresh_orders()
 
-    def _refresh_pages(self):
-        """Rafraîchit les trois pages après un changement de dossier data."""
-        self.page_stats.refresh()
-        self.page_historique.refresh_orders()
-        self.page_logs.refresh()
-
     # ── Volet ─────────────────────────────────────────────────────────────────
 
     def _basculer_volet(self):
@@ -203,7 +201,7 @@ class MainWindowStats(QMainWindow):
         if action == "fullscreen":
             self.toggle_fullscreen()
         elif action == "quit":
-            self.close()
+            session.gerer_fermeture(self)
 
     # ── Événements ────────────────────────────────────────────────────────────
 

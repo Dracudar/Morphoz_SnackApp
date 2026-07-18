@@ -17,17 +17,22 @@ Description:
     retirés une fois créés, donc un changement de dossier après coup, depuis
     le volet de la fenêtre déjà ouverte, laisse les anciens boutons affichés.
 
+    Lance aussi la vérification de mise à jour en arrière-plan : le launcher
+    est le point de passage commun à tous les modes (et on peut y revenir
+    depuis chacun d'eux via le choix de fermeture), donc l'endroit le plus
+    fiable pour afficher la notification, plutôt qu'un mode en particulier.
+
 Author :
     Dracudar
 
 Version:
-    1.2
+    1.4
 
 Date de création :
     2026.07.05
 
 Date de modification:
-    2026.07.09
+    2026.07.16
 """
 
 from __future__ import annotations
@@ -53,6 +58,8 @@ from src.backend.app_config import (
     get_data_folder_brut,
     initialiser_dossier_data,
 )
+from src.backend.update_checker import UpdateChecker
+from src.core.version import APP_VERSION
 from src.UI.utils.icones import icone_coloree
 
 _BG        = "#1e2124"
@@ -92,10 +99,19 @@ class LauncherWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setWindowTitle("Morphoz SnackApp — Choix du mode")
         self.setWindowIcon(QIcon(get_assets_path("imgs", "logo_snack.svg")))
         self.resize(640, 560)
         self._build_ui()
+
+        # Vérification des mises à jour en arrière-plan. Pas de parent Qt : sa durée
+        # de vie est gérée par UpdateChecker.start() elle-même, indépendamment de
+        # cette fenêtre (voir docstring de start() dans update_checker.py) — le
+        # launcher peut être fermé dès qu'un mode est choisi avant la fin du contrôle.
+        self._update_checker = UpdateChecker(APP_VERSION)
+        self._update_checker.update_available.connect(self._show_update_banner)
+        self._update_checker.start()
 
     def _build_ui(self):
         central = QWidget()
@@ -103,6 +119,9 @@ class LauncherWindow(QMainWindow):
         layout = QVBoxLayout(central)
         layout.setContentsMargins(32, 32, 32, 32)
         layout.setSpacing(20)
+
+        self._update_banner = self._create_update_banner()
+        layout.addWidget(self._update_banner)
 
         logo = QLabel()
         logo.setPixmap(QIcon(get_assets_path("imgs", "MegaSnack.svg")).pixmap(QSize(220, 48)))
@@ -123,6 +142,45 @@ class LauncherWindow(QMainWindow):
 
         layout.addStretch()
         self.setCentralWidget(central)
+
+    def _create_update_banner(self) -> QFrame:
+        """Crée la bannière de notification de mise à jour (masquée par défaut)."""
+        frame = QFrame()
+        frame.setObjectName("updateBanner")
+        frame.setStyleSheet(
+            """
+            QFrame#updateBanner {
+                background-color: #1e3a2f;
+                border: 1px solid #2d6a4f;
+                border-radius: 6px;
+            }
+            """
+        )
+        layout = QHBoxLayout(frame)
+        layout.setContentsMargins(12, 4, 8, 4)
+
+        self._update_label = QLabel()
+        self._update_label.setStyleSheet("color: #95d5b2; font-size: 12px; border: none;")
+        layout.addWidget(self._update_label)
+        layout.addStretch()
+
+        close_btn = QPushButton("✕")
+        close_btn.setFixedSize(22, 22)
+        close_btn.setFlat(True)
+        close_btn.setStyleSheet("color: #95d5b2; font-size: 11px; border: none;")
+        close_btn.clicked.connect(frame.hide)
+        layout.addWidget(close_btn)
+
+        frame.hide()
+        return frame
+
+    def _show_update_banner(self, latest_version: str):
+        """Affiche la bannière indiquant qu'une nouvelle version est disponible."""
+        self._update_label.setText(
+            f"Nouvelle version {latest_version} disponible — "
+            "téléchargez-la depuis GitHub Releases."
+        )
+        self._update_banner.show()
 
     def _build_section_dossier(self) -> QFrame:
         carte = QFrame()

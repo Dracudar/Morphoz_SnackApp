@@ -18,13 +18,13 @@ Author :
     Dracudar
 
 Version:
-    1.6
+    1.7
 
 Date de création :
     2026.06.08
 
 Date de modification:
-    2026.06.13
+    2026.07.16
 """
 
 from PySide6.QtCore import Qt, QTimer, Signal
@@ -79,6 +79,10 @@ class SuiviExterieurWindow(QMainWindow):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        # N'a d'effet que lorsque closeEvent accepte réellement l'événement (voir
+        # force_close/closeEvent) : la fermeture manuelle via la croix continue de
+        # seulement masquer la fenêtre (event.ignore()), sans la détruire.
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setWindowTitle("Suivi des commandes")
         self.setGeometry(200, 200, 800, 600)
         self.setWindowFlags(

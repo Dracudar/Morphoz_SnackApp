@@ -13,18 +13,17 @@ Author :
     Dracudar
 
 Version:
-    2.0
+    2.1
 
 Date de création :
     2026.05.18
 
 Date de modification:
-    2026.07.05
+    2026.07.16
 """
 
 from PySide6.QtGui import QColor, QIcon, QPalette
 from PySide6.QtWidgets import QApplication
-from src.UI.launcher_window import LauncherWindow
 
 
 def _build_dark_palette() -> QPalette:
@@ -59,7 +58,8 @@ if __name__ == "__main__":
     if sys.platform == "linux":
         os.environ.setdefault("QT_QPA_PLATFORM", "xcb")
 
-    from src.backend import app_config, logger
+    from src.backend import app_config, logger, update_checker
+    from src.core import session
 
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
@@ -71,31 +71,15 @@ if __name__ == "__main__":
 
     logger.log(logger.DEMARRAGE_APP, {})
     app.aboutToQuit.connect(lambda: logger.log(logger.ARRET_APP, {}))
+    # Attend la fin des vérifications de mise à jour encore en cours (sinon Qt peut
+    # planter en détruisant un fil de vérification pendant qu'il tourne encore).
+    app.aboutToQuit.connect(lambda: update_checker.attendre_verifications_en_cours())
 
-    # Référence forte vers la fenêtre choisie (sinon garbage collectée à la
-    # fin de _lancer_mode, faute de variable locale conservée).
-    fenetre_active = {}
-
-    def _lancer_mode(mode: str):
-        # Import différé : chaque mode a ses propres dépendances lourdes
-        # (ex. Statistiques charge reportlab.graphics et PySide6.QtCharts) —
-        # ne charger que celles du mode réellement choisi évite de payer le
-        # coût des 3 modes à chaque démarrage, quel que soit le choix fait.
-        if mode == "complet":
-            from src.UI.main_window import MainWindow as classe
-        elif mode == "prepa":
-            from src.UI_prep.main_window_prep import MainWindowPrep as classe
-        elif mode == "stats":
-            from src.UI_stats.main_window_stats import MainWindowStats as classe
-        else:
-            return
-        fenetre = classe()
-        fenetre_active["courante"] = fenetre
-        fenetre.show()
-
-    launcher = LauncherWindow()
-    launcher.mode_choisi.connect(_lancer_mode)
-    launcher.show()
+    # session.ouvrir_launcher() garde une référence forte sur la fenêtre créée
+    # (sinon garbage collectée faute de variable locale conservée) ; le même
+    # mécanisme permet d'ouvrir plusieurs fenêtres simultanément (ex. revenir
+    # au launcher ou en ouvrir une session supplémentaire depuis un mode).
+    session.ouvrir_launcher()
 
     sys.exit(app.exec())
 
