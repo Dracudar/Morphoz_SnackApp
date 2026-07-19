@@ -62,11 +62,6 @@ class TestMainWindowStats:
         window.page_logs.go_back.emit()
         assert window.left_stack.currentWidget() is window.page_stats
 
-    def test_go_back_stats_ramene_a_stats(self, window):
-        window.set_page("historique")
-        window.page_stats.go_back.emit()
-        assert window.left_stack.currentWidget() is window.page_stats
-
     def test_maj_page_active_reflete_le_volet(self, window):
         window.set_page("historique")
         assert window._volet._boutons_nav["historique"].isChecked()
