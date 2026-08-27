@@ -41,8 +41,5 @@ Deux options, par ordre de préférence :
 - Étapes de reproduction ou preuve de concept.
 - Impact estimé (accès aux données, exécution de code, déni de service, etc.).
 
-### Délai de réponse
-
-Le projet est maintenu par une seule personne, bénévolement, en dehors des périodes
-d'événements. Un accusé de réception sous 7 jours et un retour sur la faisabilité
-d'un correctif sous 30 jours sont visés, sans garantie contractuelle.
+Le projet est maintenu par une seule personne sur son temps libre, de façon
+bénévole : il n'y a pas de délai de réponse garanti.
