@@ -4,9 +4,18 @@ on:
   workflow_call:
     inputs:
       tag:
-        description: "Tag de version à publier (ex: v2.1.0)"
+        description: "Tag de version à publier (ex: V2.6.0 ou V2.6.0-rc.1)"
         required: true
         type: string
+      release_name:
+        description: "Titre de la release GitHub (ex: Stable 2.6.0 ou Snapshot 2.6.0-rc.1)"
+        required: true
+        type: string
+      prerelease:
+        description: "Marque la release comme pre-release (snapshot)"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build-windows:
@@ -92,11 +101,13 @@ jobs:
       - name: Publier la release avec les trois exécutables
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRERELEASE_FLAG: ${{ inputs.prerelease && '--prerelease' || '' }}
         run: |
           gh release create "${{ inputs.tag }}" \
             MorphozSnackApp-windows.zip \
             MorphozSnackApp-linux-x86_64.tar.gz \
             MorphozSnackApp-linux-aarch64.tar.gz \
             --repo "${{ github.repository }}" \
-            --title "Release ${{ inputs.tag }}" \
-            --generate-notes
+            --title "${{ inputs.release_name }}" \
+            --generate-notes \
+            $PRERELEASE_FLAG

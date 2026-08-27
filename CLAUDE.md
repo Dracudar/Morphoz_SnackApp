@@ -12,16 +12,27 @@ Toute la documentation, les commentaires, les noms de variables, de fonctions et
 
 ## Workflow Git
 
-- Ne jamais travailler directement sur `main` ou `develop`.
-- Toute nouvelle branche se base sur `develop`, sauf indication contraire explicite.
+Le flux de branches est `feature → develop → snapshot → main` :
+
+```
+feature/*  ──PR──►  develop  ──PR──►  snapshot  ──PR──►  main
+                                    (pre-release,          (release stable,
+                                     tag VX.Y.Z-rc.N)       tag VX.Y.Z)
+```
+
+- Ne jamais travailler directement sur `main`, `develop` ou `snapshot`.
+- Toute nouvelle branche se base sur `develop`, sauf indication contraire explicite (ex. la branche `snapshot`, qui part volontairement du commit initial du projet pour un historique propre).
 - Après toute modification de l'UI, lancer l'application et fournir des captures d'écran du résultat avant de considérer la tâche terminée.
-- Tout push sur `main` correspond obligatoirement à une nouvelle version : le job `version` de `auto-tag.yml` échoue si `APP_VERSION` (`src/core/version.py`) n'a pas été incrémenté depuis le dernier tag, y compris pour un simple correctif.
-- Avant de fusionner vers `main` pour une nouvelle version, s'assurer que :
+- `snapshot` sert de sas de pre-release : on y valide une version candidate (build, tests manuels) avant de la fusionner vers `main`. `main` ne doit contenir que des versions stables.
+- Tout push sur `main` correspond obligatoirement à une nouvelle version stable : le job `version` de `auto-tag.yml` échoue si `APP_VERSION` (`src/core/version.py`) n'a pas été incrémenté depuis le dernier tag stable, y compris pour un simple correctif. Il crée le tag `VX.Y.Z` et la release GitHub « Stable X.Y.Z ».
+- Tout push sur `snapshot` crée une pre-release : le job `version` de `auto-tag-snapshot.yml` échoue si `APP_VERSION` correspond à une version déjà publiée en stable (`VX.Y.Z` déjà tagué sur `main`) — il faut d'abord incrémenter `APP_VERSION`. Le numéro `rc.N` est auto-détecté (incrémenté à partir des tags `VX.Y.Z-rc.*` déjà existants pour cette version) ; le tag créé est `VX.Y.Z-rc.N` et la release GitHub « Snapshot X.Y.Z-rc.N » (marquée pre-release).
+- Avant de fusionner vers `snapshot` ou vers `main`, s'assurer que :
   - `docs/PATCHNOTE_V{version}.md` existe **pour les versions majeures et mineures** (`X.Y.0`) — pas requis pour un correctif (`X.Y.Z`, `Z` > 0).
   - Le tableau « Historique des versions » du `README.md` mentionne la nouvelle version.
   - `docs/ARCHITECTURE.md` est à jour si `src/` a changé depuis le dernier tag.
-  - `CHANGELOG.md` est généré automatiquement (job `changelog` de `auto-tag.yml`, via `scripts/generate_changelog.py`) à partir des commits Conventional Commits depuis le dernier tag — aucune action manuelle requise.
-  - Ces points sont vérifiés automatiquement par les jobs `version` et `verify-docs` de `auto-tag.yml` et bloquent la création du tag/la release en cas d'échec.
+  - Ces points sont vérifiés automatiquement par les jobs `version` et `verify-docs` de `auto-tag.yml` (vers `main`) et `auto-tag-snapshot.yml` (vers `snapshot`), et bloquent la création du tag/la release en cas d'échec.
+- `CHANGELOG.md` est généré automatiquement (job `changelog` de `auto-tag.yml`, via `scripts/generate_changelog.py`) uniquement lors d'un push sur `main`, à partir des commits Conventional Commits depuis le dernier tag stable — aucune action manuelle requise. Les pushs sur `snapshot` ne touchent pas au `CHANGELOG.md`.
+- Après la création d'une release stable sur `main`, le job `merge-back` de `auto-tag.yml` fusionne automatiquement `main` dans `develop` (pour rapatrier le commit `CHANGELOG.md` et d'éventuels futurs hotfix) — aucune action manuelle requise, sauf conflit (à résoudre manuellement le cas échéant).
 
 ### Conventions de commit
 

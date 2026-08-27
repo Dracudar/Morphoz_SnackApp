@@ -1,22 +1,21 @@
-name: Auto-tag
+name: Auto-tag (snapshot)
 
 on:
   push:
     branches:
-      - main
-    paths-ignore:
-      - CHANGELOG.md
+      - snapshot
   pull_request:
     branches:
-      - main
+      - snapshot
 
 jobs:
   version:
-    name: Lire la version et vérifier qu'elle a été incrémentée
+    name: Lire la version et calculer le prochain rc.N
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
+      rc: ${{ steps.version.outputs.rc }}
       previous_tag: ${{ steps.previous.outputs.tag }}
 
     steps:
@@ -25,22 +24,26 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Lire APP_VERSION depuis version.py
+      - name: Lire APP_VERSION et calculer le tag rc
         id: version
         run: |
           VERSION=$(python3 -c "exec(open('src/core/version.py').read()); print(APP_VERSION)")
+          DERNIER_RC=$(git tag --list "V${VERSION}-rc.*" | sed -E "s/^V${VERSION}-rc\.([0-9]+)$/\1/" | sort -n | tail -n1)
+          PROCHAIN_RC=$(( ${DERNIER_RC:-0} + 1 ))
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=V$VERSION" >> $GITHUB_OUTPUT
+          echo "rc=$PROCHAIN_RC" >> $GITHUB_OUTPUT
+          echo "tag=V${VERSION}-rc.${PROCHAIN_RC}" >> $GITHUB_OUTPUT
 
-      - name: Déterminer le tag stable précédent
+      - name: Déterminer le tag précédent (stable ou snapshot)
         id: previous
         run: |
-          echo "tag=$(git tag --list 'V*' --sort=-v:refname | grep -v -- '-rc\.' | head -n1)" >> $GITHUB_OUTPUT
+          echo "tag=$(git tag --list --sort=-creatordate | head -n1)" >> $GITHUB_OUTPUT
 
-      - name: Bloquer si la version n'a pas été incrémentée
+      - name: Bloquer si la version est déjà publiée en stable
         run: |
-          if git tag --list | grep -qx "${{ steps.version.outputs.tag }}"; then
-            echo "::error::Le tag ${{ steps.version.outputs.tag }} existe déjà. Tout push sur main correspond à une nouvelle version : incrémentez APP_VERSION dans src/core/version.py (y compris pour un simple correctif) avant de fusionner vers main."
+          VERSION=$(python3 -c "exec(open('src/core/version.py').read()); print(APP_VERSION)")
+          if git tag --list | grep -qx "V${VERSION}"; then
+            echo "::error::Le tag V${VERSION} existe déjà en version stable. Incrémentez APP_VERSION dans src/core/version.py avant de créer un nouveau snapshot."
             exit 1
           fi
 
@@ -94,38 +97,9 @@ jobs:
       - name: Vérifier la syntaxe du fichier de compilation (*.spec)
         run: python3 -m py_compile morphoz_snackapp.spec
 
-  changelog:
-    name: Générer l'entrée CHANGELOG.md de la version
-    needs: [version, verify-docs]
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Générer la section de version
-        run: |
-          python3 scripts/generate_changelog.py \
-            --previous "${{ needs.version.outputs.previous_tag }}" \
-            --version "${{ needs.version.outputs.version }}" \
-            --date "$(date -u +%Y-%m-%d)"
-
-      - name: Committer et pousser le CHANGELOG
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git commit -m "docs(changelog): ajoute l'entrée V${{ needs.version.outputs.version }}"
-          git push origin HEAD:main
-
   tag:
-    name: Créer le tag de version
-    needs: [version, changelog]
+    name: Créer le tag de snapshot
+    needs: [version, verify-docs]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
@@ -136,7 +110,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: snapshot
           fetch-tags: true
 
       - name: Créer et pousser le tag
@@ -145,7 +119,7 @@ jobs:
           git push origin "${{ needs.version.outputs.tag }}"
 
   build:
-    name: Compiler et publier la release
+    name: Compiler et publier le snapshot
     needs: [version, tag]
     if: github.event_name == 'push' && needs.tag.result == 'success'
     permissions:
@@ -153,27 +127,5 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       tag: ${{ needs.tag.outputs.tag }}
-      release_name: "Stable ${{ needs.version.outputs.version }}"
-      prerelease: false
-
-  merge-back:
-    name: Fusionner main dans develop après la release
-    needs: [version, build]
-    if: github.event_name == 'push' && needs.build.result == 'success'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: develop
-          fetch-depth: 0
-
-      - name: Fusionner main dans develop
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git merge origin/main --no-edit -m "chore(develop): fusionne main après la release ${{ needs.version.outputs.tag }}"
-          git push origin develop
+      release_name: "Snapshot ${{ needs.version.outputs.version }}-rc.${{ needs.version.outputs.rc }}"
+      prerelease: true
