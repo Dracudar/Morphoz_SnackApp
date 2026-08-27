@@ -62,6 +62,21 @@ En mode Saisie/Gestion, la vue principale est divisée en deux panneaux : saisie
    python -m src.core.app
    ```
 
+### Workflow Git
+
+Le flux de branches est `feature → develop → snapshot → main` :
+
+```
+feature/*  ──PR──►  develop  ──PR──►  snapshot  ──PR──►  main
+                                    (pre-release,          (release stable,
+                                     tag VX.Y.Z-rc.N)       tag VX.Y.Z)
+```
+
+- Le développement se fait sur des branches `feature/*` basées sur `develop`, jamais directement sur `develop`, `snapshot` ou `main`.
+- `snapshot` sert de sas de pre-release : on y valide une version candidate (build, tests manuels) avant de la fusionner vers `main`. Chaque push sur `snapshot` déclenche `auto-tag-snapshot.yml`, qui crée le tag `VX.Y.Z-rc.N` (numéro `rc` auto-incrémenté) et publie une release GitHub « Snapshot X.Y.Z-rc.N » (pre-release).
+- Chaque push sur `main` déclenche `auto-tag.yml`, qui crée le tag `VX.Y.Z` et publie une release GitHub « Stable X.Y.Z », puis fusionne automatiquement `main` dans `develop` pour rapatrier le `CHANGELOG.md` généré.
+- Voir `CLAUDE.md` pour le détail des conventions (nommage des commits, vérifications de documentation requises avant chaque release, etc.).
+
 ### Structure du projet
 
 ```
@@ -127,8 +142,10 @@ Morphoz_SnackApp/
 │
 ├── .github/
 │   └── workflows/
-│       ├── auto-tag.yml                    # Vérifie la doc, génère le CHANGELOG, crée le tag vX.Y.Z et déclenche build.yml
-│       └── build.yml                       # CI/CD : 3 builds PyInstaller (Windows + Linux x86_64/aarch64), appelé par auto-tag.yml
+│       ├── tests.yml                       # Tests unitaires et UI (pytest) sur chaque push/PR
+│       ├── auto-tag.yml                    # Sur main : vérifie la doc, génère le CHANGELOG, crée le tag stable VX.Y.Z, déclenche build.yml puis fusionne main dans develop
+│       ├── auto-tag-snapshot.yml           # Sur snapshot : vérifie la doc, calcule le tag rc.N (VX.Y.Z-rc.N) et déclenche build.yml (pre-release)
+│       └── build.yml                       # CI/CD : 3 builds PyInstaller (Windows + Linux x86_64/aarch64), appelé par auto-tag.yml et auto-tag-snapshot.yml
 │
 ├── morphoz_snackapp.spec                   # Configuration PyInstaller (exécutable unique, 3 modes via launcher)
 │
