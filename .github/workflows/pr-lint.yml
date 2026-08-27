@@ -1,0 +1,71 @@
+name: PR Lint
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches:
+      - develop
+      - snapshot
+      - main
+
+jobs:
+  branch-flow:
+    name: Vérifier le flux de branches
+    runs-on: ubuntu-latest
+    steps:
+      - name: "feature → develop → snapshot → main"
+        run: |
+          BASE="${{ github.event.pull_request.base.ref }}"
+          HEAD="${{ github.event.pull_request.head.ref }}"
+
+          case "$BASE" in
+            main)
+              if [ "$HEAD" != "snapshot" ]; then
+                echo "::error::Une PR vers main doit provenir de snapshot (flux feature → develop → snapshot → main, voir CLAUDE.md). Branche source détectée : $HEAD"
+                exit 1
+              fi
+              ;;
+            snapshot)
+              if [ "$HEAD" != "develop" ]; then
+                echo "::error::Une PR vers snapshot doit provenir de develop (flux feature → develop → snapshot → main, voir CLAUDE.md). Branche source détectée : $HEAD"
+                exit 1
+              fi
+              ;;
+            develop)
+              if [ "$HEAD" = "main" ] || [ "$HEAD" = "snapshot" ]; then
+                echo "::error::Une PR vers develop ne doit pas provenir de main ou snapshot (flux à sens unique feature → develop → snapshot → main, voir CLAUDE.md)."
+                exit 1
+              fi
+              ;;
+          esac
+
+          echo "OK : $HEAD -> $BASE respecte le flux."
+
+  commit-lint:
+    name: Vérifier le format des commits (Conventional Commits)
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Vérifier chaque commit de la PR
+        run: |
+          PATTERN='^(feat|fix|docs|style|refactor|test|chore)(\([a-zA-Z0-9_/.-]+\))?: .+'
+          ERREUR=0
+
+          while IFS= read -r MSG; do
+            [ -z "$MSG" ] && continue
+            if [[ "$MSG" == Merge\ * ]]; then
+              continue
+            fi
+            if ! [[ "$MSG" =~ $PATTERN ]]; then
+              echo "::error::Commit non conforme à Conventional Commits (type(scope): description) : \"$MSG\""
+              ERREUR=1
+            fi
+          done < <(gh pr view "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --json commits -q '.commits[].messageHeadline')
+
+          if [ "$ERREUR" = "1" ]; then
+            echo "::error::Types autorisés : feat, fix, docs, style, refactor, test, chore. Voir la section « Conventions de commit » de CLAUDE.md."
+            exit 1
+          fi

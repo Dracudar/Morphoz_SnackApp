@@ -41,5 +41,8 @@ Deux options, par ordre de préférence :
 - Étapes de reproduction ou preuve de concept.
 - Impact estimé (accès aux données, exécution de code, déni de service, etc.).
 
-Le projet est maintenu par une seule personne sur son temps libre, de façon
-bénévole : il n'y a pas de délai de réponse garanti.
+### Délai de réponse
+
+Le projet est maintenu par une seule personne, sur son temps libre et de façon
+bénévole. Il n'y a donc pas de délai de réponse garanti : un retour sera fait dès
+que possible, selon la disponibilité du mainteneur.
