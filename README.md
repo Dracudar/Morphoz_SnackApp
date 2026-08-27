@@ -142,7 +142,7 @@ Morphoz_SnackApp/
 │
 ├── .github/
 │   └── workflows/
-│       ├── tests.yml                       # Tests unitaires et UI (pytest) sur chaque push/PR
+│       ├── tests.yml                       # Tests unitaires et UI (pytest) sur chaque pull request
 │       ├── auto-tag.yml                    # Sur main : vérifie la doc, génère le CHANGELOG, crée le tag stable VX.Y.Z, déclenche build.yml puis fusionne main dans develop
 │       ├── auto-tag-snapshot.yml           # Sur snapshot : vérifie la doc, calcule le tag rc.N (VX.Y.Z-rc.N) et déclenche build.yml (pre-release)
 │       └── build.yml                       # CI/CD : 3 builds PyInstaller (Windows + Linux x86_64/aarch64), appelé par auto-tag.yml et auto-tag-snapshot.yml
